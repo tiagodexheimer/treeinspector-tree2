@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// ==================== SPECIES & TAXONOMY ====================
+
+model Species {
+  id_especie      Int      @id @default(autoincrement())
+  nome_comum      String
+  nome_cientifico String   @unique
+  
+  // Taxonomic enrichment (GBIF)
+  family          String?
+  native_status   String?  // 'Native', 'Exotic', 'Unknown'
+  
+  // External IDs
+  gbif_id         BigInt?
+  plantnet_id     String?
+  
+  trees           Tree[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+// ==================== TREES & LOCATION ====================
+
+model Tree {
+  id_arvore       Int      @id @default(autoincrement())
+  numero_etiqueta String?
+  
+  // Geospatial data (PostGIS POINT with WGS 84)
+  localizacao     Unsupported("geometry(Point, 4326)")?
+  lat             Float?
+  lng             Float?
+  
+  // Address fields
+  rua             String?
+  numero          String?
+  bairro          String?
+  endereco        String?  // Full address (legacy field)
+  
+  // Species relationship
+  speciesId       Int
+  species         Species  @relation(fields: [speciesId], references: [id_especie])
+  
+  // Relationships
+  inspections     Inspection[]
+  serviceOrders   ServiceOrder[]
+  photos          PhotoMetadata[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+// ==================== INSPECTIONS & TEMPORAL DATA ====================
+
+model Inspection {
+  id_inspecao     Int      @id @default(autoincrement())
+  data_inspecao   DateTime @default(now())
+  
+  treeId          Int
+  tree            Tree     @relation(fields: [treeId], references: [id_arvore])
+  
+  // Temporal Data
+  dendrometrics   DendrometricData[]
+  phytosanitary   PhytosanitaryData[]
+  managementActions ManagementAction[]
+  
+  created_at      DateTime @default(now())
+}
+
+// Temporal Data Pattern: Valid Time
+model DendrometricData {
+  id              Int      @id @default(autoincrement())
+  inspectionId    Int
+  inspection      Inspection @relation(fields: [inspectionId], references: [id_inspecao])
+  
+  // Measurements
+  dap_cm          Decimal  // Diameter at Breast Height
+  cap_cm          Decimal? // Circumference at Breast Height (CAP = π * DAP)
+  altura_total_m  Decimal
+  altura_copa_m   Decimal
+  
+  // Temporal validity
+  valid_from      DateTime
+  valid_to        DateTime? // Null means current (infinity)
+}
+
+model PhytosanitaryData {
+  id              Int      @id @default(autoincrement())
+  inspectionId    Int
+  inspection      Inspection @relation(fields: [inspectionId], references: [id_inspecao])
+  
+  // Health assessment
+  estado_saude    String   // 'Ótimo', 'Bom', 'Regular', 'Ruim', 'Crítico'
+  epiphytes       Boolean  @default(false)
+  
+  // Structured pest/disease/damage records
+  problemas       Json?    // Array of {type: 'Praga'|'Doença'|'Dano', description: string, severity: number}
+  
+  // Temporal validity
+  valid_from      DateTime
+  valid_to        DateTime?
+}
+
+// ==================== MANAGEMENT & SERVICE ORDERS ====================
+
+model ManagementAction {
+  id              Int      @id @default(autoincrement())
+  inspectionId    Int
+  inspection      Inspection @relation(fields: [inspectionId], references: [id_inspecao])
+  
+  // Action type
+  action_type     String   // 'Poda', 'Supressão', 'Substituição'
+  
+  // Poda subtypes (only if action_type = 'Poda')
+  poda_type       String?  // 'Levantamento de Copa', 'Afastamento de Edificação/Rede', 'Raiz', 'Outras'
+  
+  // Justification
+  justification   String?
+  
+  // Temporal validity
+  valid_from      DateTime
+  valid_to        DateTime?
+  
+  // Relationship to Service Orders
+  serviceOrders   ServiceOrder[]
+  
+  created_at      DateTime @default(now())
+}
+
+model ServiceOrder {
+  id              Int      @id @default(autoincrement())
+  
+  // Relationships
+  tree_id         Int
+  tree            Tree     @relation(fields: [tree_id], references: [id_arvore])
+  
+  management_id   Int
+  management      ManagementAction @relation(fields: [management_id], references: [id])
+  
+  // Status tracking
+  status          String   // 'Planejada', 'Em Execução', 'Concluída', 'Cancelada'
+  assigned_to     String?  // Team/Inspector ID or name
+  
+  // Notes
+  observations    String?
+  
+  // Timestamps
+  created_at      DateTime @default(now())
+  executed_at     DateTime?
+  
+  @@index([status])
+  @@index([assigned_to])
+}
+
+// ==================== MEDIA STORAGE ====================
+
+model PhotoMetadata {
+  id              Int      @id @default(autoincrement())
+  
+  // Vercel Blob Storage URL
+  blob_url        String
+  blob_key        String?  // Vercel Blob storage key for deletion
+  
+  // Photo metadata
+  file_name       String
+  file_size       Int?     // bytes
+  mime_type       String?
+  
+  // Relationship to tree
+  tree_id         Int?
+  tree            Tree?    @relation(fields: [tree_id], references: [id_arvore])
+  
+  // Capture metadata
+  captured_at     DateTime @default(now())
+  uploaded_at     DateTime @default(now())
+  
+  // GPS coordinates at capture (may differ from tree location)
+  capture_lat     Float?
+  capture_lng     Float?
+  
+  @@index([tree_id])
+}

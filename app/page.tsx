@@ -27,6 +27,9 @@ export default function Home() {
               <Link href="/service-orders" className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
                 Gerenciar OS
               </Link>
+              <Link href="/statistics" className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-md">
+                Estatísticas
+              </Link>
             </div>
           </div>
 

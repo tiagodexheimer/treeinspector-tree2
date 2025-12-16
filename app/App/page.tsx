@@ -4,14 +4,14 @@ import React, { useState } from 'react';
 // import { Sprout, BarChart3, HeartPulse, HardHat, MapPin, Calendar, CheckCircle, XCircle } from 'lucide-react';
 
 // --- SVGs INLINE DE SUBSTITUIÇÃO ---
-const Sprout = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20c-3.3 0-6-2.7-6-6 0-3.3 2.7-6 6-6V2" /><path d="M12 20c3.3 0 6-2.7 6-6 0-3.3-2.7-6-6-6V2" /></svg>;
-const BarChart3 = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V7" /><path d="M8 17v-3" /></svg>;
-const HeartPulse = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /><path d="M3.23 8.35h2.89L9 11l3-7 3 7h3.88" /></svg>;
-const HardHat = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11h-3a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h3v-8z" /><path d="M2 11h3a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3H2v-8z" /><path d="M14 2c-2.7 0-5 3-5 5v5h10V7c0-2-2.3-5-5-5z" /></svg>;
-const MapPin = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17.5A2.5 2.5 0 0 1 9.5 15a2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5z" /><path d="M12 22s-8-6-8-12c0-4.42 3.58-8 8-8s8 3.58 8 8c0 6-8 12-8 12z" /></svg>;
-const Calendar = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
-const CheckCircle = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="M9 11l3 3L22 4" /></svg>;
-const XCircle = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6" /><path d="M9 9l6 6" /></svg>;
+const Sprout = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20c-3.3 0-6-2.7-6-6 0-3.3 2.7-6 6-6V2" /><path d="M12 20c3.3 0 6-2.7 6-6 0-3.3-2.7-6-6-6V2" /></svg>;
+const BarChart3 = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V7" /><path d="M8 17v-3" /></svg>;
+const HeartPulse = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /><path d="M3.23 8.35h2.89L9 11l3-7 3 7h3.88" /></svg>;
+const HardHat = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11h-3a3 3 0 0 0-3 3v2a3 3 0 0 0 3 3h3v-8z" /><path d="M2 11h3a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3H2v-8z" /><path d="M14 2c-2.7 0-5 3-5 5v5h10V7c0-2-2.3-5-5-5z" /></svg>;
+const MapPin = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17.5A2.5 2.5 0 0 1 9.5 15a2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5z" /><path d="M12 22s-8-6-8-12c0-4.42 3.58-8 8-8s8 3.58 8 8c0 6-8 12-8 12z" /></svg>;
+const Calendar = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
+const CheckCircle = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="M9 11l3 3L22 4" /></svg>;
+const XCircle = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6" /><path d="M9 9l6 6" /></svg>;
 // Fim dos SVGs de substituição
 
 // --- DADOS MOCKADOS PARA SIMULAR O HISTÓRICO TEMPORAL ---
@@ -50,11 +50,11 @@ const historicoManejo = [
 // --- COMPONENTES AUXILIARES ---
 
 // Simulação de Gráfico (usando div placeholder)
-const ChartPlaceholder = ({ title, data, labelY, color }) => (
+const ChartPlaceholder = ({ title, data, labelY, color }: any) => (
     <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-inner">
         <h4 className="text-md font-semibold text-gray-700 mb-2">{title}</h4>
         <div className={`h-40 flex items-end justify-between p-2 bg-gray-50 border-t-2 border-l-2 border-${color}-500`}>
-            {data.map((item, index) => (
+            {data.map((item: any, index: any) => (
                 <div key={index} className="flex flex-col items-center group relative cursor-pointer">
                     <div
                         style={{ height: `${item.valor * 5}px`, backgroundColor: color }}
@@ -72,7 +72,7 @@ const ChartPlaceholder = ({ title, data, labelY, color }) => (
 );
 
 // Timeline Item
-const TimelineItem = ({ data, tipo, status, descricao, icon: Icon, color }) => (
+const TimelineItem = ({ data, tipo, status, descricao, icon: Icon, color }: any) => (
     <div className="flex relative pb-8">
         <div className="h-full w-6 absolute inset-0 flex items-center justify-center">
             <div className={`h-full w-0.5 bg-gray-200 ${status === 'Pendente' ? 'dashed' : ''}`} />
@@ -95,8 +95,8 @@ const TimelineItem = ({ data, tipo, status, descricao, icon: Icon, color }) => (
 );
 
 // Timeline Item for Health
-const HealthTimelineItem = ({ data, estadoSaude, problemas, observacoes }) => {
-    const healthMap = {
+const HealthTimelineItem = ({ data, estadoSaude, problemas, observacoes }: any) => {
+    const healthMap: any = {
         'Ótimo': { color: 'bg-green-500', icon: HeartPulse },
         'Bom': { color: 'bg-lime-500', icon: HeartPulse },
         'Regular': { color: 'bg-yellow-500', icon: HeartPulse },
@@ -155,7 +155,7 @@ const App = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {historicoDendrometrico.map((d, index) => (
+                                {historicoDendrometrico.map((d: any, index: any) => (
                                     <tr key={index} className={index === historicoDendrometrico.length - 1 ? 'bg-blue-50/50 font-bold' : ''}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{d.data}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{d.altura}</td>
@@ -174,7 +174,7 @@ const App = () => {
                 <div className="space-y-6">
                     <h3 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Linha do Tempo de Inspeções e Saúde</h3>
                     <div className="relative border-l-2 border-gray-200 ml-3">
-                        {historicoFitossanitario.slice().reverse().map((d, index) => (
+                        {historicoFitossanitario.slice().reverse().map((d: any, index: any) => (
                             <HealthTimelineItem
                                 key={index}
                                 data={d.data}
@@ -192,7 +192,7 @@ const App = () => {
                 <div className="space-y-6">
                     <h3 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Histórico de Ordens de Serviço (OS) e Ações</h3>
                     <div className="relative border-l-2 border-gray-200 ml-3">
-                        {historicoManejo.slice().reverse().map((d, index) => {
+                        {historicoManejo.slice().reverse().map((d: any, index: any) => {
                             let color;
                             let Icon;
                             if (d.status === 'Concluído') {

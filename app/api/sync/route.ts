@@ -3,28 +3,14 @@ import { prisma } from '../../lib/prisma';
 import { Prisma } from '@prisma/client';
 
 // Constants for Temporal Logic
-const INFINITY_DATE = null; // Prisma uses null for "undefined" end date in this schema context? 
-// Schema says valid_to DateTime? so null is correct for "current".
+const INFINITY_DATE = null;
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { sync_batch } = body;
 
-        // Expected payload structure:
-        // sync_batch: [
-        //   {
-        //      mobile_id: string, // UUID from mobile for idempotency
-        //      tree: { ... }, // Optional if updating existing tree
-        //      inspection: {
-        //          data_inspecao: string,
-        //          dendrometric: { ... },
-        //          phytosanitary: { ... },
-        //          management: { ... },
-        //          photos: [ ... ]
-        //      }
-        //   }
-        // ]
+        // Expected payload: { sync_batch: [ { tree: ..., inspection: ... } ] }
 
         if (!Array.isArray(sync_batch)) {
             return NextResponse.json({ error: 'Invalid payload: sync_batch must be an array' }, { status: 400 });
@@ -32,206 +18,165 @@ export async function POST(request: Request) {
 
         const results = [];
 
-        // Transactional processing to ensure integrity
-        // We process each item. For a real bulk sync, specific transaction isolation might be needed,
-        // but $transaction per item or global depends on volume. Let's do per-item for now to allow partial successes or global?
-        // Let's do a global transaction for the whole batch to ensure "all or nothing" sync or robust error handling.
-        // Actually, for sync, if one fails, we might want others to succeed, but usually batches are atomic.
+        // Pre-fetch check for existing Species to avoid FK errors
+        // Collect all species IDs from the batch
+        const incomingSpeciesIds = new Set<number>();
+        sync_batch.forEach((item: any) => {
+            if (item.tree && item.tree.speciesId && !isNaN(Number(item.tree.speciesId))) {
+                incomingSpeciesIds.add(Number(item.tree.speciesId));
+            }
+        });
 
-        // However, Prisma $transaction doesn't support complex logic easily inside without interactive transactions (preview feature depending on version).
-        // Standard interactive transaction:
+        // Query DB for these IDs
+        const existingSpecies = await prisma.species.findMany({
+            where: { id_especie: { in: Array.from(incomingSpeciesIds) } },
+            select: { id_especie: true }
+        });
+
+        const validSpeciesIds = new Set(existingSpecies.map((s: any) => s.id_especie));
+
+        // Ensure ID 1 is considered valid (fallback) - effectively assuming it exists due to seed
+        // If not, we could upsert it here, but we rely on seed for now to keep sync fast.
 
         await prisma.$transaction(async (tx) => {
             for (const item of sync_batch) {
                 const { tree, inspection } = item;
+                let treeId: number | null = null;
 
-                let treeId = tree?.id_arvore; // If syncing updates to existing tree
-
-                // 1. Upsert Tree
+                // 1. Process Tree (Upsert by UUID)
                 if (tree) {
-                    // If we have an ID, update. If not (or if it's a mobile temp ID), create.
-                    // Ideally mobile sends 'numero_etiqueta' or 'id_arvore' if known.
-                    // For now, let's assume if id_arvore is present, it's known.
-
-                    if (treeId) {
-                        await tx.tree.update({
-                            where: { id_arvore: treeId },
-                            data: {
-                                numero_etiqueta: tree.numero_etiqueta,
-                                rua: tree.rua,
-                                numero: tree.numero,
-                                bairro: tree.bairro,
-                                endereco: tree.endereco,
-                                lat: tree.lat,
-                                lng: tree.lng,
-                                // species updates?
-                            }
-                        });
-                    } else {
-                        // Create new tree
-                        const newTree = await tx.tree.create({
-                            data: {
-                                numero_etiqueta: tree.numero_etiqueta,
-                                rua: tree.rua,
-                                numero: tree.numero,
-                                bairro: tree.bairro,
-                                lat: tree.lat,
-                                lng: tree.lng,
-                                speciesId: Number(tree.speciesId),
-                                // handle species if needed
-                            }
-                        });
-                        treeId = newTree.id_arvore;
+                    if (!tree.uuid) {
+                        console.warn("Tree sync item missing UUID", tree);
+                        // Skip if missing UUID, we cannot reliably sync without it in the new model
+                        continue;
                     }
-                }
 
-                if (!treeId) {
-                    // If no tree info provided and no treeId, we can't attach inspection.
-                    // But maybe validation happens before.
-                    continue;
-                }
+                    // Validate Species ID
+                    let targetSpeciesId = (!tree.speciesId || isNaN(Number(tree.speciesId))) ? 1 : Number(tree.speciesId);
+                    if (!validSpeciesIds.has(targetSpeciesId)) {
+                        console.warn(`Species ID ${targetSpeciesId} not found in DB, falling back to 1`);
+                        targetSpeciesId = 1;
+                    }
 
-                // 2. Create Inspection
-                if (inspection) {
-                    const newInspection = await tx.inspection.create({
-                        data: {
-                            treeId: treeId,
-                            data_inspecao: new Date(inspection.data_inspecao || new Date()),
+                    // Upsert: Create or Update based on UUID
+                    const upsertedTree = await tx.tree.upsert({
+                        where: { uuid: tree.uuid },
+                        update: {
+                            numero_etiqueta: tree.numero_etiqueta,
+                            nome_popular: tree.nome_popular,
+                            cover_photo: tree.cover_photo,
+                            rua: tree.rua,
+                            numero: tree.numero,
+                            bairro: tree.bairro,
+                            lat: tree.lat,
+                            lng: tree.lng,
+                            speciesId: targetSpeciesId,
+                        },
+                        create: {
+                            uuid: tree.uuid,
+                            numero_etiqueta: tree.numero_etiqueta,
+                            nome_popular: tree.nome_popular,
+                            cover_photo: tree.cover_photo,
+                            rua: tree.rua,
+                            numero: tree.numero,
+                            bairro: tree.bairro,
+                            lat: tree.lat,
+                            lng: tree.lng,
+                            speciesId: targetSpeciesId,
                         }
                     });
+                    treeId = upsertedTree.id_arvore;
+                }
 
-                    // 3. Handle Temporal Data (Dendrometric)
-                    if (inspection.dendrometric) {
-                        // Close previous valid record
-                        // Find currently valid record for this tree
-                        // Note: DendrometricData is linked to Inspection, but we need to know which one was "current" for this tree.
-                        // This implies querying ALL inspections for this tree and finding the open dendrometric data.
-                        // Or we can query DendrometricData directly if we linked it to Tree? 
-                        // Schema: DendrometricData -> Inspection -> Tree.
+                // Use inspection's linked tree if we didn't process a tree block but have a way to link?
+                // For now, we rely on 'tree' block being present in the sync item as per Android DTO.
 
-                        // We need to find the specific DendrometricData for this TREE where valid_to is NULL.
+                if (!treeId) continue;
 
-                        // Wait, schema check:
-                        // DendrometricData relates to Inspection. Inspection relates to Tree.
-                        // So we find other inspections for this tree.
+                // 2. Process Inspection (linked to treeId)
+                if (inspection) {
+                    if (inspection.uuid) {
+                        const inspectionData = {
+                            data_inspecao: new Date(inspection.data_inspecao || new Date()),
+                            treeId: treeId, // Link to the resolved tree ID
+                            dendrometrics: {
+                                create: inspection.dendrometric ? [{
+                                    dap1_cm: inspection.dendrometric.dap1_cm,
+                                    dap2_cm: inspection.dendrometric.dap2_cm,
+                                    dap3_cm: inspection.dendrometric.dap3_cm,
+                                    dap4_cm: inspection.dendrometric.dap4_cm,
+                                    altura_total_m: inspection.dendrometric.altura_total_m,
+                                    altura_copa_m: inspection.dendrometric.altura_copa_m,
+                                    valid_from: new Date(),
+                                    valid_to: null
+                                }] : []
+                            },
+                            phytosanitary: {
+                                create: inspection.phytosanitary ? [{
+                                    estado_saude: inspection.phytosanitary.estado_saude,
+                                    pragas: inspection.phytosanitary.pragas || [],
+                                    danos_tipo: inspection.phytosanitary.danos_tipo,
+                                    danos_severidade: inspection.phytosanitary.danos_severidade,
+                                    valid_from: new Date(),
+                                    valid_to: null
+                                }] : []
+                            },
+                            managementActions: {
+                                create: inspection.management ? [{
+                                    necessita_manejo: inspection.management.necessita_manejo || false,
+                                    manejo_tipo: inspection.management.manejo_tipo,
+                                    poda_tipos: inspection.management.poda_tipos || [],
+                                    supressao_tipo: inspection.management.supressao_tipo,
+                                    justification: inspection.management.justification,
+                                    valid_from: new Date(),
+                                    valid_to: null
+                                }] : []
+                            },
+                            photos: {
+                                create: inspection.photos ? inspection.photos.map((p: any) => ({
+                                    uri: p.uri
+                                })) : []
+                            }
+                        };
 
-                        const lastDendro = await tx.dendrometricData.findFirst({
-                            where: {
-                                inspection: { treeId: treeId },
-                                valid_to: null
+                        // Upsert Inspection by UUID
+                        await tx.inspection.upsert({
+                            where: { uuid: inspection.uuid },
+                            update: {
+                                // Idempotent update: currently we don't overwrite history on sync
+                            },
+                            create: {
+                                uuid: inspection.uuid,
+                                ...inspectionData
                             }
                         });
-
-                        if (lastDendro) {
-                            await tx.dendrometricData.update({
-                                where: { id: lastDendro.id },
-                                data: { valid_to: new Date() } // Close with current timestamp
-                            });
-                        }
-
-                        // Insert new
-                        await tx.dendrometricData.create({
-                            data: {
-                                inspectionId: newInspection.id_inspecao,
-                                dap_cm: inspection.dendrometric.dap_cm,
-                                cap_cm: inspection.dendrometric.cap_cm,
-                                altura_total_m: inspection.dendrometric.altura_total_m,
-                                altura_copa_m: inspection.dendrometric.altura_copa_m,
-                                valid_from: new Date(),
-                                valid_to: null // Current
-                            }
-                        });
-                    }
-
-                    // 4. Handle Temporal Data (Phytosanitary)
-                    if (inspection.phytosanitary) {
-                        const lastPhyto = await tx.phytosanitaryData.findFirst({
-                            where: {
-                                inspection: { treeId: treeId },
-                                valid_to: null
-                            }
-                        });
-
-                        if (lastPhyto) {
-                            await tx.phytosanitaryData.update({
-                                where: { id: lastPhyto.id },
-                                data: { valid_to: new Date() }
-                            });
-                        }
-
-                        await tx.phytosanitaryData.create({
-                            data: {
-                                inspectionId: newInspection.id_inspecao,
-                                estado_saude: inspection.phytosanitary.estado_saude,
-                                epiphytes: inspection.phytosanitary.epiphytes,
-                                problemas: inspection.phytosanitary.problemas, // JSON
-                                valid_from: new Date(),
-                                valid_to: null
-                            }
-                        });
-                    }
-
-                    // 5. Handle Management
-                    if (inspection.management) {
-                        // Same temporal logic if management is tracking status "active"? 
-                        // ManagementAction usually generates an OS. 
-                        // But if we track "Proposed Action" validity (until it's done or superseded), we can use temporal.
-
-                        const lastMgmt = await tx.managementAction.findFirst({
-                            where: {
-                                inspection: { treeId: treeId },
-                                valid_to: null
-                            }
-                        });
-
-                        if (lastMgmt) {
-                            await tx.managementAction.update({
-                                where: { id: lastMgmt.id },
-                                data: { valid_to: new Date() }
-                            });
-                        }
-
-                        await tx.managementAction.create({
-                            data: {
-                                inspectionId: newInspection.id_inspecao,
-                                action_type: inspection.management.action_type,
-                                poda_type: inspection.management.poda_type,
-                                justification: inspection.management.justification,
-                                valid_from: new Date(),
-                                valid_to: null
-                            }
-                        });
-                    }
-
-                    // 6. Handle Photos (Metadata) (HU14 prep)
-                    if (inspection.photos && Array.isArray(inspection.photos)) {
-                        for (const photo of inspection.photos) {
-                            // Create metadata record. Capture URL will be generated later or handled by client?
-                            // PROJETO.MD: "API retorna ... uma lista de URLs de upload pré-assinados"
-                            // So we create the record with a placeholder or empty url, generate the presigned url, and return it.
-
-                            // For this MVP step, let's just create the record. 
-                            // We'll need Vercel Blob SDK for the URL generation.
-
-                            await tx.photoMetadata.create({
-                                data: {
-                                    tree_id: treeId,
-                                    file_name: photo.file_name,
-                                    blob_url: 'pending_upload', // Placeholder
-                                    captured_at: new Date(photo.captured_at || new Date()),
-                                }
-                            });
-                        }
                     }
                 }
             }
+        }, {
+            maxWait: 10000, // Wait max 10s for transaction to start
+            timeout: 120000 // Allow 120s for transaction to complete
         });
 
-        // Refine response to include Upload URLs (Future Step)
-        return NextResponse.json({ status: 'synced', timestamp: new Date() });
+        return NextResponse.json({
+            success: true,
+            processed: sync_batch.length,
+            errors: []
+        });
 
     } catch (error) {
         console.error('Sync error:', error);
-        return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
+
+        // Log to file for debugging
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const logPath = path.join(process.cwd(), 'server-error.log');
+            const timestamp = new Date().toISOString();
+            const errorMessage = error instanceof Error ? error.stack || error.message : JSON.stringify(error);
+            fs.appendFileSync(logPath, `[${timestamp}] ${errorMessage}\n\n`);
+        } catch (e) { /* ignore */ }
+
+        return NextResponse.json({ error: 'Sync failed', details: error instanceof Error ? error.message : 'Unknown' }, { status: 500 });
     }
 }

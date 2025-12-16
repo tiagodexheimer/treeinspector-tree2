@@ -34,7 +34,10 @@ model Species {
 
 model Tree {
   id_arvore       Int      @id @default(autoincrement())
+  uuid            String?  @unique // Mobile UUID for Offline Sync
   numero_etiqueta String?
+  nome_popular    String?
+  cover_photo     String? // URL/URI or base64 placeholder
   
   // Geospatial data (PostGIS POINT with WGS 84)
   localizacao     Unsupported("geometry(Point, 4326)")?
@@ -64,6 +67,7 @@ model Tree {
 
 model Inspection {
   id_inspecao     Int      @id @default(autoincrement())
+  uuid            String?  @unique // Mobile UUID for Offline Sync
   data_inspecao   DateTime @default(now())
   
   treeId          Int
@@ -73,6 +77,8 @@ model Inspection {
   dendrometrics   DendrometricData[]
   phytosanitary   PhytosanitaryData[]
   managementActions ManagementAction[]
+  
+  photos        InspectionPhoto[]
   
   created_at      DateTime @default(now())
 }
@@ -84,10 +90,13 @@ model DendrometricData {
   inspection      Inspection @relation(fields: [inspectionId], references: [id_inspecao])
   
   // Measurements
-  dap_cm          Decimal  // Diameter at Breast Height
-  cap_cm          Decimal? // Circumference at Breast Height (CAP = π * DAP)
-  altura_total_m  Decimal
-  altura_copa_m   Decimal
+  dap1_cm         Decimal? // Primary DAP
+  dap2_cm         Decimal? // Optional
+  dap3_cm         Decimal? // Optional
+  dap4_cm         Decimal? // Optional
+  
+  altura_total_m  Decimal?
+  altura_copa_m   Decimal?
   
   // Temporal validity
   valid_from      DateTime
@@ -100,11 +109,14 @@ model PhytosanitaryData {
   inspection      Inspection @relation(fields: [inspectionId], references: [id_inspecao])
   
   // Health assessment
-  estado_saude    String   // 'Ótimo', 'Bom', 'Regular', 'Ruim', 'Crítico'
-  epiphytes       Boolean  @default(false)
+  estado_saude    String?   // 'Desvitalizada', 'Ruim', 'Regular', 'Bom'
   
-  // Structured pest/disease/damage records
-  problemas       Json?    // Array of {type: 'Praga'|'Doença'|'Dano', description: string, severity: number}
+  // Pests/Diseases
+  pragas          String[] // Array of: 'Erva-de-passarinho', 'Fungos', 'Cupim'
+  
+  // Damage
+  danos_tipo       String? // Description of damage
+  danos_severidade String? // 'Leve', 'Médio', 'Alto'
   
   // Temporal validity
   valid_from      DateTime
@@ -118,13 +130,19 @@ model ManagementAction {
   inspectionId    Int
   inspection      Inspection @relation(fields: [inspectionId], references: [id_inspecao])
   
+  // General Need
+  necessita_manejo Boolean @default(false)
+  
   // Action type
-  action_type     String   // 'Poda', 'Supressão', 'Substituição'
+  manejo_tipo     String?   // 'Poda', 'Supressão'
   
-  // Poda subtypes (only if action_type = 'Poda')
-  poda_type       String?  // 'Levantamento de Copa', 'Afastamento de Edificação/Rede', 'Raiz', 'Outras'
+  // Poda subtypes
+  poda_tipos      String[]  // Array of: 'Levantamento de copa', 'Afastamento de rede...', etc.
   
-  // Justification
+  // Supressão subtypes
+  supressao_tipo  String?   // 'Remoção', 'Substituição'
+  
+  // Justification/Notes
   justification   String?
   
   // Temporal validity
@@ -189,4 +207,12 @@ model PhotoMetadata {
   capture_lng     Float?
   
   @@index([tree_id])
+}
+
+model InspectionPhoto {
+  id_foto       Int      @id @default(autoincrement())
+  inspectionId  Int
+  inspection    Inspection @relation(fields: [inspectionId], references: [id_inspecao])
+  uri           String
+  created_at    DateTime @default(now())
 }

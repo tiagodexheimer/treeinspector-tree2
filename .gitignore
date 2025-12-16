@@ -39,5 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+<<<<<<< HEAD
 
 /app/generated/prisma
+=======
+>>>>>>> 1516e693d510031457b55ad0234338b1ada18c88

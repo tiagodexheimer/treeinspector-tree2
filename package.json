@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/proj4": "^2.5.6",
     "@types/uuid": "^10.0.0",
@@ -39,6 +40,19 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
     "prisma": "^5.22.0",
+=======
+    "next": "16.0.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.3",
+>>>>>>> 1516e693d510031457b55ad0234338b1ada18c88
     "tailwindcss": "^4",
     "typescript": "^5"
   }

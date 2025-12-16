@@ -80,9 +80,16 @@ function Markers() {
       try {
         const response = await fetch('/api/trees');
         const data = await response.json();
-        setTrees(data);
+        // Only set trees if response is actually an array
+        if (Array.isArray(data)) {
+          setTrees(data);
+        } else {
+          console.error('API returned non-array:', data);
+          setTrees([]);
+        }
       } catch (error) {
         console.error('Failed to fetch trees:', error);
+        setTrees([]);
       }
     }
     fetchTrees();

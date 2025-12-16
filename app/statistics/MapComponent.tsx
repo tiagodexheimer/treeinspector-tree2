@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { divIcon } from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
@@ -149,10 +150,57 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
     }
 };
 
+// Grid cell size in degrees (must match API)
+const GRID_SIZE = 0.003;
+
+// Get rectangle color based on grid type
+const getGridRectColor = (stat: GridStat, gridType: GridType): string => {
+    if (gridType === 'management') {
+        const action = stat.predominant_action;
+        if (action === 'Remocao') return '#ef4444';
+        if (action === 'Substituicao') return '#f59e0b';
+        if (action === 'Poda') return '#3b82f6';
+        return '#9ca3af';
+    } else {
+        const health = stat.predominant_health || 'Regular';
+        if (health.includes('Bom')) return '#22c55e';
+        if (health.includes('Ruim')) return '#ef4444';
+        if (health.includes('Morta') || health.includes('Desv')) return '#000000';
+        return '#eab308';
+    }
+};
+
 export default function MapComponent({ stats, gridStats, statMode, gridType }: MapComponentProps) {
+    // Track selected grid cell for showing rectangle
+    const [selectedCell, setSelectedCell] = useState<number | null>(null);
+
     return (
         <MapContainer center={[-29.852, -51.1841]} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }}>
             <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+            {/* Grid cell rectangle (only show for selected cell) */}
+            {statMode === 'grid' && selectedCell !== null && Array.isArray(gridStats) && gridStats[selectedCell] && (() => {
+                const stat = gridStats[selectedCell];
+                if (!stat.grid_lat || !stat.grid_lng) return null;
+                const halfSize = GRID_SIZE / 2;
+                const bounds: [[number, number], [number, number]] = [
+                    [stat.grid_lat - halfSize, stat.grid_lng - halfSize],
+                    [stat.grid_lat + halfSize, stat.grid_lng + halfSize]
+                ];
+                return (
+                    <Rectangle
+                        key={`rect-selected`}
+                        bounds={bounds}
+                        pathOptions={{
+                            color: getGridRectColor(stat, gridType),
+                            weight: 2,
+                            opacity: 1,
+                            fillColor: getGridRectColor(stat, gridType),
+                            fillOpacity: 0.3
+                        }}
+                    />
+                );
+            })()}
 
             {(statMode === 'grid' ? (Array.isArray(gridStats) ? gridStats : []) : (Array.isArray(stats) ? stats : [])).map((stat, idx) => (
                 stat.lat && stat.lng ? (
@@ -160,6 +208,13 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                         key={idx}
                         position={[stat.lat, stat.lng]}
                         icon={getChartIcon(stat as any, statMode, gridType)}
+                        eventHandlers={{
+                            click: () => {
+                                if (statMode === 'grid') {
+                                    setSelectedCell(selectedCell === idx ? null : idx);
+                                }
+                            }
+                        }}
                     >
                         <Popup>
                             {statMode === 'grid' ? (

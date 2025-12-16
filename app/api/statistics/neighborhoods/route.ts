@@ -59,12 +59,18 @@ export async function GET() {
         }>();
 
         for (const tree of (trees as any[])) {
-            const bairro = tree.bairro?.trim();
-            if (!bairro) continue;
+            const bairroRaw = tree.bairro?.trim();
+            if (!bairroRaw) continue;
 
-            if (!stats.has(bairro)) {
-                stats.set(bairro, {
-                    bairro,
+            // Normalize to lowercase for grouping (prevents duplicates like "Parque Amador" vs "Parque amador")
+            const bairroKey = bairroRaw.toLowerCase();
+
+            // Use title case for display
+            const bairroDisplay = bairroRaw.charAt(0).toUpperCase() + bairroRaw.slice(1).toLowerCase();
+
+            if (!stats.has(bairroKey)) {
+                stats.set(bairroKey, {
+                    bairro: bairroDisplay,
                     total: 0,
                     remocao: 0,
                     substituicao: 0,
@@ -81,7 +87,7 @@ export async function GET() {
                 });
             }
 
-            const entry = stats.get(bairro)!;
+            const entry = stats.get(bairroKey)!;
             entry.total++;
 
             // Sum coordinates

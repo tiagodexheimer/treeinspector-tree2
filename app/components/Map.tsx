@@ -1,11 +1,12 @@
 'use client';
 
 import { divIcon } from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import useSupercluster from 'use-supercluster';
 
 interface Tree {
   id_arvore: number;
@@ -42,13 +43,36 @@ const getTreeIcon = (status: string) => {
   return divIcon({
     html: svg,
     className: 'bg-transparent',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9], // Center
-    popupAnchor: [0, -10]
+    iconSize: [24, 24], // Slightly larger for better visibility
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12]
   });
 };
 
-export default function Map() {
+const getClusterIcon = (count: number) => {
+  return divIcon({
+    html: `<div style="
+            width: 30px; 
+            height: 30px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background-color: rgba(34, 197, 94, 0.9); 
+            border-radius: 50%; 
+            color: white; 
+            font-weight: bold; 
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        ">${count}</div>`,
+    className: 'cluster-marker',
+    iconSize: [30, 30]
+  });
+};
+
+function Markers() {
+  const map = useMap();
+  const [bounds, setBounds] = useState<any>(null);
+  const [zoom, setZoom] = useState(10);
   const [trees, setTrees] = useState<Tree[]>([]);
 
   useEffect(() => {
@@ -64,29 +88,111 @@ export default function Map() {
     fetchTrees();
   }, []);
 
+  // Update bounds on move
+  useEffect(() => {
+    const updateMap = () => {
+      const b = map.getBounds();
+      setBounds([
+        b.getSouthWest().lng,
+        b.getSouthWest().lat,
+        b.getNorthEast().lng,
+        b.getNorthEast().lat
+      ]);
+      setZoom(map.getZoom());
+    };
+
+    updateMap(); // Initial
+    map.on('moveend', updateMap);
+    return () => { map.off('moveend', updateMap); };
+  }, [map]);
+
+  // Convert trees to GeoJSON points
+  const points = useMemo(() => trees.map(tree => ({
+    type: 'Feature',
+    properties: {
+      cluster: false,
+      treeId: tree.id_arvore,
+      etiqueta: tree.numero_etiqueta,
+      species: tree.species?.nome_comum,
+      status: tree.inspections?.[0]?.phytosanitary?.[0]?.estado_saude || 'Regular'
+    },
+    geometry: {
+      type: 'Point',
+      coordinates: [tree.lng, tree.lat]
+    }
+  })), [trees]);
+
+  const { clusters, supercluster } = useSupercluster({
+    points: points as any,
+    bounds: bounds,
+    zoom: zoom,
+    options: { radius: 75, maxZoom: 17 } // Clusters break apart at zoom 18
+  });
+
   return (
-    <MapContainer center={[-29.852, -51.1841]} zoom={13} scrollWheelZoom={true} style={{ height: '600px', width: '100%', zIndex: 0 }}>
+    <>
+      {clusters.map((cluster) => {
+        const [longitude, latitude] = cluster.geometry.coordinates;
+        const { cluster: isCluster, point_count } = cluster.properties;
+
+        if (isCluster) {
+          return (
+            <Marker
+              key={`cluster-${cluster.id}`}
+              position={[latitude, longitude]}
+              icon={getClusterIcon(point_count)}
+              eventHandlers={{
+                click: () => {
+                  const expansionZoom = Math.min(
+                    supercluster.getClusterExpansionZoom(cluster.id),
+                    22
+                  );
+                  map.setView([latitude, longitude], expansionZoom, {
+                    animate: true
+                  });
+                }
+              }}
+            />
+          );
+        }
+
+        // Individual Marker
+        return (
+          <Marker
+            key={`tree-${cluster.properties.treeId}`}
+            position={[latitude, longitude]}
+            icon={getTreeIcon(cluster.properties.status)}
+          >
+            <Popup>
+              <strong>Etiqueta:</strong> {cluster.properties.etiqueta} <br />
+              <strong>Espécie:</strong> {cluster.properties.species || 'Desconhecida'} <br />
+              <strong>Saúde:</strong> {cluster.properties.status} <br />
+              <span className="text-xs text-gray-500">ID: {cluster.properties.treeId}</span>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
+
+export default function Map() {
+  return (
+    <MapContainer
+      center={[-29.852, -51.1841]}
+      zoom={16} // Increased initial zoom level as requested
+      scrollWheelZoom={true}
+      style={{ height: '600px', width: '100%', zIndex: 0 }}
+      maxZoom={22}
+    >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        maxNativeZoom={19}
+        maxZoom={22}
       />
-      {trees.map((tree) => {
-        const status = tree.inspections?.[0]?.phytosanitary?.[0]?.estado_saude || 'Regular';
-        return tree.lat && tree.lng ? (
-          <Marker
-            key={tree.id_arvore}
-            position={[tree.lat, tree.lng]}
-            icon={getTreeIcon(status)}
-          >
-            <Popup>
-              <strong>Etiqueta:</strong> {tree.numero_etiqueta} <br />
-              <strong>Espécie:</strong> {tree.species?.nome_comum || 'Desconhecida'} <br />
-              <strong>Saúde:</strong> {status} <br />
-              <span className="text-xs text-gray-500">ID: {tree.id_arvore}</span>
-            </Popup>
-          </Marker>
-        ) : null;
-      })}
+
+      <Markers />
 
       {/* Legend Overlay */}
       <div className="leaflet-bottom leaflet-right" style={{ pointerEvents: 'auto' }}>

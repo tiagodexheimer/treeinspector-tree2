@@ -186,6 +186,15 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                                             </div>
                                         </>
                                     )}
+                                    <div className="mt-2 pt-2 border-t border-gray-200 text-center">
+                                        <a
+                                            href={`/statistics/details?lat=${(stat as GridStat).grid_lat}&lng=${(stat as GridStat).grid_lng}`}
+                                            className="inline-block px-3 py-1 bg-blue-600 !text-white font-bold text-xs rounded hover:bg-blue-700 transition decoration-0"
+                                            style={{ color: 'white', textDecoration: 'none' }}
+                                        >
+                                            Ver Lista de Árvores
+                                        </a>
+                                    </div>
                                 </>
                             ) : (
                                 <>

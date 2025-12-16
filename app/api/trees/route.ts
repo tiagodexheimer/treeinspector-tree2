@@ -70,18 +70,121 @@ export async function GET(request: Request) {
         }
 
         // Default: Return ALL trees (Backward compatibility for Map)
+        // Check for Geo-Spatial Search (Nearby)
+        const latParam = searchParams.get('lat');
+        const lngParam = searchParams.get('lng');
+        const radiusParam = searchParams.get('radius');
+
+        if (latParam && lngParam && radiusParam) {
+            const lat = parseFloat(latParam);
+            const lng = parseFloat(lngParam);
+            const radius = parseFloat(radiusParam); // in meters
+
+            // Earth Radius approx 6371km. 
+            // 1 degree lat ~= 111km = 111000m
+            const latDelta = radius / 111000;
+            const lngDelta = radius / (111000 * Math.cos(lat * (Math.PI / 180)));
+
+            const minLat = lat - latDelta;
+            const maxLat = lat + latDelta;
+            const minLng = lng - lngDelta;
+            const maxLng = lng + lngDelta;
+
+            const trees = await prisma.tree.findMany({
+                where: {
+                    ...where,
+                    lat: { gte: minLat, lte: maxLat },
+                    lng: { gte: minLng, lte: maxLng }
+                },
+                select: {
+                    id_arvore: true,
+                    // uuid: true, // Assuming UUID is not on schema yet based on previous files, using id_arvore primarily
+                    lat: true,
+                    lng: true,
+                    numero_etiqueta: true,
+                    rua: true,
+                    numero: true,
+                    bairro: true,
+                    speciesId: true,
+                    species: {
+                        select: {
+                            nome_comum: true,
+                            nome_cientifico: true
+                        }
+                    },
+                    photos: {
+                        take: 1,
+                        select: {
+                            blob_url: true // In a real app we'd send a URL, here we send what we have. 
+                            // If blob_url is actually a URL string, great. If base64, it's heavy but lazy loaded by client request.
+                        }
+                    }
+                },
+                // take: 500 // Removed to ensure we calculate distance for ALL trees in the box before slicing.
+                // Assuming density isn't massive (e.g. < 5000 trees in 500m radius).
+                // If performance becomes an issue, we can optimize with PostGIS or raw query.
+            });
+
+            // Calculate distance and sort
+            const treesWithDist = trees.map(t => {
+                if (!t.lat || !t.lng) return { ...t, distance: Infinity };
+
+                // Haversine
+                const R = 6371e3; // metres
+                const φ1 = lat * Math.PI / 180;
+                const φ2 = t.lat * Math.PI / 180;
+                const Δφ = (t.lat - lat) * Math.PI / 180;
+                const Δλ = (t.lng - lng) * Math.PI / 180;
+                const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                const d = R * c; // in metres
+
+                return { ...t, distance: d };
+            });
+
+            treesWithDist.sort((a, b) => a.distance - b.distance);
+
+            // Return Top 50 of the closest
+            const mobileTrees = treesWithDist.slice(0, 50).map(t => ({
+                id: t.id_arvore,
+                etiqueta: t.numero_etiqueta,
+                species_common: t.species?.nome_comum,
+                species_scientific: t.species?.nome_cientifico,
+                address: `${t.rua || ''}, ${t.numero || ''} - ${t.bairro || ''}`,
+                lat: t.lat,
+                lng: t.lng,
+                distance: t.distance // Return distance
+            }));
+
+            return NextResponse.json(mobileTrees);
+        }
+
+        // Default: Return ALL trees (Optimized for Map)
         const trees = await prisma.tree.findMany({
             where,
             orderBy: { id_arvore: 'desc' },
-            include: {
-                species: true,
+            select: {
+                id_arvore: true,
+                lat: true,
+                lng: true,
+                numero_etiqueta: true,
+                species: {
+                    select: {
+                        nome_comum: true
+                    }
+                },
                 inspections: {
                     orderBy: { data_inspecao: 'desc' },
                     take: 1,
-                    include: {
+                    select: {
                         phytosanitary: {
                             orderBy: { valid_from: 'desc' },
-                            take: 1
+                            take: 1,
+                            select: {
+                                estado_saude: true
+                            }
                         }
                     }
                 }

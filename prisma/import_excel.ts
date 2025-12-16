@@ -56,103 +56,95 @@ async function main() {
         }
     }
 
-    // Process Trees in Batches
-    const BATCH_SIZE = 5;
-
-    console.log('Starting Tree Processing loop...');
+    // Process Trees in Batches (Parallelized)
+    const BATCH_SIZE = 20; // Reduced from 50 to avoid pool exhaustion
+    console.log(`Starting Tree Processing loop... Batch Size: ${BATCH_SIZE}`);
 
     let processed = 0;
-    for (let i = 0; i < data.length; i += BATCH_SIZE) {
-        const batch = data.slice(i, i + BATCH_SIZE);
 
-        await prisma.$transaction(async (tx) => {
-            for (const row of batch) {
-                // Parse ID / Etiqueta -> User said "ID is Código"
-                const keys = Object.keys(row);
-                // Try 'Código' or 'ID'
-                const idKey = keys.find(k => {
-                    const clean = k.trim().toUpperCase();
-                    return clean === 'CÓDIGO' || clean === 'CODIGO' || clean === 'ID';
-                });
+    // Helper function to process a single row safely
+    const processRow = async (row: any) => {
+        try {
+            // Parse ID / Etiqueta
+            const keys = Object.keys(row);
+            const idKey = keys.find(k => {
+                const clean = k.trim().toUpperCase();
+                return clean === 'CÓDIGO' || clean === 'CODIGO' || clean === 'ID';
+            });
 
-                const etiqueta = idKey && row[idKey] ? String(row[idKey]) : null;
-                if (!etiqueta) continue;
+            const etiqueta = idKey && row[idKey] ? String(row[idKey]) : null;
+            if (!etiqueta) return;
 
-                // Parse Coords
-                let latStr = '';
-                let lngStr = '';
+            // Parse Coords
+            let latStr = '';
+            let lngStr = '';
+            const xKey = keys.find(k => k.trim() === 'UTM E inicial') || 'UTM E inicial';
+            const yKey = keys.find(k => k.trim() === 'UTM S inicial') || 'UTM S inicial';
 
-                const xKey = keys.find(k => k.trim() === 'UTM E inicial') || 'UTM E inicial';
-                const yKey = keys.find(k => k.trim() === 'UTM S inicial') || 'UTM S inicial';
+            if (row[xKey] && row[yKey]) {
+                try {
+                    const coords = proj4("EPSG:31982", "EPSG:4326", [Number(row[xKey]), Number(row[yKey])]);
+                    lngStr = coords[0].toFixed(8);
+                    latStr = coords[1].toFixed(8);
+                } catch (e) { }
+            }
 
-                if (row[xKey] && row[yKey]) {
-                    try {
-                        const coords = proj4("EPSG:31982", "EPSG:4326", [Number(row[xKey]), Number(row[yKey])]);
-                        lngStr = coords[0].toFixed(8); // X -> Lng
-                        latStr = coords[1].toFixed(8); // Y -> Lat
-                    } catch (e) { }
-                }
+            // Resolve Species
+            const sciKey = keys.find(k => k.trim() === 'NOME CIENTÍFICO') || 'NOME CIENTÍFICO';
+            const speciesName = row[sciKey]?.trim();
+            const speciesId = speciesMap.get(speciesName) || 1;
 
-                // Resolve Species
-                const sciKey = keys.find(k => k.trim() === 'NOME CIENTÍFICO') || 'NOME CIENTÍFICO';
-                const speciesName = row[sciKey]?.trim();
-                const speciesId = speciesMap.get(speciesName) || 1;
+            // Use Upsert for atomic create/update if possible, but we need dynamic logic for inspections
+            // Doing findFirst + create/update is fine if concurrency is managed, but upsert is safer.
+            // However, Prisma upsert requires a unique constraint on the where clause.
+            // Assuming numero_etiqueta is unique or we want to find by it.
+            // If unique constraint exists on numero_etiqueta:
 
-                // Check existence
-                let tree: any = await tx.tree.findFirst({
-                    where: { numero_etiqueta: etiqueta },
-                    include: { inspections: true }
+            const treeData = {
+                numero_etiqueta: etiqueta,
+                speciesId,
+                rua: row['Rua'] ? String(row['Rua']) : null,
+                numero: row['n'] ? String(row['n']) : null,
+                bairro: row['Bairro'] ? String(row['Bairro']) : null,
+                lat: latStr ? parseFloat(latStr) : null,
+                lng: lngStr ? parseFloat(lngStr) : null
+            };
+
+            // Using transaction for the single tree operation ensures consistency
+            await prisma.$transaction(async (tx) => {
+                let tree = await tx.tree.findFirst({
+                    where: { numero_etiqueta: etiqueta }
                 });
 
                 if (!tree) {
                     tree = await tx.tree.create({
                         data: {
                             uuid: uuidv4(),
-                            numero_etiqueta: etiqueta,
-                            speciesId,
-                            rua: row['Rua'] ? String(row['Rua']) : null,
-                            numero: row['n'] ? String(row['n']) : null,
-                            bairro: row['Bairro'] ? String(row['Bairro']) : null,
-                            lat: latStr ? parseFloat(latStr) : null,
-                            lng: lngStr ? parseFloat(lngStr) : null
-                        },
-                        include: { inspections: true }
+                            ...treeData
+                        }
                     });
                 } else {
                     tree = await tx.tree.update({
                         where: { id_arvore: tree.id_arvore },
-                        data: {
-                            lat: latStr ? parseFloat(latStr) : null,
-                            lng: lngStr ? parseFloat(lngStr) : null,
-                            speciesId: speciesId
-                        },
-                        include: { inspections: true }
+                        data: treeData
                     });
                 }
 
-                if (!tree) continue; // Should not happen
+                // Check existing inspections
+                const existingInspection = await tx.inspection.findFirst({
+                    where: { treeId: tree.id_arvore }
+                });
 
-                // IDEMPOTENCY CHECK: If tree already has inspections, SKIP creation
-                if (tree.inspections && tree.inspections.length > 0) {
-                    // Log occasionally
-                    if (processed % 500 === 0) console.log(`Skipping existing inspection for Tree ${etiqueta}`);
-                    continue;
-                }
+                if (existingInspection) return; // Skip if already imported
 
-                // Create Inspection
-                // Date Handling
+                // Prepare Inspection Data
                 const dateKey = keys.find(k => k.trim() === 'Data');
                 let dataInspecao = new Date();
-
                 if (dateKey && row[dateKey]) {
-                    // Excel date might be serial number or string
-                    // simple check: if number, convert excel serial date
                     const dVal = row[dateKey];
                     if (typeof dVal === 'number') {
-                        // Excel base date Dec 30 1899
                         dataInspecao = new Date(Math.round((dVal - 25569) * 86400 * 1000));
                     } else if (typeof dVal === 'string') {
-                        // Try parse valid string
                         const parsed = new Date(dVal);
                         if (!isNaN(parsed.getTime())) dataInspecao = parsed;
                     }
@@ -170,7 +162,6 @@ async function main() {
                 else if (saudeRaw.includes('mort') || saudeRaw.includes('desv')) saude = 'Desvitalizada';
 
                 const pragas = row['Tipo de praga'] && row['Tipo de praga'] !== 'não' ? [row['Tipo de praga']] : [];
-
                 const manejoRaw = row['Tipo de manejo'];
                 const necessitaManejo = !!manejoRaw && String(manejoRaw).toLowerCase() !== 'não';
 
@@ -192,7 +183,6 @@ async function main() {
                     }
                 }
 
-                // Helpers
                 const safeDecimal = (val: any) => {
                     if (val === null || val === undefined || val === '') return null;
                     const num = Number(val);
@@ -241,10 +231,23 @@ async function main() {
                         }
                     }
                 });
-            }
-        }, {
-            timeout: 60000 // 60s per batch
-        });
+            }, {
+                maxWait: 5000, // Wait for connection
+                timeout: 10000 // Transaction execution time
+            });
+        } catch (e) {
+            console.error(`Error processing row:`, e);
+            // Don't crash the whole batch, just log
+        }
+    };
+
+    // Parallel Batch Execution
+    for (let i = 0; i < data.length; i += BATCH_SIZE) {
+        const batch = data.slice(i, i + BATCH_SIZE);
+
+        // Run BATCH_SIZE promises in parallel
+        await Promise.all(batch.map(row => processRow(row)));
+
         processed += batch.length;
         if (processed % 100 === 0) console.log(`Processed ${processed} / ${data.length}`);
     }

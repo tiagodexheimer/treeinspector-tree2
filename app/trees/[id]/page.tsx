@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import GrowthChart from '../../../components/GrowthChart';
+import dynamic from 'next/dynamic';
+
+const MiniMap = dynamic(() => import('../../components/MiniMap'), {
+    ssr: false,
+    loading: () => <div className="h-96 w-full bg-gray-100 animate-pulse rounded-lg flex items-center justify-center text-gray-400">Carregando Mapa...</div>
+});
 
 export default function TreeDetailPage() {
     const params = useParams();
@@ -147,6 +153,10 @@ export default function TreeDetailPage() {
                         )}
                     </div>
 
+
+
+
+
                     <div className="bg-white p-6 rounded-lg shadow">
                         <h2 className="text-xl font-semibold mb-4 border-b pb-2">Dados Cadastrais</h2>
                         <div className="space-y-4">
@@ -213,6 +223,15 @@ export default function TreeDetailPage() {
                             )}
                         </div>
                     </div>
+
+                    {/* MiniMap Section */}
+                    {tree.lat && tree.lng && (
+                        <div className="bg-white p-6 rounded-lg shadow">
+                            <h2 className="text-xl font-semibold mb-4 border-b pb-2">Localização</h2>
+                            <MiniMap lat={tree.lat} lng={tree.lng} currentTreeId={tree.id_arvore} />
+                            <p className="text-xs text-gray-500 mt-2 text-center">Árvore atual em <span className="text-red-600 font-bold">Vermelho</span>, vizinhas em <span className="text-blue-600 font-bold">Azul</span>.</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Charts & Inspections */}

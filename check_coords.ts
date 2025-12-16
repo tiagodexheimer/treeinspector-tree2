@@ -1,5 +1,5 @@
 
-import { prisma } from './lib/prisma';
+import { prisma } from './app/lib/prisma';
 
 async function main() {
     const trees = await prisma.tree.findMany({

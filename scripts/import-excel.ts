@@ -132,7 +132,6 @@ async function main() {
                     phytosanitary: {
                         create: {
                             estado_saude: row['Estado geral'] || 'Regular',
-                            epiphytes: false,
                             valid_from: new Date()
                         }
                     }

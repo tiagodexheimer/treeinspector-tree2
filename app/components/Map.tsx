@@ -24,13 +24,17 @@ interface Tree {
   }[];
 }
 
-const getTreeIcon = (status: string) => {
-  let color = '#22c55e'; // Green (Bom)
+// Helper to get color from health status
+const getHealthColor = (status: string): string => {
   const s = status?.toLowerCase() || '';
+  if (s.includes('ruim') || s.includes('péssim')) return '#ef4444'; // Red
+  if (s.includes('regular')) return '#eab308'; // Yellow
+  if (s.includes('mort') || s.includes('desv')) return '#000000'; // Black
+  return '#22c55e'; // Green (Bom)
+};
 
-  if (s.includes('ruim') || s.includes('péssim')) color = '#ef4444'; // Red
-  else if (s.includes('regular')) color = '#eab308'; // Yellow
-  else if (s.includes('mort') || s.includes('desv')) color = '#000000'; // Black
+const getTreeIcon = (status: string) => {
+  const color = getHealthColor(status);
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="16" height="16">
@@ -43,13 +47,13 @@ const getTreeIcon = (status: string) => {
   return divIcon({
     html: svg,
     className: 'bg-transparent',
-    iconSize: [24, 24], // Slightly larger for better visibility
+    iconSize: [24, 24],
     iconAnchor: [12, 12],
     popupAnchor: [0, -12]
   });
 };
 
-const getClusterIcon = (count: number) => {
+const getClusterIcon = (count: number, majorityColor: string) => {
   return divIcon({
     html: `<div style="
             width: 30px; 
@@ -57,7 +61,8 @@ const getClusterIcon = (count: number) => {
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            background-color: rgba(34, 197, 94, 0.9); 
+            background-color: ${majorityColor}; 
+            opacity: 0.9;
             border-radius: 50%; 
             color: white; 
             font-weight: bold; 
@@ -67,6 +72,30 @@ const getClusterIcon = (count: number) => {
     className: 'cluster-marker',
     iconSize: [30, 30]
   });
+};
+
+// Calculate majority health color from cluster leaves
+const getMajorityHealthColor = (leaves: any[]): string => {
+  const statusCounts: Record<string, number> = {};
+
+  leaves.forEach(leaf => {
+    const status = leaf.properties?.status || 'Regular';
+    const color = getHealthColor(status);
+    statusCounts[color] = (statusCounts[color] || 0) + 1;
+  });
+
+  // Find the color with the highest count
+  let maxCount = 0;
+  let majorityColor = '#22c55e'; // Default green
+
+  for (const [color, count] of Object.entries(statusCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      majorityColor = color;
+    }
+  }
+
+  return majorityColor;
 };
 
 function Markers() {
@@ -143,11 +172,15 @@ function Markers() {
         const { cluster: isCluster, point_count } = cluster.properties;
 
         if (isCluster) {
+          // Get leaves to determine majority health color
+          const leaves = supercluster.getLeaves(cluster.id, Infinity);
+          const majorityColor = getMajorityHealthColor(leaves);
+
           return (
             <Marker
               key={`cluster-${cluster.id}`}
               position={[latitude, longitude]}
-              icon={getClusterIcon(point_count)}
+              icon={getClusterIcon(point_count, majorityColor)}
               eventHandlers={{
                 click: () => {
                   const expansionZoom = Math.min(

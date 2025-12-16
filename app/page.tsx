@@ -53,15 +53,6 @@ export default function Home() {
       {/* Map Section */}
       <section className="flex-1 min-h-[600px] relative">
         <Map />
-
-        {/* Map Legend / Overlay */}
-        <div className="absolute bottom-8 left-8 bg-white p-4 rounded-lg shadow-lg z-[1000] border border-gray-200 max-w-xs">
-          <h4 className="font-semibold text-gray-900 mb-2">Legenda</h4>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-            <span className="text-sm text-gray-600">Árvore Cadastrada</span>
-          </div>
-        </div>
       </section>
     </div>
   );

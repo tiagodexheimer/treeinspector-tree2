@@ -123,8 +123,7 @@ async function main() {
                     treeId: tree.id_arvore,
                     dendrometrics: {
                         create: {
-                            dap_cm: dap,
-                            cap_cm: cap,
+                            dap1_cm: dap,
                             altura_total_m: altura,
                             altura_copa_m: 0,
                             valid_from: new Date()

@@ -56,8 +56,8 @@ export async function POST(request: Request) {
             const newManagement = await prisma.managementAction.create({
                 data: {
                     inspectionId: newInspection.id_inspecao,
-                    action_type: action_type,
-                    poda_type: poda_type,
+                    manejo_tipo: action_type,
+                    poda_tipos: poda_type ? [poda_type] : [],
                     justification: 'Ordem de Serviço criada administrativamente via Web Dashboard',
                     valid_from: new Date()
                 }

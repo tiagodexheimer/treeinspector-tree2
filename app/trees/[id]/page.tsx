@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import GrowthChart from '../../../components/GrowthChart';
 import dynamic from 'next/dynamic';
+import ServiceOrderCreateModal from '../../components/ServiceOrderCreateModal';
 
 const MiniMap = dynamic(() => import('../../components/MiniMap'), {
     ssr: false,
@@ -89,6 +90,30 @@ export default function TreeDetailPage() {
         } catch (e) { console.error(e); }
     }
 
+    const [isOSModalOpen, setIsOSModalOpen] = useState(false);
+
+    async function handleCreateOS(data: any) {
+        try {
+            const res = await fetch('/api/service-orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    treeIds: [tree.id_arvore],
+                    ...data
+                })
+            });
+            if (res.ok) {
+                alert('Ordem de Serviço criada com sucesso!');
+                fetchTree(); // Refresh to show in history
+            } else {
+                alert('Erro ao criar O.S.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao criar O.S.');
+        }
+    }
+
     // Helper to format chart data
     const chartData = tree?.inspections
         ?.map((insp: any) => {
@@ -126,6 +151,7 @@ export default function TreeDetailPage() {
                     ) : (
                         <>
                             <button onClick={() => setEditing(true)} className="px-4 py-2 border rounded hover:bg-gray-50">Editar</button>
+                            <button onClick={() => setIsOSModalOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Criar O.S.</button>
                             <button onClick={handleDelete} className="px-4 py-2 border border-red-200 text-red-600 rounded hover:bg-red-50">Excluir</button>
                         </>
                     )}
@@ -236,147 +262,87 @@ export default function TreeDetailPage() {
 
                 {/* Column 3: History & Service Orders */}
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-4 border-b pb-2">Histórico de Inspeções</h2>
-                        {tree.inspections.length === 0 ? <div className="text-gray-500">Nenhuma inspeção registrada.</div> : (
-                            <ul className="space-y-4">
-                                {tree.inspections.map((insp: any) => (
-                                    <li key={insp.id_inspecao} className="border-b last:border-0 pb-4">
-                                        <div
-                                            className="flex justify-between items-center cursor-pointer hover:bg-gray-50 p-2 rounded"
-                                            onClick={() => setExpandedInspectionId(expandedInspectionId === insp.id_inspecao ? null : insp.id_inspecao)}
-                                        >
-                                            <div>
-                                                <span className="font-bold text-green-800">{new Date(insp.data_inspecao).toLocaleDateString()}</span>
-                                                <div className="text-xs text-gray-500">ID: {insp.id_inspecao}</div>
-                                            </div>
-                                            <span className="text-blue-600 text-sm">{expandedInspectionId === insp.id_inspecao ? 'Ocultar' : 'Detalhes'}</span>
+                    {/* Unified History Section */}
+                    <div className="bg-white shadow rounded-lg p-6">
+                        <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Histórico Completo</h2>
+
+                        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                            {/* Combine and Sort History Items */}
+                            {[
+                                ...(tree.inspections || []).map((i: any) => ({ ...i, type: 'inspection', date: i.data_inspecao })),
+                                ...(tree.serviceOrders || []).map((o: any) => ({ ...o, type: 'service_order', date: o.created_at }))
+                            ]
+                                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .map((item: any) => (
+                                    <div key={`${item.type}-${item.id_inspecao || item.id}`} className="flex gap-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition">
+                                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${item.type === 'inspection' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
+                                            }`}>
+                                            {item.type === 'inspection' ? (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                                                </svg>
+                                            ) : (
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                                                </svg>
+                                            )}
                                         </div>
-
-                                        {expandedInspectionId === insp.id_inspecao && (
-                                            <div className="mt-2 p-3 bg-gray-50 rounded text-sm space-y-3 animation-fade-in">
-                                                {/* Dendro */}
-                                                {insp.dendrometrics?.[0] && (
-                                                    <div>
-                                                        <h4 className="font-semibold text-gray-700">Dendrometria</h4>
-                                                        <div className="grid grid-cols-2 gap-2 mt-1">
-                                                            <div className="col-span-2 grid grid-cols-4 gap-2 bg-gray-100 p-2 rounded">
-                                                                <div><span className="text-gray-500 block text-xs">DAP 1</span> {insp.dendrometrics[0].dap1_cm || '-'} cm</div>
-                                                                <div><span className="text-gray-500 block text-xs">DAP 2</span> {insp.dendrometrics[0].dap2_cm || '-'} cm</div>
-                                                                <div><span className="text-gray-500 block text-xs">DAP 3</span> {insp.dendrometrics[0].dap3_cm || '-'} cm</div>
-                                                                <div><span className="text-gray-500 block text-xs">DAP 4</span> {insp.dendrometrics[0].dap4_cm || '-'} cm</div>
-                                                            </div>
-                                                            <div><span className="text-gray-500">Altura:</span> {insp.dendrometrics[0].altura_total_m} m</div>
-                                                            <div><span className="text-gray-500">Copa:</span> {insp.dendrometrics[0].altura_copa_m} m</div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {/* Phyto */}
-                                                {insp.phytosanitary?.[0] && (
-                                                    <div>
-                                                        <h4 className="font-semibold text-gray-700 mt-2">Fitossanidade</h4>
-                                                        <div className="mt-1 space-y-1">
-                                                            <div><span className="text-gray-500">Saúde:</span> <span className={`font-medium ${insp.phytosanitary[0].estado_saude === 'Bom' ? 'text-green-600' : 'text-red-600'}`}>{insp.phytosanitary[0].estado_saude || '-'}</span></div>
-                                                            {insp.phytosanitary[0].pragas && insp.phytosanitary[0].pragas.length > 0 && (
-                                                                <div><span className="text-gray-500">Pragas:</span> {insp.phytosanitary[0].pragas.join(', ')}</div>
-                                                            )}
-                                                            {insp.phytosanitary[0].danos_tipo && (
-                                                                <div><span className="text-gray-500">Danos:</span> {insp.phytosanitary[0].danos_tipo} <span className="text-xs bg-red-100 text-red-800 px-1 rounded">{insp.phytosanitary[0].danos_severidade}</span></div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Management */}
-                                                {insp.managementActions?.[0] && (
-                                                    <div>
-                                                        <h4 className="font-semibold text-gray-700 mt-2">Manejo</h4>
-                                                        {insp.managementActions[0].necessita_manejo ? (
-                                                            <div className="mt-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-xs font-bold uppercase">{insp.managementActions[0].manejo_tipo}</span>
-                                                                    {insp.managementActions[0].supressao_tipo && <span className="text-xs text-gray-600">({insp.managementActions[0].supressao_tipo})</span>}
-                                                                </div>
-                                                                {insp.managementActions[0].poda_tipos && insp.managementActions[0].poda_tipos.length > 0 && (
-                                                                    <div className="text-xs text-gray-600 mt-1">Tipos: {insp.managementActions[0].poda_tipos.join(', ')}</div>
-                                                                )}
-                                                                {insp.managementActions[0].justification && (
-                                                                    <p className="text-gray-600 mt-1 italic text-sm">"{insp.managementActions[0].justification}"</p>
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="text-sm text-green-600 italic">Não necessita manejo.</div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* Photos */}
-                                                {insp.photos && insp.photos.length > 0 && (
-                                                    <div>
-                                                        <h4 className="font-semibold text-gray-700 mb-2">Fotos da Inspeção</h4>
-                                                        <div className="flex gap-2 overflow-x-auto pb-2">
-                                                            {insp.photos.map((photo: any) => (
-                                                                <div key={photo.id} className="relative w-24 h-24 bg-gray-200 rounded shrink-0">
-                                                                    <img
-                                                                        src={photo.uri?.startsWith('http') || photo.uri?.startsWith('/') ? photo.uri : 'https://placehold.co/100?text=IMG'}
-                                                                        alt="Foto"
-                                                                        className="w-full h-full object-cover rounded"
-                                                                    />
-                                                                    <span className="text-[10px] absolute bottom-0 w-full bg-black/50 text-white text-center truncate px-1">{photo.uri}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start">
+                                                <h4 className="text-sm font-bold text-gray-900">
+                                                    {item.type === 'inspection' ? 'Inspeção Realizada' : `Ordem de Serviço #${item.id}`}
+                                                </h4>
+                                                <span className="text-xs text-gray-500">
+                                                    {new Date(item.date).toLocaleDateString()}
+                                                </span>
                                             </div>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
 
-                    {/* Service Orders Status */}
-                    <div className="bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-semibold mb-4 border-b pb-2">Ordens de Serviço</h2>
-                        {tree.serviceOrders && tree.serviceOrders.length > 0 ? (
-                            <div className="space-y-4">
-                                {tree.serviceOrders.map((os: any) => (
-                                    <div key={os.id} className="border border-green-200 bg-green-50 p-3 rounded-lg">
-                                        <div className="flex justify-between items-start">
-                                            <span className="font-bold text-green-800">OS #{os.id}</span>
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${os.status === 'Concluída' ? 'bg-green-200 text-green-800' :
-                                                os.status === 'Em Execução' ? 'bg-blue-200 text-blue-800' :
-                                                    os.status === 'Planejada' ? 'bg-yellow-200 text-yellow-800' :
-                                                        'bg-gray-200 text-gray-800'
-                                                }`}>
-                                                {os.status}
-                                            </span>
+                                            {item.type === 'inspection' ? (
+                                                <div className="mt-1 text-sm text-gray-600">
+                                                    <p>Saúde: <span className="font-medium">{item.phytosanitary?.[0]?.estado_saude || 'Não avaliada'}</span></p>
+                                                    {item.phytosanitary?.[0]?.pragas?.length > 0 && (
+                                                        <p className="text-xs text-red-500 mt-1">
+                                                            Pragas: {item.phytosanitary[0].pragas.join(', ')}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="mt-1 text-sm text-gray-600">
+                                                    <p>Status: <span className={`font-medium ${item.status === 'Concluída' ? 'text-green-600' : 'text-yellow-600'
+                                                        }`}>{item.status}</span></p>
+                                                    {item.description ? (
+                                                        <p className="text-xs italic mt-1">"{item.description}"</p>
+                                                    ) : item.observations ? (
+                                                        <p className="text-xs italic mt-1">"{item.observations}"</p>
+                                                    ) : null}
+                                                    <div className="mt-2">
+                                                        <Link href={`/service-orders/${item.id}`} className="text-xs text-green-600 hover:text-green-800">Ver Detalhes</Link>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="text-sm mt-1 text-gray-700">Responsável: {os.assigned_to || 'N/A'}</div>
-                                        {os.observations && <div className="text-xs text-gray-500 mt-1 italic">"{os.observations}"</div>}
                                     </div>
                                 ))}
-                                <div className="text-center mt-2">
-                                    <Link href="/service-orders" className="text-sm text-green-600 hover:text-green-800 font-medium">
-                                        Gerenciar O.S. &rarr;
-                                    </Link>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="text-center py-4">
-                                <div className="text-gray-400 mb-2">
-                                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                                </div>
-                                <p className="text-gray-500 text-sm">Nenhuma ordem de serviço aberta.</p>
-                                <Link href="/service-orders" className="mt-4 inline-block text-sm bg-green-50 text-green-700 px-4 py-2 rounded border border-green-200 hover:bg-green-100">
-                                    Criar O.S.
-                                </Link>
-                            </div>
-                        )}
+
+                            {(!tree.inspections?.length && !tree.serviceOrders?.length) && (
+                                <p className="text-center text-gray-500 py-4">Nenhum evento registrado.</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
+            <ServiceOrderCreateModal
+                isOpen={isOSModalOpen}
+                onClose={() => setIsOSModalOpen(false)}
+                onSubmit={handleCreateOS}
+                treeCount={1}
+            />
+            <ServiceOrderCreateModal
+                isOpen={isOSModalOpen}
+                onClose={() => setIsOSModalOpen(false)}
+                onSubmit={handleCreateOS}
+                treeCount={1}
+            />
         </div>
     );
 }

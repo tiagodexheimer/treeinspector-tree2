@@ -6,6 +6,8 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const bairro = searchParams.get('bairro');
         const endereco = searchParams.get('endereco');
+        const etiqueta = searchParams.get('etiqueta');
+        const species = searchParams.get('species');
         const q = searchParams.get('q');
 
         // Pagination params - only active if 'page' is present
@@ -28,6 +30,15 @@ export async function GET(request: Request) {
                     { rua: { contains: endereco, mode: 'insensitive' } }
                 ]
             }),
+            ...(etiqueta && { numero_etiqueta: { contains: etiqueta, mode: 'insensitive' } }),
+            ...(species && {
+                species: {
+                    OR: [
+                        { nome_comum: { contains: species, mode: 'insensitive' } },
+                        { nome_cientifico: { contains: species, mode: 'insensitive' } }
+                    ]
+                }
+            })
         };
 
         // If pagination is requested

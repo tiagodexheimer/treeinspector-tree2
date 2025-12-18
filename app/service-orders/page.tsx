@@ -1,49 +1,45 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Navigation from '../components/Navigation';
 import Link from 'next/link';
 
 interface ServiceOrder {
     id: number;
     status: string;
-    assigned_to: string | null;
+    description: string | null;
     created_at: string;
-    tree: {
+    assigned_to: string | null;
+    trees: {
         id_arvore: number;
-        numero_etiqueta: string | null;
-        species: {
+        numero_etiqueta: string;
+        species?: {
             nome_comum: string;
-        };
-    };
-    management: {
-        action_type: string;
-        poda_type: string | null;
-    };
+        }
+    }[];
 }
 
-import CreateOSModal from '../components/CreateOSModal';
-
 export default function ServiceOrdersPage() {
+    const [activeTab, setActiveTab] = useState<'active' | 'finished'>('active');
     const [orders, setOrders] = useState<ServiceOrder[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState<string>('');
-    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         fetchOrders();
-    }, [filterStatus]);
+    }, [activeTab]);
 
     async function fetchOrders() {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (filterStatus) params.append('status', filterStatus);
-
-            const res = await fetch(`/api/service-orders?${params.toString()}`);
+            const res = await fetch(`/api/service-orders?status=${activeTab}`);
             const data = await res.json();
-            setOrders(data);
+            if (Array.isArray(data)) {
+                setOrders(data);
+            } else {
+                setOrders([]);
+            }
         } catch (error) {
-            console.error('Failed to fetch orders', error);
+            console.error('Failed to fetch service orders', error);
         } finally {
             setLoading(false);
         }
@@ -57,97 +53,131 @@ export default function ServiceOrdersPage() {
             case 'Cancelada': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
         }
-    };
+    }
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-900">Ordens de Serviço</h1>
-
-                <div className="flex gap-4">
-                    <Link
-                        href="/service-orders/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
-                    >
-                        🗺️ Nova OS via Mapa
-                    </Link>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"
-                    >
-                        + Nova O.S.
-                    </button>
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="border px-4 py-2 rounded-lg bg-white"
-                    >
-                        <option value="">Todos os Status</option>
-                        <option value="Planejada">Planejada</option>
-                        <option value="Em Execução">Em Execução</option>
-                        <option value="Concluída">Concluída</option>
-                        <option value="Cancelada">Cancelada</option>
-                    </select>
+        <div className="min-h-screen bg-gray-50 pb-12">
+            <div className="bg-green-700 py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="text-3xl font-bold text-white">Ordens de Serviço</h1>
+                            <p className="mt-2 text-green-100">Gerencie as atividades de manejo das árvores</p>
+                        </div>
+                        <div className="flex gap-4">
+                            <Link
+                                href="/service-orders/create-map"
+                                className="bg-white text-green-700 font-bold py-2 px-4 rounded shadow hover:bg-green-50 transition flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clipRule="evenodd" />
+                                </svg>
+                                Criar via Mapa
+                            </Link>
+                            <Link
+                                href="/trees"
+                                className="bg-green-600 text-white font-bold py-2 px-4 rounded shadow border border-green-500 hover:bg-green-500 transition flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                </svg>
+                                Criar via Lista
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <CreateOSModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSuccess={fetchOrders}
-            />
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden min-h-[500px]">
+                    <div className="border-b border-gray-200">
+                        <nav className="-mb-px flex">
+                            <button
+                                onClick={() => setActiveTab('active')}
+                                className={`${activeTab === 'active'
+                                    ? 'border-green-500 text-green-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg transition-colors`}
+                            >
+                                Ativas
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('finished')}
+                                className={`${activeTab === 'finished'
+                                    ? 'border-green-500 text-green-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    } w-1/2 py-4 px-1 text-center border-b-2 font-medium text-lg transition-colors`}
+                            >
+                                Finalizadas
+                            </button>
+                        </nav>
+                    </div>
 
-            {loading ? (
-                <div className="text-center py-12">Carregando...</div>
-            ) : (
-                <div className="bg-white shadow rounded-lg overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Árvore</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Equipe</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {orders.map((os) => (
-                                <tr key={os.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        #{os.id}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <div>{os.tree.species.nome_comum}</div>
-                                        <div className="text-xs text-gray-400">ID: {os.tree.id_arvore} | Etiqueta: {os.tree.numero_etiqueta || 'N/A'}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        <span className="font-semibold">{os.management.action_type}</span>
-                                        {os.management.poda_type && <span className="text-gray-500"> - {os.management.poda_type}</span>}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {os.assigned_to || 'Não atribuído'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(os.status)}`}>
-                                            {os.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(os.created_at).toLocaleDateString()}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {orders.length === 0 && (
-                        <div className="text-center py-12 text-gray-500">
-                            Nenhuma ordem de serviço encontrada.
-                        </div>
-                    )}
+                    <div className="p-6">
+                        {loading ? (
+                            <div className="flex justify-center py-12">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+                            </div>
+                        ) : orders.length === 0 ? (
+                            <div className="text-center py-12 text-gray-500">
+                                Nenhuma ordem de serviço encontrada nesta categoria.
+                            </div>
+                        ) : (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {orders.map(os => (
+                                    <div key={os.id} className="bg-white border text-left border-gray-200 rounded-lg shadow-sm hover:shadow-md transition p-4">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <span className="text-xs font-semibold text-gray-400">#{os.id}</span>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(os.status)}`}>
+                                                {os.status}
+                                            </span>
+                                        </div>
+
+                                        <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                            {os.trees.length} Árvore(s)
+                                        </h3>
+
+                                        <div className="mb-4">
+                                            <div className="flex flex-wrap gap-1">
+                                                {os.trees.slice(0, 3).map(t => (
+                                                    <span key={t.id_arvore} className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                                                        #{t.id_arvore} ({t.numero_etiqueta || 'S/N'})
+                                                    </span>
+                                                ))}
+                                                {os.trees.length > 3 && (
+                                                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">
+                                                        +{os.trees.length - 3}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {os.description && (
+                                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                                                {os.description}
+                                            </p>
+                                        )}
+
+                                        <div className="flex justify-between items-center text-xs text-gray-500 mt-auto pt-4 border-t border-gray-100">
+                                            <span>
+                                                {new Date(os.created_at).toLocaleDateString()}
+                                            </span>
+                                            <span>
+                                                {os.assigned_to || 'Não atribuído'}
+                                            </span>
+                                        </div>
+                                        <div className="mt-4 pt-2 border-t border-gray-100 flex justify-end">
+                                            <Link href={`/service-orders/${os.id}`} className="text-sm font-medium text-green-600 hover:text-green-800">
+                                                Ver Detalhes &rarr;
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
+            </main>
         </div>
     );
 }

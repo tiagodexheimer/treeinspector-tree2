@@ -1,6 +1,5 @@
 'use client';
 
-
 import { divIcon } from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import Link from 'next/link';
@@ -111,11 +110,9 @@ function Markers() {
       try {
         const response = await fetch('/api/trees');
         const data = await response.json();
-        // Only set trees if response is actually an array
         if (Array.isArray(data)) {
           setTrees(data);
         } else {
-          console.error('API returned non-array:', data);
           setTrees([]);
         }
       } catch (error) {
@@ -126,7 +123,6 @@ function Markers() {
     fetchTrees();
   }, []);
 
-  // Update bounds on move
   useEffect(() => {
     const updateMap = () => {
       const b = map.getBounds();
@@ -139,12 +135,11 @@ function Markers() {
       setZoom(map.getZoom());
     };
 
-    updateMap(); // Initial
+    updateMap();
     map.on('moveend', updateMap);
     return () => { map.off('moveend', updateMap); };
   }, [map]);
 
-  // Convert trees to GeoJSON points
   const points = useMemo(() => trees.map(tree => ({
     type: 'Feature',
     properties: {
@@ -164,7 +159,7 @@ function Markers() {
     points: points as any,
     bounds: bounds,
     zoom: zoom,
-    options: { radius: 75, maxZoom: 17 } // Clusters break apart at zoom 18
+    options: { radius: 75, maxZoom: 17 }
   });
 
   return (
@@ -174,10 +169,8 @@ function Markers() {
         const { cluster: isCluster, point_count } = cluster.properties;
 
         if (isCluster) {
-          // Get leaves to determine majority health color
           const leaves = supercluster.getLeaves(cluster.id, Infinity);
           const majorityColor = getMajorityHealthColor(leaves);
-
           return (
             <Marker
               key={`cluster-${cluster.id}`}
@@ -185,20 +178,14 @@ function Markers() {
               icon={getClusterIcon(point_count, majorityColor)}
               eventHandlers={{
                 click: () => {
-                  const expansionZoom = Math.min(
-                    supercluster.getClusterExpansionZoom(cluster.id),
-                    22
-                  );
-                  map.setView([latitude, longitude], expansionZoom, {
-                    animate: true
-                  });
+                  const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id), 22);
+                  map.setView([latitude, longitude], expansionZoom, { animate: true });
                 }
               }}
             />
           );
         }
 
-        // Individual Marker
         return (
           <Marker
             key={`tree-${cluster.properties.treeId}`}
@@ -209,7 +196,7 @@ function Markers() {
               <strong>Etiqueta:</strong> {cluster.properties.etiqueta} <br />
               <strong>Espécie:</strong> {cluster.properties.species || 'Desconhecida'} <br />
               <strong>Saúde:</strong> {cluster.properties.status} <br />
-              <div className="mt-2">
+              <div className="mt-2 flex gap-2">
                 <Link
                   href={`/trees/${cluster.properties.treeId}`}
                   className="inline-block px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
@@ -229,13 +216,13 @@ export default function Map() {
   return (
     <MapContainer
       center={[-29.852, -51.1841]}
-      zoom={16} // Increased initial zoom level as requested
+      zoom={16}
       scrollWheelZoom={true}
       style={{ height: '100%', width: '100%', zIndex: 0 }}
       maxZoom={22}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution='&copy; OpenStreetMap'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         maxNativeZoom={19}
         maxZoom={22}
@@ -243,7 +230,6 @@ export default function Map() {
 
       <Markers />
 
-      {/* Legend Overlay */}
       <div className="leaflet-bottom leaflet-right" style={{ pointerEvents: 'auto' }}>
         <div className="leaflet-control leaflet-bar bg-white p-4 shadow-lg rounded-lg border border-gray-200">
           <h4 className="font-bold text-gray-900 mb-2">Estado Fitossanitário</h4>

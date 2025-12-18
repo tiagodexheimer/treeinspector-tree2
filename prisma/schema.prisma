@@ -159,11 +159,8 @@ model ServiceOrder {
   id              Int      @id @default(autoincrement())
   
   // Relationships
-  tree_id         Int
-  tree            Tree     @relation(fields: [tree_id], references: [id_arvore])
-  
-  management_id   Int
-  management      ManagementAction @relation(fields: [management_id], references: [id])
+  trees           Tree[]
+  managementActions ManagementAction[]
   
   // Status tracking
   status          String   // 'Planejada', 'Em Execução', 'Concluída', 'Cancelada'
@@ -172,12 +169,28 @@ model ServiceOrder {
   // Notes
   observations    String?
   
+  // Completion data
+  description     String?
+  photos          ServiceOrderPhoto[]
+  
+  // Service Classification
+  serviceType     String?     // 'Poda', 'Remoção', 'Substituição', 'Transplante'
+  serviceSubtypes String[]    // Specific types like 'Levantamento de copa'
+
   // Timestamps
   created_at      DateTime @default(now())
   executed_at     DateTime?
   
   @@index([status])
   @@index([assigned_to])
+}
+
+model ServiceOrderPhoto {
+  id              Int      @id @default(autoincrement())
+  serviceOrderId  Int
+  serviceOrder    ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  uri             String
+  created_at      DateTime @default(now())
 }
 
 // ==================== MEDIA STORAGE ====================

@@ -1,139 +1,148 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
 
-export async function GET(request: Request) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status');
-        const assigned_to = searchParams.get('assigned_to');
-
-        const serviceOrders = await prisma.serviceOrder.findMany({
-            where: {
-                ...(status && { status }),
-                ...(assigned_to && { assigned_to }),
-            },
-            include: {
-                tree: {
-                    include: {
-                        species: true,
-                    },
-                },
-                management: {
-                    include: {
-                        inspection: true,
-                    },
-                },
-            },
-            orderBy: {
-                created_at: 'desc',
-            },
-        });
-
-        return NextResponse.json(serviceOrders);
-    } catch (error) {
-        console.error('Error fetching service orders:', error);
-        return NextResponse.json({ error: 'Failed to fetch service orders' }, { status: 500 });
-    }
-}
-
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { tree_id, tree_ids, management_id, assigned_to, observations, action_type, poda_type } = body;
+        const { treeIds, description, status, assigned_to, serviceType, serviceSubtypes } = body;
+        // treeIds should be an array of numbers
 
-        // Handle batch creation (from map selection)
-        if (tree_ids && Array.isArray(tree_ids) && tree_ids.length > 0) {
-            const createdOrders = [];
-
-            for (const treeId of tree_ids) {
-                // Create inspection for each tree
-                const newInspection = await prisma.inspection.create({
-                    data: {
-                        treeId: Number(treeId),
-                    }
-                });
-
-                // Create management action
-                const newManagement = await prisma.managementAction.create({
-                    data: {
-                        inspectionId: newInspection.id_inspecao,
-                        manejo_tipo: action_type || 'Poda',
-                        poda_tipos: poda_type ? [poda_type] : [],
-                        justification: observations || 'OS criada via ferramenta de mapa',
-                        valid_from: new Date()
-                    }
-                });
-
-                // Create service order
-                const newServiceOrder = await prisma.serviceOrder.create({
-                    data: {
-                        tree_id: Number(treeId),
-                        management_id: newManagement.id,
-                        status: 'Planejada',
-                        assigned_to: assigned_to || null,
-                        observations: observations || null,
-                    }
-                });
-
-                createdOrders.push(newServiceOrder);
-            }
-
-            return NextResponse.json({
-                message: `${createdOrders.length} ordem(s) de serviço criada(s)`,
-                count: createdOrders.length,
-                orders: createdOrders
-            }, { status: 201 });
+        if (!treeIds || !Array.isArray(treeIds) || treeIds.length === 0) {
+            return NextResponse.json({ error: 'treeIds array is required' }, { status: 400 });
         }
 
-        // Original single tree logic
-        let finalManagementId = management_id;
+        // We need to find the management actions for these trees if we want to link them?
+        // The user said: "when it's an OS with 2 or more trees... including all trees"
+        // Usually OS is based on "needs management".
+        // For now, let's just link the Trees. And optionally link ManagementActions if we can find them "open" for these trees.
+        // Let's find open management actions for these trees.
 
-        // If no management_id, create Ad-Hoc Inspection + ManagementAction
-        if (!finalManagementId && tree_id && action_type) {
-            const newInspection = await prisma.inspection.create({
-                data: {
-                    treeId: Number(tree_id),
-                }
-            });
-
-            const newManagement = await prisma.managementAction.create({
-                data: {
-                    inspectionId: newInspection.id_inspecao,
-                    manejo_tipo: action_type,
-                    poda_tipos: poda_type ? [poda_type] : [],
-                    justification: 'Ordem de Serviço criada administrativamente via Web Dashboard',
-                    valid_from: new Date()
-                }
-            });
-
-            finalManagementId = newManagement.id;
-        }
-
-        if (!finalManagementId) {
-            return NextResponse.json({ error: 'Missing management_id or action_type' }, { status: 400 });
-        }
-
-        const newServiceOrder = await prisma.serviceOrder.create({
-            data: {
-                tree_id: Number(tree_id),
-                management_id: Number(finalManagementId),
-                status: 'Planejada',
-                assigned_to,
-                observations,
-            },
+        const trees = await prisma.tree.findMany({
+            where: { id_arvore: { in: treeIds } },
             include: {
-                tree: {
+                inspections: {
+                    orderBy: { data_inspecao: 'desc' },
+                    take: 1,
                     include: {
-                        species: true,
-                    },
-                },
-                management: true,
-            },
+                        managementActions: true
+                    }
+                }
+            }
         });
 
-        return NextResponse.json(newServiceOrder, { status: 201 });
+        // Collect management actions that need handling
+        const managementIds: number[] = [];
+        trees.forEach(t => {
+            const insp = t.inspections[0];
+            if (insp && insp.managementActions && insp.managementActions.length > 0) {
+                // Assuming we want to include the LATEST management action required
+                const action = insp.managementActions[0];
+                if (action.necessita_manejo) {
+                    managementIds.push(action.id);
+                }
+            }
+        });
+
+        const newOS = await prisma.serviceOrder.create({
+            data: {
+                status: status || 'Planejada',
+                assigned_to: assigned_to,
+                description: description, // Initial description?? Or observations?
+                observations: description, // Use description as observations for now ?
+                trees: {
+                    connect: treeIds.map((id: any) => ({ id_arvore: id }))
+                },
+                managementActions: {
+                    connect: managementIds.map(id => ({ id }))
+                },
+                serviceType,
+                serviceSubtypes: serviceSubtypes || []
+            },
+            include: {
+                trees: true,
+                managementActions: true
+            }
+        });
+
+        return NextResponse.json(newOS, { status: 201 });
+
     } catch (error) {
         console.error('Error creating service order:', error);
         return NextResponse.json({ error: 'Failed to create service order' }, { status: 500 });
+    }
+}
+
+export async function GET(request: Request) {
+    try {
+        const { searchParams } = new URL(request.url);
+        const status = searchParams.get('status'); // 'active', 'finished', or specific status
+        const lat = searchParams.get('lat');
+        const lng = searchParams.get('lng');
+        const radius = searchParams.get('radius'); // meters
+
+        let where: any = {};
+
+        if (status === 'active') {
+            where.status = {
+                notIn: ['Concluída', 'Cancelada']
+            };
+        } else if (status === 'finished') {
+            where.status = {
+                in: ['Concluída', 'Cancelada']
+            };
+        } else if (status) {
+            where.status = status;
+        }
+
+        // If Lat/Lng provided, logic is complex because OS has multiple Trees.
+        // Rule: If ANY tree in the OS is within radius, include the OS.
+        // Prisma doesn't support geospatial join easily. 
+        // Easier approach: Get Trees within radius first, then find OS linked to them.
+
+        if (lat && lng && radius) {
+            const r = parseFloat(radius);
+            const latVal = parseFloat(lat);
+            const lngVal = parseFloat(lng);
+
+            // Find trees nearby
+            // Reuse Haversine or simple box? simple box for speed
+            // 1 deg ~ 111km
+            const delta = r / 111000;
+
+            const nearbyTrees = await prisma.tree.findMany({
+                where: {
+                    lat: { gte: latVal - delta, lte: latVal + delta },
+                    lng: { gte: lngVal - delta, lte: lngVal + delta }
+                },
+                select: { id_arvore: true }
+            });
+
+            const treeIds = nearbyTrees.map(t => t.id_arvore);
+
+            where.trees = {
+                some: {
+                    id_arvore: { in: treeIds }
+                }
+            };
+        }
+
+        const serviceOrders = await prisma.serviceOrder.findMany({
+            where,
+            include: {
+                trees: {
+                    include: {
+                        species: true
+                    }
+                },
+                managementActions: true
+            },
+            orderBy: { created_at: 'desc' }
+        });
+
+        return NextResponse.json(serviceOrders);
+
+    } catch (error) {
+        console.error('Error fetching service orders:', error);
+        return NextResponse.json({ error: 'Failed to fetch service orders' }, { status: 500 });
     }
 }

@@ -18,6 +18,8 @@ export default function TreesPage() {
     const [loading, setLoading] = useState(true);
     const [bairro, setBairro] = useState('');
     const [endereco, setEndereco] = useState('');
+    const [etiqueta, setEtiqueta] = useState('');
+    const [species, setSpecies] = useState('');
 
     // Pagination state
     const [page, setPage] = useState(1);
@@ -34,6 +36,8 @@ export default function TreesPage() {
             const params = new URLSearchParams();
             if (bairro) params.append('bairro', bairro);
             if (endereco) params.append('endereco', endereco);
+            if (etiqueta) params.append('etiqueta', etiqueta);
+            if (species) params.append('species', species);
 
             // If resetting (e.g. new filter), force page 1
             const currentPage = resetPage ? 1 : page;
@@ -84,29 +88,51 @@ export default function TreesPage() {
             </div>
 
             <div className="bg-white p-4 rounded-lg shadow mb-6 flex gap-4 items-end">
-                <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
-                    <input
-                        type="text"
-                        className="w-full border rounded-md px-3 py-2"
-                        placeholder="Filtrar por bairro"
-                        value={bairro}
-                        onChange={(e) => setBairro(e.target.value)}
-                    />
-                </div>
-                <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
-                    <input
-                        type="text"
-                        className="w-full border rounded-md px-3 py-2"
-                        placeholder="Rua ou endereço"
-                        value={endereco}
-                        onChange={(e) => setEndereco(e.target.value)}
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Etiqueta</label>
+                        <input
+                            type="text"
+                            className="w-full border rounded-md px-3 py-2"
+                            placeholder="Nº etiqueta"
+                            value={etiqueta}
+                            onChange={(e) => setEtiqueta(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Espécie</label>
+                        <input
+                            type="text"
+                            className="w-full border rounded-md px-3 py-2"
+                            placeholder="Nome comum ou científico"
+                            value={species}
+                            onChange={(e) => setSpecies(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                        <input
+                            type="text"
+                            className="w-full border rounded-md px-3 py-2"
+                            placeholder="Filtrar por bairro"
+                            value={bairro}
+                            onChange={(e) => setBairro(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                        <input
+                            type="text"
+                            className="w-full border rounded-md px-3 py-2"
+                            placeholder="Rua ou endereço"
+                            value={endereco}
+                            onChange={(e) => setEndereco(e.target.value)}
+                        />
+                    </div>
                 </div>
                 <button
                     onClick={handleFilter}
-                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700"
+                    className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 h-[42px]"
                 >
                     Filtrar
                 </button>

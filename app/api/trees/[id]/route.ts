@@ -22,7 +22,8 @@ export async function GET(
                         photos: true
                     }
                 },
-                photos: true
+                photos: true,
+                serviceOrders: true
             }
         });
 

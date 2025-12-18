@@ -1,7 +1,9 @@
 'use client';
 
+
 import { divIcon } from 'leaflet';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
@@ -207,7 +209,14 @@ function Markers() {
               <strong>Etiqueta:</strong> {cluster.properties.etiqueta} <br />
               <strong>Espécie:</strong> {cluster.properties.species || 'Desconhecida'} <br />
               <strong>Saúde:</strong> {cluster.properties.status} <br />
-              <span className="text-xs text-gray-500">ID: {cluster.properties.treeId}</span>
+              <div className="mt-2">
+                <Link
+                  href={`/trees/${cluster.properties.treeId}`}
+                  className="inline-block px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                >
+                  Ver Detalhes
+                </Link>
+              </div>
             </Popup>
           </Marker>
         );
@@ -222,7 +231,7 @@ export default function Map() {
       center={[-29.852, -51.1841]}
       zoom={16} // Increased initial zoom level as requested
       scrollWheelZoom={true}
-      style={{ height: '600px', width: '100%', zIndex: 0 }}
+      style={{ height: '100%', width: '100%', zIndex: 0 }}
       maxZoom={22}
     >
       <TileLayer

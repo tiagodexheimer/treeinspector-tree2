@@ -51,7 +51,7 @@ export default function MiniMap({ lat, lng, currentTreeId }: MiniMapProps) {
     }, [lat, lng]);
 
     return (
-        <div className="h-96 w-full rounded-lg overflow-hidden shadow-md border border-gray-200">
+        <div className="w-full aspect-[4/3] rounded-lg overflow-hidden shadow-md border border-gray-200 relative z-0">
             <MapContainer
                 center={[lat, lng]}
                 zoom={19}

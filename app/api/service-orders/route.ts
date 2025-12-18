@@ -39,8 +39,53 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { tree_id, management_id, assigned_to, observations, action_type, poda_type } = body;
+        const { tree_id, tree_ids, management_id, assigned_to, observations, action_type, poda_type } = body;
 
+        // Handle batch creation (from map selection)
+        if (tree_ids && Array.isArray(tree_ids) && tree_ids.length > 0) {
+            const createdOrders = [];
+
+            for (const treeId of tree_ids) {
+                // Create inspection for each tree
+                const newInspection = await prisma.inspection.create({
+                    data: {
+                        treeId: Number(treeId),
+                    }
+                });
+
+                // Create management action
+                const newManagement = await prisma.managementAction.create({
+                    data: {
+                        inspectionId: newInspection.id_inspecao,
+                        manejo_tipo: action_type || 'Poda',
+                        poda_tipos: poda_type ? [poda_type] : [],
+                        justification: observations || 'OS criada via ferramenta de mapa',
+                        valid_from: new Date()
+                    }
+                });
+
+                // Create service order
+                const newServiceOrder = await prisma.serviceOrder.create({
+                    data: {
+                        tree_id: Number(treeId),
+                        management_id: newManagement.id,
+                        status: 'Planejada',
+                        assigned_to: assigned_to || null,
+                        observations: observations || null,
+                    }
+                });
+
+                createdOrders.push(newServiceOrder);
+            }
+
+            return NextResponse.json({
+                message: `${createdOrders.length} ordem(s) de serviço criada(s)`,
+                count: createdOrders.length,
+                orders: createdOrders
+            }, { status: 201 });
+        }
+
+        // Original single tree logic
         let finalManagementId = management_id;
 
         // If no management_id, create Ad-Hoc Inspection + ManagementAction
@@ -48,8 +93,6 @@ export async function POST(request: Request) {
             const newInspection = await prisma.inspection.create({
                 data: {
                     treeId: Number(tree_id),
-                    // Create empty dendrometric/phytosanitary to satisfy database integrity if needed, 
-                    // or rely on schema allowing them to be missing (they are arrays, so 0 is fine).
                 }
             });
 

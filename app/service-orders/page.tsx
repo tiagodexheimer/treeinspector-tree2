@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 interface ServiceOrder {
     id: number;
@@ -64,6 +65,12 @@ export default function ServiceOrdersPage() {
                 <h1 className="text-3xl font-bold text-gray-900">Ordens de Serviço</h1>
 
                 <div className="flex gap-4">
+                    <Link
+                        href="/service-orders/new"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium flex items-center gap-2"
+                    >
+                        🗺️ Nova OS via Mapa
+                    </Link>
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium flex items-center gap-2"

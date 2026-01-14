@@ -31,7 +31,10 @@ interface ParsedRow {
     nomeCientifico: string;
     nomeComum: string;
     familia: string | null;
-    dap: number;
+    dap1: number;
+    dap2: number;
+    dap3: number;
+    dap4: number;
     altura: number;
     rua: string | undefined;
     numero: string | undefined;
@@ -40,26 +43,52 @@ interface ParsedRow {
     lng: number | null;
     estadoSaude: string;
     etiqueta: string | undefined;
+    necessitaManejo: boolean;
+    manejoTipo: string | null;
+    pragas: string[];
 }
 
 function parseRow(row: any): ParsedRow {
     const nomeCientificoKey = getKey(row, 'nome científico') || getKey(row, 'nome cientifico');
     const nomeComumKey = getKey(row, 'nome popular');
     const familiaKey = getKey(row, 'família') || getKey(row, 'familia');
+
+    // DAP Keys
+    const dap1Key = getKey(row, 'dap1') || getKey(row, 'dap 1') || getKey(row, 'dap');
+    const dap2Key = getKey(row, 'dap2') || getKey(row, 'dap 2');
+    const dap3Key = getKey(row, 'dap3') || getKey(row, 'dap 3');
+    const dap4Key = getKey(row, 'dap4') || getKey(row, 'dap 4');
+
+    // Fallback if only CAP exists
     const capKey = getKey(row, 'cap');
-    const alturaKey = getKey(row, 'altura');
+
+    const alturaKey = getKey(row, 'altura') || getKey(row, 'H (m)') || getKey(row, 'h');
     const ruaKey = getKey(row, 'rua');
     const numKey = getKey(row, 'n') || getKey(row, 'nº') || getKey(row, 'numero');
     const bairroKey = getKey(row, 'bairro');
     const utmEKey = Object.keys(row).find(k => k.includes('UTM E'));
     const utmSKey = Object.keys(row).find(k => k.includes('UTM S'));
-    const estadoKey = getKey(row, 'estado geral');
+    const estadoKey = getKey(row, 'estado fitossanitário') || getKey(row, 'estado fitossanitario') || getKey(row, 'estado geral');
+    const manejoKey = getKey(row, 'tipo de manejo');
+    const pragaKey = getKey(row, 'tipo de praga');
 
     const nomeCientifico = (nomeCientificoKey ? row[nomeCientificoKey] : 'Desconhecida')?.trim() || 'Desconhecida';
     const nomeComum = (nomeComumKey ? row[nomeComumKey] : 'Desconhecida')?.trim() || 'Desconhecida';
     const familia = (familiaKey ? row[familiaKey] : null)?.trim();
-    const cap = capKey ? Number(row[capKey]) : 0;
-    const dap = cap > 0 ? cap / Math.PI : 0;
+
+    let dap1 = dap1Key ? Number(row[dap1Key]) : 0;
+    const dap2 = dap2Key ? Number(row[dap2Key]) : 0;
+    const dap3 = dap3Key ? Number(row[dap3Key]) : 0;
+    const dap4 = dap4Key ? Number(row[dap4Key]) : 0;
+
+    // If no DAP1 but CAP exists, calculate it
+    if (dap1 === 0 && capKey) {
+        const cap = Number(row[capKey]);
+        if (cap > 0) {
+            dap1 = cap / Math.PI;
+        }
+    }
+
     const altura = alturaKey ? Number(row[alturaKey]) : 0;
     const rua = ruaKey ? row[ruaKey]?.toString().trim() : undefined;
     const numero = numKey ? row[numKey]?.toString().trim() : undefined;
@@ -67,7 +96,12 @@ function parseRow(row: any): ParsedRow {
     const utmE = utmEKey ? row[utmEKey] : undefined;
     const utmS = utmSKey ? row[utmSKey] : undefined;
     const estadoSaude = estadoKey ? row[estadoKey] : 'Regular';
-    const etiqueta = row['ID'] ? String(row['ID']) : undefined;
+    const etiqueta = row['Código'] ? String(row['Código']) : (row['ID'] ? String(row['ID']) : undefined);
+
+    // Management inference
+    const manejoTipo = manejoKey ? row[manejoKey] : null;
+    const necessitaManejo = !!manejoTipo && manejoTipo.toLowerCase() !== 'não' && manejoTipo.toLowerCase() !== 'nenhum';
+    const pragas = pragaKey && row[pragaKey] ? [row[pragaKey]] : [];
 
     let lat: number | null = null;
     let lng: number | null = null;
@@ -80,7 +114,7 @@ function parseRow(row: any): ParsedRow {
         } catch (e) { /* ignore */ }
     }
 
-    return { nomeCientifico, nomeComum, familia, dap, altura, rua, numero, bairro, lat, lng, estadoSaude, etiqueta };
+    return { nomeCientifico, nomeComum, familia, dap1, dap2, dap3, dap4, altura, rua, numero, bairro, lat, lng, estadoSaude, etiqueta, necessitaManejo, manejoTipo, pragas };
 }
 
 async function main() {
@@ -154,8 +188,31 @@ async function main() {
                 await tx.inspection.create({
                     data: {
                         treeId: tree.id_arvore,
-                        dendrometrics: { create: { dap1_cm: row.dap, altura_total_m: row.altura, altura_copa_m: 0, valid_from: new Date() } },
-                        phytosanitary: { create: { estado_saude: row.estadoSaude || 'Regular', valid_from: new Date() } }
+                        dendrometrics: {
+                            create: {
+                                dap1_cm: row.dap1,
+                                dap2_cm: row.dap2 > 0 ? row.dap2 : undefined,
+                                dap3_cm: row.dap3 > 0 ? row.dap3 : undefined,
+                                dap4_cm: row.dap4 > 0 ? row.dap4 : undefined,
+                                altura_total_m: row.altura,
+                                altura_copa_m: 0,
+                                valid_from: new Date()
+                            }
+                        },
+                        phytosanitary: {
+                            create: {
+                                estado_saude: row.estadoSaude || 'Regular',
+                                pragas: row.pragas,
+                                valid_from: new Date()
+                            }
+                        },
+                        managementActions: {
+                            create: {
+                                necessita_manejo: row.necessitaManejo,
+                                manejo_tipo: row.manejoTipo,
+                                valid_from: new Date()
+                            }
+                        }
                     }
                 });
                 importedCount++;

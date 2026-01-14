@@ -22,47 +22,21 @@ export async function GET() {
                 t.id_arvore,
                 ST_Y(t.localizacao::geometry) as lat,
                 ST_X(t.localizacao::geometry) as lng,
-                (
-                    SELECT p.estado_saude 
-                    FROM "PhytosanitaryData" p
-                    JOIN "Inspection" i ON p."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, p.valid_from DESC
-                    LIMIT 1
-                ) as estado_saude,
-                (
-                    SELECT m.necessita_manejo 
-                    FROM "ManagementAction" m
-                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
-                    LIMIT 1
-                ) as necessita_manejo,
-                (
-                    SELECT m.manejo_tipo 
-                    FROM "ManagementAction" m
-                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
-                    LIMIT 1
-                ) as manejo_tipo,
-                (
-                    SELECT m.supressao_tipo 
-                    FROM "ManagementAction" m
-                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
-                    LIMIT 1
-                ) as supressao_tipo,
-                (
-                    SELECT m.poda_tipos 
-                    FROM "ManagementAction" m
-                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
-                    LIMIT 1
-                ) as poda_tipos
+                p.estado_saude,
+                m.necessita_manejo,
+                m.manejo_tipo,
+                m.supressao_tipo,
+                m.poda_tipos
             FROM "Tree" t
+            LEFT JOIN LATERAL (
+                SELECT id_inspecao 
+                FROM "Inspection" 
+                WHERE "treeId" = t.id_arvore 
+                ORDER BY data_inspecao DESC 
+                LIMIT 1
+            ) last_i ON true
+            LEFT JOIN "PhytosanitaryData" p ON p."inspectionId" = last_i.id_inspecao
+            LEFT JOIN "ManagementAction" m ON m."inspectionId" = last_i.id_inspecao
             WHERE t.localizacao IS NOT NULL
         `;
 
@@ -97,7 +71,8 @@ export async function GET() {
                     management: {
                         'Remocao': 0,
                         'Substituicao': 0,
-                        'Poda': 0
+                        'Poda': 0,
+                        'Transplante': 0
                     },
                     gridLat: gridLat,
                     gridLng: gridLng
@@ -120,9 +95,21 @@ export async function GET() {
 
             // Management Count
             if (tree.necessita_manejo) {
-                if (tree.supressao_tipo === 'Remoção') cell.management['Remocao']++;
-                else if (tree.supressao_tipo === 'Substituição' || tree.supressao_tipo === 'substituicao') cell.management['Substituicao']++;
-                else if (tree.manejo_tipo === 'Poda' || (tree.poda_tipos && tree.poda_tipos.length > 0)) cell.management['Poda']++;
+                const tipo = (tree.manejo_tipo || '').toLowerCase();
+                const subTipo = (tree.supressao_tipo || '').toLowerCase();
+
+                if (subTipo.includes('remoção') || subTipo.includes('remocao') || tipo.includes('remoção') || tipo.includes('remocao')) {
+                    cell.management['Remocao']++;
+                }
+                else if (subTipo.includes('substituição') || subTipo.includes('substituicao') || tipo.includes('substituição') || tipo.includes('substituicao')) {
+                    cell.management['Substituicao']++;
+                }
+                else if (tipo.includes('transplante')) {
+                    cell.management['Transplante']++;
+                }
+                else if (tipo.includes('poda') || (tree.poda_tipos && tree.poda_tipos.length > 0)) {
+                    cell.management['Poda']++;
+                }
             }
         }
 
@@ -142,18 +129,16 @@ export async function GET() {
             let maxManagement = '';
             let maxManagementCount = 0;
             for (const [action, count] of Object.entries(cell.management)) {
-                // Priority: Removal > Replacement > Pruning
+                // Priority: Removal > Replacement > Transplant > Pruning
                 if (count > maxManagementCount) {
                     maxManagementCount = count;
                     maxManagement = action;
                 }
             }
 
-            if (cell.management['Remocao'] > 0 && cell.management['Remocao'] >= cell.management['Substituicao'] && cell.management['Remocao'] >= cell.management['Poda']) {
-                maxManagement = 'Remocao';
-            } else if (cell.management['Substituicao'] > 0 && cell.management['Substituicao'] >= cell.management['Poda']) {
-                if (maxManagement !== 'Remocao') maxManagement = 'Substituicao';
-            }
+            // Tie-breaking priority
+            if (cell.management['Remocao'] > 0 && cell.management['Remocao'] >= maxManagementCount) maxManagement = 'Remocao';
+            else if (cell.management['Substituicao'] > 0 && cell.management['Substituicao'] >= maxManagementCount) maxManagement = 'Substituicao';
 
             return {
                 lat: cell.latSum / cell.count, // Centroid of trees in cell

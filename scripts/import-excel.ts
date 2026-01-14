@@ -184,6 +184,15 @@ async function main() {
                     `;
                 }
 
+                // Detect suppression info for better semantics
+                let supressao_tipo = undefined;
+                if (row.manejoTipo) {
+                    const m = row.manejoTipo.toLowerCase();
+                    if (m.includes('remo') || m.includes('subst')) {
+                        supressao_tipo = row.manejoTipo;
+                    }
+                }
+
                 // Create Inspection with nested data
                 await tx.inspection.create({
                     data: {
@@ -210,6 +219,7 @@ async function main() {
                             create: {
                                 necessita_manejo: row.necessitaManejo,
                                 manejo_tipo: row.manejoTipo,
+                                supressao_tipo: supressao_tipo,
                                 valid_from: new Date()
                             }
                         }

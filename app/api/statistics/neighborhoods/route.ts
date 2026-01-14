@@ -14,39 +14,20 @@ export async function GET() {
                 t.bairro,
                 ST_Y(t.localizacao::geometry) as lat,
                 ST_X(t.localizacao::geometry) as lng,
-                (
-                    SELECT p.estado_saude 
-                    FROM "PhytosanitaryData" p
-                    JOIN "Inspection" i ON p."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, p.valid_from DESC
-                    LIMIT 1
-                ) as estado_saude,
-                (
-                    SELECT m.necessita_manejo 
-                    FROM "ManagementAction" m
-                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
-                    LIMIT 1
-                ) as necessita_manejo,
-                (
-                    SELECT m.manejo_tipo 
-                    FROM "ManagementAction" m
-                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
-                    LIMIT 1
-                ) as manejo_tipo,
-                (
-                    SELECT m.supressao_tipo 
-                    FROM "ManagementAction" m
-                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
-                    LIMIT 1
-                ) as supressao_tipo
+                p.estado_saude,
+                m.necessita_manejo,
+                m.manejo_tipo,
+                m.supressao_tipo
             FROM "Tree" t
+            LEFT JOIN LATERAL (
+                SELECT id_inspecao 
+                FROM "Inspection" 
+                WHERE "treeId" = t.id_arvore 
+                ORDER BY data_inspecao DESC 
+                LIMIT 1
+            ) last_i ON true
+            LEFT JOIN "PhytosanitaryData" p ON p."inspectionId" = last_i.id_inspecao
+            LEFT JOIN "ManagementAction" m ON m."inspectionId" = last_i.id_inspecao
             WHERE t.bairro IS NOT NULL
         `;
 
@@ -59,6 +40,7 @@ export async function GET() {
             remocao: number;
             substituicao: number;
             poda: number;
+            transplante: number;
 
             // Health counts
             health: { [key: string]: number };
@@ -86,6 +68,7 @@ export async function GET() {
                     remocao: 0,
                     substituicao: 0,
                     poda: 0,
+                    transplante: 0,
                     health: {
                         'Bom': 0,
                         'Regular': 0,
@@ -100,13 +83,6 @@ export async function GET() {
 
             const entry = stats.get(bairroKey)!;
             entry.total++;
-
-            // Sum coordinates
-            if (tree.lat && tree.lng) {
-                entry.latSum += tree.lat;
-                entry.lngSum += tree.lng;
-                entry.countLatChat++;
-            }
 
             // Sum coordinates
             if (tree.lat && tree.lng) {
@@ -130,16 +106,18 @@ export async function GET() {
 
             // Management Stats
             if (tree.necessita_manejo) {
-                const type = tree.manejo_tipo?.toLowerCase();
-                const subType = tree.supressao_tipo?.toLowerCase();
+                const type = (tree.manejo_tipo || '').toLowerCase();
+                const subType = (tree.supressao_tipo || '').toLowerCase();
 
-                if (subType?.includes('remoção') || subType?.includes('remocao')) {
+                if (subType.includes('remoção') || subType.includes('remocao') || type.includes('remoção') || type.includes('remocao')) {
                     entry.remocao++;
-                } else if (subType?.includes('substituição') || subType?.includes('substituicao')) {
+                } else if (subType.includes('substituição') || subType.includes('substituicao') || type.includes('substituição') || type.includes('substituicao')) {
                     entry.substituicao++;
+                } else if (type.includes('transplante')) {
+                    entry.transplante++;
                 }
 
-                if (type?.includes('poda')) {
+                if (type.includes('poda')) {
                     entry.poda++;
                 }
             }
@@ -163,6 +141,7 @@ export async function GET() {
                 remocao: s.remocao,
                 substituicao: s.substituicao,
                 poda: s.poda,
+                transplante: s.transplante,
 
                 // Health
                 predominant_health: maxHealth,

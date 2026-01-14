@@ -110,6 +110,7 @@ export async function GET(request: Request) {
         // ==========================================
 
         // Busca TUDO usando SQL Raw para extrair coordenadas do PostGIS
+        // Busca TUDO usando SQL Raw para extrair coordenadas do PostGIS
         const trees: any[] = await prisma.$queryRaw`
             SELECT 
                 t.id_arvore as id,
@@ -117,16 +118,17 @@ export async function GET(request: Request) {
                 ST_X(t.localizacao::geometry) as lng,
                 t.numero_etiqueta as lbl,
                 s.nome_comum as sp,
-                (
-                    SELECT p.estado_saude 
-                    FROM "PhytosanitaryData" p
-                    JOIN "Inspection" i ON p."inspectionId" = i.id_inspecao
-                    WHERE i."treeId" = t.id_arvore
-                    ORDER BY i.data_inspecao DESC, p.valid_from DESC
-                    LIMIT 1
-                ) as st
+                p.estado_saude as st
             FROM "Tree" t
             LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
+            LEFT JOIN LATERAL (
+                SELECT id_inspecao 
+                FROM "Inspection" 
+                WHERE "treeId" = t.id_arvore 
+                ORDER BY data_inspecao DESC 
+                LIMIT 1
+            ) last_i ON true
+            LEFT JOIN "PhytosanitaryData" p ON p."inspectionId" = last_i.id_inspecao
             WHERE t.localizacao IS NOT NULL
         `;
 

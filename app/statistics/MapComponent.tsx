@@ -12,6 +12,7 @@ export interface NeighborhoodStat {
     remocao: number;
     substituicao: number;
     poda: number;
+    transplante?: number;
     predominant_health?: string;
     health_counts?: { [key: string]: number };
     lat: number;
@@ -58,6 +59,7 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
             if (action === 'Remocao') color = '#ef4444';
             else if (action === 'Substituicao') color = '#f59e0b';
             else if (action === 'Poda') color = '#3b82f6';
+            else if (action === 'Transplante') color = '#8b5cf6';
             else color = '#e5e7eb'; // Very light gray for no action
         } else {
             // Health
@@ -107,12 +109,14 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
     const s = stat as NeighborhoodStat;
 
     if (mode === 'management') {
-        const total = s.remocao + s.substituicao + s.poda;
-        const max = Math.max(s.remocao, s.substituicao, s.poda, 5);
+        const transplante = s.transplante || 0;
+        const total = s.remocao + s.substituicao + s.poda + transplante;
+        const max = Math.max(s.remocao, s.substituicao, s.poda, transplante, 5);
 
         const hRemocao = (s.remocao / max) * 60;
         const hSubstituicao = (s.substituicao / max) * 60;
         const hPoda = (s.poda / max) * 60;
+        const hTransplante = (transplante / max) * 60;
 
         const html = `
         <div style="display: flex; flex-direction: column; align-items: center;">
@@ -132,11 +136,16 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
                     <span style="font-size: 10px; font-weight: bold; color: #3b82f6;">${s.poda}</span>
                     <div style="width: 12px; height: ${hPoda}px; background-color: #3b82f6; border-radius: 2px 2px 0 0;"></div>
                  </div>` : ''}
+                 ${transplante > 0 ? `
+                 <div style="display: flex; flex-direction: column; align-items: center;">
+                    <span style="font-size: 10px; font-weight: bold; color: #8b5cf6;">${transplante}</span>
+                    <div style="width: 12px; height: ${hTransplante}px; background-color: #8b5cf6; border-radius: 2px 2px 0 0;"></div>
+                 </div>` : ''}
             </div>
             <span style="background: white; padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 2px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${s.bairro}</span>
         </div>`;
 
-        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [60, 80], iconAnchor: [30, 80], popupAnchor: [0, -80] });
+        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [80, 80], iconAnchor: [40, 80], popupAnchor: [0, -80] });
         return iconCache[cacheKey];
     } else {
         // Health Mode (Neighborhood)
@@ -171,6 +180,7 @@ const getGridRectColor = (stat: GridStat, gridType: GridType): string => {
         if (action === 'Remocao') return '#ef4444';
         if (action === 'Substituicao') return '#f59e0b';
         if (action === 'Poda') return '#3b82f6';
+        if (action === 'Transplante') return '#8b5cf6';
         return '#9ca3af';
     } else {
         const health = stat.predominant_health || 'Regular';
@@ -248,7 +258,8 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                                             <div className="text-xs mt-1">
                                                 Remoção: {(stat as GridStat).management_counts?.['Remocao'] || 0}<br />
                                                 Subst.: {(stat as GridStat).management_counts?.['Substituicao'] || 0}<br />
-                                                Poda: {(stat as GridStat).management_counts?.['Poda'] || 0}
+                                                Poda: {(stat as GridStat).management_counts?.['Poda'] || 0}<br />
+                                                Transplante: {(stat as GridStat).management_counts?.['Transplante'] || 0}
                                             </div>
                                         </>
                                     )}
@@ -266,7 +277,7 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                                 <>
                                     <strong>{(stat as NeighborhoodStat).bairro}</strong><br />
                                     {statMode === 'management' ? (
-                                        <>Remoção: {(stat as NeighborhoodStat).remocao}<br />Substituição: {(stat as NeighborhoodStat).substituicao}<br />Poda: {(stat as NeighborhoodStat).poda}</>
+                                        <>Remoção: {(stat as NeighborhoodStat).remocao}<br />Substituição: {(stat as NeighborhoodStat).substituicao}<br />Poda: {(stat as NeighborhoodStat).poda}<br />Transplante: {(stat as NeighborhoodStat).transplante || 0}</>
                                     ) : (
                                         <>Predominante: {(stat as NeighborhoodStat).predominant_health}<br />(Bom/Reg/Ruim)</>
                                     )}
@@ -295,6 +306,7 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                                     <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#ef4444]"></span><span className="text-sm">Remoção</span></div>
                                     <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#f59e0b]"></span><span className="text-sm">Substituição</span></div>
                                     <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#3b82f6]"></span><span className="text-sm">Poda</span></div>
+                                    <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#8b5cf6]"></span><span className="text-sm">Transplante</span></div>
                                     <div className="flex items-center gap-2"><span className="w-4 h-4 rounded-full bg-[#e5e7eb] border border-gray-400"></span><span className="text-sm">Sem Ação</span></div>
                                 </div>
                             )}
@@ -308,6 +320,7 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                                     <div className="flex items-center gap-2"><span className="w-4 h-4 bg-[#ef4444] rounded-sm"></span><span className="text-sm text-gray-700">Remoção</span></div>
                                     <div className="flex items-center gap-2"><span className="w-4 h-4 bg-[#f59e0b] rounded-sm"></span><span className="text-sm text-gray-700">Substituição</span></div>
                                     <div className="flex items-center gap-2"><span className="w-4 h-4 bg-[#3b82f6] rounded-sm"></span><span className="text-sm text-gray-700">Poda</span></div>
+                                    <div className="flex items-center gap-2"><span className="w-4 h-4 bg-[#8b5cf6] rounded-sm"></span><span className="text-sm text-gray-700">Transplante</span></div>
                                 </div>
                             </>
                         ) : (

@@ -16,7 +16,7 @@ export async function GET(
                 inspections: {
                     orderBy: { data_inspecao: 'desc' },
                     include: {
-                        dendrometrics: true, // we might want just the valid ones?
+                        dendrometrics: true,
                         phytosanitary: true,
                         managementActions: true,
                         photos: true
@@ -31,7 +31,19 @@ export async function GET(
             return NextResponse.json({ error: 'Tree not found' }, { status: 404 });
         }
 
-        return NextResponse.json(tree);
+        // Extrair coordenadas via PostGIS
+        const coords: any[] = await prisma.$queryRaw`
+            SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
+            FROM "Tree" WHERE id_arvore = ${id}
+        `;
+
+        const treeWithCoords = {
+            ...tree,
+            lat: coords[0]?.lat || null,
+            lng: coords[0]?.lng || null
+        };
+
+        return NextResponse.json(treeWithCoords);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch tree' }, { status: 500 });
     }
@@ -46,23 +58,43 @@ export async function PATCH(
     const body = await request.json();
 
     try {
-        const updatedTree = await prisma.tree.update({
-            where: { id_arvore: id },
-            data: {
-                numero_etiqueta: body.numero_etiqueta,
-                rua: body.rua,
-                numero: body.numero,
-                bairro: body.bairro,
-                endereco: body.endereco,
-                lat: body.lat ? parseFloat(body.lat) : undefined,
-                lng: body.lng ? parseFloat(body.lng) : undefined,
-                // species update logic could be complex (find first in Species table), for now assume speciesId passed
-                ...(body.speciesId && { speciesId: parseInt(body.speciesId) })
-            },
-            include: { species: true }
+        const updatedTree = await prisma.$transaction(async (tx) => {
+            const tree = await tx.tree.update({
+                where: { id_arvore: id },
+                data: {
+                    numero_etiqueta: body.numero_etiqueta,
+                    rua: body.rua,
+                    numero: body.numero,
+                    bairro: body.bairro,
+                    endereco: body.endereco,
+                    // species update logic could be complex (find first in Species table), for now assume speciesId passed
+                    ...(body.speciesId && { speciesId: parseInt(body.speciesId) })
+                },
+                include: { species: true }
+            });
+
+            if (body.lat !== undefined && body.lng !== undefined) {
+                await tx.$executeRaw`
+                    UPDATE "Tree" 
+                    SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(body.lng)}, ${parseFloat(body.lat)}), 4326)
+                    WHERE "id_arvore" = ${id}
+                `;
+            }
+
+            return tree;
         });
 
-        return NextResponse.json(updatedTree);
+        // Fetch again to get updated coordinates if needed by frontend (though PATCH usually returns the object)
+        const finalCoords: any[] = await prisma.$queryRaw`
+            SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
+            FROM "Tree" WHERE id_arvore = ${id}
+        `;
+
+        return NextResponse.json({
+            ...updatedTree,
+            lat: finalCoords[0]?.lat || null,
+            lng: finalCoords[0]?.lng || null
+        });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: 'Failed to update tree' }, { status: 500 });
@@ -96,9 +128,17 @@ export async function DELETE(
                 // Checking schema: ServiceOrder has tree_id AND management_id.
                 // We should delete ServiceOrders for the TREE first.
 
-                // 3. Delete Service Orders (directly linked to Tree)
-                // This will also clear the reference to ManagementActions, allowing them to be deleted.
-                await tx.serviceOrder.deleteMany({ where: { tree_id: id } });
+                // 3. Delete Service Orders links (and possibly the SO if it's specific to this tree)
+                // In many-to-many, we can't just deleteMany by treeId if it's not a field.
+                // We'll disconnect them or delete them if they only belong to this tree.
+                // For simplicity and to match previous intended behavior:
+                await tx.serviceOrder.deleteMany({
+                    where: {
+                        trees: {
+                            some: { id_arvore: id }
+                        }
+                    }
+                });
 
                 // Now safe to delete ManagementActions
                 await tx.managementAction.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
@@ -107,8 +147,14 @@ export async function DELETE(
                 // 4. Delete Inspections
                 await tx.inspection.deleteMany({ where: { treeId: id } });
             } else {
-                // Even if no inspections, ensure ServiceOrders are gone
-                await tx.serviceOrder.deleteMany({ where: { tree_id: id } });
+                // Even if no inspections, ensure ServiceOrders linked to this tree are gone
+                await tx.serviceOrder.deleteMany({
+                    where: {
+                        trees: {
+                            some: { id_arvore: id }
+                        }
+                    }
+                });
             }
 
             // 5. Delete Tree Photos (PhotoMetadata)

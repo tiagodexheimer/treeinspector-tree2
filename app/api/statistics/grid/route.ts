@@ -16,51 +16,75 @@ interface GridCell {
 
 export async function GET() {
     try {
-        // Fetch trees with location and health data
-        const trees = await prisma.tree.findMany({
-            where: {
-                lat: { not: null },
-                lng: { not: null }
-            },
-            select: {
-                id_arvore: true,
-                lat: true,
-                lng: true,
-                inspections: {
-                    orderBy: { data_inspecao: 'desc' },
-                    take: 1,
-                    select: {
-                        phytosanitary: {
-                            select: {
-                                estado_saude: true
-                            }
-                        },
-                        managementActions: {
-                            select: {
-                                manejo_tipo: true,
-                                poda_tipos: true,
-                                supressao_tipo: true,
-                                necessita_manejo: true
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        // Fetch trees with location and health data using Raw SQL to extract PostGIS coordinates
+        const trees: any[] = await prisma.$queryRaw`
+            SELECT 
+                t.id_arvore,
+                ST_Y(t.localizacao::geometry) as lat,
+                ST_X(t.localizacao::geometry) as lng,
+                (
+                    SELECT p.estado_saude 
+                    FROM "PhytosanitaryData" p
+                    JOIN "Inspection" i ON p."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, p.valid_from DESC
+                    LIMIT 1
+                ) as estado_saude,
+                (
+                    SELECT m.necessita_manejo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as necessita_manejo,
+                (
+                    SELECT m.manejo_tipo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as manejo_tipo,
+                (
+                    SELECT m.supressao_tipo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as supressao_tipo,
+                (
+                    SELECT m.poda_tipos 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as poda_tipos
+            FROM "Tree" t
+            WHERE t.localizacao IS NOT NULL
+        `;
 
         // Grid Aggregation
         const grid = new Map<string, GridCell>();
 
         for (const tree of trees) {
-            if (!tree.lat || !tree.lng) continue;
+            const lat = tree.lat;
+            const lng = tree.lng;
+
+            if (lat === null || lng === null) continue;
 
             // Quantize coordinates to create grid keys
-            const gridLat = Math.round(tree.lat / GRID_SIZE) * GRID_SIZE;
-            const gridLng = Math.round(tree.lng / GRID_SIZE) * GRID_SIZE;
-            const key = `${gridLat.toFixed(4)}_${gridLng.toFixed(4)}`;
+            const gridLat = Math.round(lat / GRID_SIZE) * GRID_SIZE;
+            const gridLng = Math.round(lng / GRID_SIZE) * GRID_SIZE;
 
-            if (!grid.has(key)) {
-                grid.set(key, {
+            // Faster key generation
+            const key = `${gridLat.toFixed(4)}|${gridLng.toFixed(4)}`;
+
+            let cell = grid.get(key);
+            if (!cell) {
+                cell = {
                     latSum: 0,
                     lngSum: 0,
                     count: 0,
@@ -77,35 +101,28 @@ export async function GET() {
                     },
                     gridLat: gridLat,
                     gridLng: gridLng
-                });
+                };
+                grid.set(key, cell);
             }
 
-            const cell = grid.get(key)!;
-            cell.latSum += tree.lat;
-            cell.lngSum += tree.lng;
+            cell.latSum += lat;
+            cell.lngSum += lng;
             cell.count++;
 
-            // Health Count
-            const health = tree.inspections[0]?.phytosanitary[0]?.estado_saude || 'Regular';
-
-            // Normalize health status
+            // Health Count - Optimized normalization
+            const health = tree.estado_saude || 'Regular';
             let normalizedHealth = 'Regular';
             if (health.includes('Bom')) normalizedHealth = 'Bom';
-            else if (health.includes('Ruim')) normalizedHealth = 'Ruim';
+            else if (health.includes('Ruim') || health.includes('péssim')) normalizedHealth = 'Ruim';
             else if (health.includes('Morta') || health.includes('Desv')) normalizedHealth = 'Morta/Desvitalizada';
 
-            if (cell.health[normalizedHealth] !== undefined) {
-                cell.health[normalizedHealth]++;
-            } else {
-                cell.health['Regular']++; // Fallback
-            }
+            cell.health[normalizedHealth]++;
 
             // Management Count
-            const management = tree.inspections[0]?.managementActions[0];
-            if (management && management.necessita_manejo) {
-                if (management.supressao_tipo === 'Remoção') cell.management['Remocao']++;
-                else if (management.supressao_tipo === 'Substituição' || management.supressao_tipo === 'substituicao') cell.management['Substituicao']++;
-                else if (management.manejo_tipo === 'Poda' || (management.poda_tipos && management.poda_tipos.length > 0)) cell.management['Poda']++;
+            if (tree.necessita_manejo) {
+                if (tree.supressao_tipo === 'Remoção') cell.management['Remocao']++;
+                else if (tree.supressao_tipo === 'Substituição' || tree.supressao_tipo === 'substituicao') cell.management['Substituicao']++;
+                else if (tree.manejo_tipo === 'Poda' || (tree.poda_tipos && tree.poda_tipos.length > 0)) cell.management['Poda']++;
             }
         }
 
@@ -151,7 +168,11 @@ export async function GET() {
             };
         });
 
-        return NextResponse.json(result);
+        return NextResponse.json(result, {
+            headers: {
+                'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=1200'
+            }
+        });
     } catch (error) {
         console.error('Error fetching grid stats:', error);
         return NextResponse.json({ error: 'Failed to fetch grid stats' }, { status: 500 });

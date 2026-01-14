@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
     const gridLng = parseFloat(lngStr);
 
     // Calculate bounds for this grid cell
-    // A tree belongs to this cell if round(tree.lat / SIZE) * SIZE == gridLat
-    // This implies tree.lat is within [gridLat - SIZE/2, gridLat + SIZE/2)
     const half = GRID_SIZE / 2;
     const minLat = gridLat - half;
     const maxLat = gridLat + half;
@@ -25,55 +23,73 @@ export async function GET(request: NextRequest) {
     const maxLng = gridLng + half;
 
     try {
-        const trees = await prisma.tree.findMany({
-            where: {
-                lat: {
-                    gte: minLat,
-                    lt: maxLat
-                },
-                lng: {
-                    gte: minLng,
-                    lt: maxLng
-                }
-            },
-            select: {
-                id_arvore: true,
-                rua: true,
-                numero: true,
-                bairro: true,
-                nome_popular: true,
-                inspections: {
-                    orderBy: { data_inspecao: 'desc' },
-                    take: 1,
-                    select: {
-                        uuid: true,
-                        data_inspecao: true,
-                        phytosanitary: {
-                            select: { estado_saude: true }
-                        },
-                        managementActions: {
-                            select: {
-                                necessita_manejo: true,
-                                manejo_tipo: true,
-                                poda_tipos: true,
-                                supressao_tipo: true
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        // Use raw query for spatial filtering within the grid cell
+        const trees: any[] = await prisma.$queryRaw`
+            SELECT 
+                t.id_arvore, 
+                t.rua, 
+                t.numero, 
+                t.bairro,
+                s.nome_popular,
+                (
+                    SELECT p.estado_saude 
+                    FROM "PhytosanitaryData" p
+                    JOIN "Inspection" i ON p."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, p.valid_from DESC
+                    LIMIT 1
+                ) as estado_saude,
+                (
+                    SELECT m.necessita_manejo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as necessita_manejo,
+                (
+                    SELECT m.manejo_tipo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as manejo_tipo,
+                (
+                    SELECT m.supressao_tipo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as supressao_tipo,
+                (
+                    SELECT m.poda_tipos 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as poda_tipos,
+                (
+                    SELECT i.data_inspecao
+                    FROM "Inspection" i
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC
+                    LIMIT 1
+                ) as data_inspecao
+            FROM "Tree" t
+            LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
+            WHERE ST_Within(t.localizacao, ST_MakeEnvelope(${minLng}, ${minLat}, ${maxLng}, ${maxLat}, 4326))
+        `;
 
         // Format for frontend
         const formatted = trees.map(t => {
-            const insp = t.inspections[0];
-            const mgmt = insp?.managementActions[0];
-
             let manejoTexto = 'Sem necessidade';
-            if (mgmt?.necessita_manejo) {
-                if (mgmt.supressao_tipo) manejoTexto = mgmt.supressao_tipo;
-                else if (mgmt.poda_tipos && mgmt.poda_tipos.length > 0) manejoTexto = `Poda (${mgmt.poda_tipos.join(', ')})`;
-                else if (mgmt.manejo_tipo) manejoTexto = mgmt.manejo_tipo;
+            if (t.necessita_manejo) {
+                if (t.supressao_tipo) manejoTexto = t.supressao_tipo;
+                else if (t.poda_tipos && t.poda_tipos.length > 0) manejoTexto = `Poda (${t.poda_tipos.join(', ')})`;
+                else if (t.manejo_tipo) manejoTexto = t.manejo_tipo;
             }
 
             return {
@@ -81,9 +97,9 @@ export async function GET(request: NextRequest) {
                 endereco: `${t.rua || 'Rua Desconhecida'}, ${t.numero || 'SN'}`,
                 bairro: t.bairro || '-',
                 especie: t.nome_popular || 'Não ident.',
-                saude: insp?.phytosanitary[0]?.estado_saude || 'Não avaliado',
+                saude: t.estado_saude || 'Não avaliado',
                 manejo: manejoTexto,
-                data_inspecao: insp?.data_inspecao
+                data_inspecao: t.data_inspecao
             };
         });
 

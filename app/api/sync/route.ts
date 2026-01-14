@@ -58,7 +58,7 @@ export async function POST(request: Request) {
                         targetSpeciesId = 1;
                     }
 
-                    // Upsert: Create or Update based on UUID
+                    // Upsert: Create or Update based on UUID without coordinates first
                     const upsertedTree = await tx.tree.upsert({
                         where: { uuid: tree.uuid },
                         update: {
@@ -68,8 +68,6 @@ export async function POST(request: Request) {
                             rua: tree.rua,
                             numero: tree.numero,
                             bairro: tree.bairro,
-                            lat: tree.lat,
-                            lng: tree.lng,
                             speciesId: targetSpeciesId,
                         },
                         create: {
@@ -80,11 +78,18 @@ export async function POST(request: Request) {
                             rua: tree.rua,
                             numero: tree.numero,
                             bairro: tree.bairro,
-                            lat: tree.lat,
-                            lng: tree.lng,
                             speciesId: targetSpeciesId,
                         }
                     });
+
+                    // Update location with PostGIS
+                    if (tree.lat && tree.lng) {
+                        await tx.$executeRaw`
+                            UPDATE "Tree" 
+                            SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(tree.lng)}, ${parseFloat(tree.lat)}), 4326)
+                            WHERE "id_arvore" = ${upsertedTree.id_arvore}
+                        `;
+                    }
                     treeId = upsertedTree.id_arvore;
                 }
 

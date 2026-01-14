@@ -1,208 +1,147 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
 
+// Força a renderização dinâmica para garantir dados sempre atualizados,
+// mas controlaremos o cache via headers na resposta do mapa.
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const bairro = searchParams.get('bairro');
-        const endereco = searchParams.get('endereco');
-        const etiqueta = searchParams.get('etiqueta');
-        const species = searchParams.get('species');
-        const q = searchParams.get('q');
 
-        // Pagination params - only active if 'page' is present
-        const pageParam = searchParams.get('page');
-        const limitParam = searchParams.get('limit');
+        // ==========================================
+        // 1. VERIFICAÇÃO DE FILTROS E PAGINAÇÃO
+        // ==========================================
+        // Se houver qualquer parâmetro de filtro ou paginação, entramos no modo detalhado
+        const hasFilters = searchParams.get('page') ||
+            searchParams.get('q') ||
+            searchParams.get('species') ||
+            searchParams.get('bairro') ||
+            searchParams.get('radius');
 
-        // Build base where clause
-        const where: any = {
-            ...(q && {
-                OR: [
-                    { numero_etiqueta: { contains: q, mode: 'insensitive' } },
-                    { rua: { contains: q, mode: 'insensitive' } },
-                    { endereco: { contains: q, mode: 'insensitive' } }
-                ]
-            }),
-            ...(bairro && { bairro: { contains: bairro, mode: 'insensitive' } }),
-            ...(endereco && {
-                OR: [
-                    { endereco: { contains: endereco, mode: 'insensitive' } },
-                    { rua: { contains: endereco, mode: 'insensitive' } }
-                ]
-            }),
-            ...(etiqueta && { numero_etiqueta: { contains: etiqueta, mode: 'insensitive' } }),
-            ...(species && {
-                species: {
+        if (hasFilters) {
+            // Recria o 'where' básico baseado nos params
+            const bairro = searchParams.get('bairro');
+            const endereco = searchParams.get('endereco');
+            const etiqueta = searchParams.get('etiqueta');
+            const species = searchParams.get('species');
+            const q = searchParams.get('q');
+
+            const where: any = {
+                ...(q && {
                     OR: [
-                        { nome_comum: { contains: species, mode: 'insensitive' } },
-                        { nome_cientifico: { contains: species, mode: 'insensitive' } }
+                        { numero_etiqueta: { contains: q, mode: 'insensitive' } },
+                        { rua: { contains: q, mode: 'insensitive' } },
+                        { endereco: { contains: q, mode: 'insensitive' } }
                     ]
-                }
-            })
-        };
+                }),
+                ...(bairro && { bairro: { contains: bairro, mode: 'insensitive' } }),
+                ...(endereco && {
+                    OR: [
+                        { endereco: { contains: endereco, mode: 'insensitive' } },
+                        { rua: { contains: endereco, mode: 'insensitive' } }
+                    ]
+                }),
+                ...(etiqueta && { numero_etiqueta: { contains: etiqueta, mode: 'insensitive' } }),
+                ...(species && {
+                    species: {
+                        OR: [
+                            { nome_comum: { contains: species, mode: 'insensitive' } },
+                            { nome_cientifico: { contains: species, mode: 'insensitive' } }
+                        ]
+                    }
+                })
+            };
 
-        // If pagination is requested
-        if (pageParam || limitParam) {
-            const page = parseInt(pageParam || '1');
-            const limit = parseInt(limitParam || '20');
+            // CASO A: Mobile (Geolocalização via PostGIS)
+            if (searchParams.get('lat') && searchParams.get('radius')) {
+                const lat = parseFloat(searchParams.get('lat')!);
+                const lng = parseFloat(searchParams.get('lng')!);
+                const radius = parseFloat(searchParams.get('radius')!);
+
+                // Usando raw query para busca por raio no PostGIS
+                const trees: any[] = await prisma.$queryRaw`
+                    SELECT 
+                        t.id_arvore, 
+                        ST_Y(t.localizacao::geometry) as lat, 
+                        ST_X(t.localizacao::geometry) as lng, 
+                        t.numero_etiqueta,
+                        t.rua, 
+                        t.numero, 
+                        t.bairro,
+                        s.nome_comum,
+                        s.nome_cientifico,
+                        ST_Distance(t.localizacao, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography) as distance
+                    FROM "Tree" t
+                    LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
+                    WHERE ST_DWithin(t.localizacao, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius})
+                    ORDER BY distance ASC
+                    LIMIT 50
+                `;
+
+                return NextResponse.json(trees);
+            }
+
+            // CASO B: Lista Administrativa (Paginada)
+            const page = parseInt(searchParams.get('page') || '1');
+            const limit = parseInt(searchParams.get('limit') || '20');
             const skip = (page - 1) * limit;
 
             const total = await prisma.tree.count({ where });
-
+            // Precisamos extrair lat/lng via query raw se quisermos exibi-los na lista, 
+            // mas a lista administrativa muitas vezes não mostra lat/lng diretamente.
+            // Se precisar, teremos que usar queryRaw aqui também.
             const trees = await prisma.tree.findMany({
                 where,
                 orderBy: { id_arvore: 'desc' },
                 skip,
                 take: limit,
-                include: {
-                    species: true,
-                    inspections: {
-                        orderBy: { data_inspecao: 'desc' },
-                        take: 1,
-                        include: {
-                            phytosanitary: {
-                                orderBy: { valid_from: 'desc' },
-                                take: 1
-                            }
-                        }
-                    }
-                }
+                include: { species: true, inspections: { take: 1 } }
             });
 
             return NextResponse.json({
                 data: trees,
-                pagination: {
-                    total,
-                    pages: Math.ceil(total / limit),
-                    currentPage: page,
-                    limit
-                }
+                pagination: { total, pages: Math.ceil(total / limit), currentPage: page, limit }
             });
         }
 
-        // Default: Return ALL trees (Backward compatibility for Map)
-        // Check for Geo-Spatial Search (Nearby)
-        const latParam = searchParams.get('lat');
-        const lngParam = searchParams.get('lng');
-        const radiusParam = searchParams.get('radius');
+        // ==========================================
+        // 2. MODO MAPA GERAL (PostGIS 추출)
+        // ==========================================
 
-        if (latParam && lngParam && radiusParam) {
-            const lat = parseFloat(latParam);
-            const lng = parseFloat(lngParam);
-            const radius = parseFloat(radiusParam); // in meters
+        // Busca TUDO usando SQL Raw para extrair coordenadas do PostGIS
+        const trees: any[] = await prisma.$queryRaw`
+            SELECT 
+                t.id_arvore as id,
+                ST_Y(t.localizacao::geometry) as lat,
+                ST_X(t.localizacao::geometry) as lng,
+                t.numero_etiqueta as lbl,
+                s.nome_comum as sp,
+                (
+                    SELECT p.estado_saude 
+                    FROM "PhytosanitaryData" p
+                    JOIN "Inspection" i ON p."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, p.valid_from DESC
+                    LIMIT 1
+                ) as st
+            FROM "Tree" t
+            LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
+            WHERE t.localizacao IS NOT NULL
+        `;
 
-            // Earth Radius approx 6371km. 
-            // 1 degree lat ~= 111km = 111000m
-            const latDelta = radius / 111000;
-            const lngDelta = radius / (111000 * Math.cos(lat * (Math.PI / 180)));
+        const mapData = trees.map(t => ({
+            ...t,
+            st: t.st || 'Regular'
+        }));
 
-            const minLat = lat - latDelta;
-            const maxLat = lat + latDelta;
-            const minLng = lng - lngDelta;
-            const maxLng = lng + lngDelta;
-
-            const trees = await prisma.tree.findMany({
-                where: {
-                    ...where,
-                    lat: { gte: minLat, lte: maxLat },
-                    lng: { gte: minLng, lte: maxLng }
-                },
-                select: {
-                    id_arvore: true,
-                    // uuid: true, // Assuming UUID is not on schema yet based on previous files, using id_arvore primarily
-                    lat: true,
-                    lng: true,
-                    numero_etiqueta: true,
-                    rua: true,
-                    numero: true,
-                    bairro: true,
-                    speciesId: true,
-                    species: {
-                        select: {
-                            nome_comum: true,
-                            nome_cientifico: true
-                        }
-                    },
-                    photos: {
-                        take: 1,
-                        select: {
-                            blob_url: true // In a real app we'd send a URL, here we send what we have. 
-                            // If blob_url is actually a URL string, great. If base64, it's heavy but lazy loaded by client request.
-                        }
-                    }
-                },
-                // take: 500 // Removed to ensure we calculate distance for ALL trees in the box before slicing.
-                // Assuming density isn't massive (e.g. < 5000 trees in 500m radius).
-                // If performance becomes an issue, we can optimize with PostGIS or raw query.
-            });
-
-            // Calculate distance and sort
-            const treesWithDist = trees.map(t => {
-                if (!t.lat || !t.lng) return { ...t, distance: Infinity };
-
-                // Haversine
-                const R = 6371e3; // metres
-                const φ1 = lat * Math.PI / 180;
-                const φ2 = t.lat * Math.PI / 180;
-                const Δφ = (t.lat - lat) * Math.PI / 180;
-                const Δλ = (t.lng - lng) * Math.PI / 180;
-                const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                    Math.cos(φ1) * Math.cos(φ2) *
-                    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                const d = R * c; // in metres
-
-                return { ...t, distance: d };
-            });
-
-            treesWithDist.sort((a, b) => a.distance - b.distance);
-
-            // Return Top 50 of the closest
-            const mobileTrees = treesWithDist.slice(0, 50).map(t => ({
-                id: t.id_arvore,
-                etiqueta: t.numero_etiqueta,
-                species_common: t.species?.nome_comum,
-                species_scientific: t.species?.nome_cientifico,
-                address: `${t.rua || ''}, ${t.numero || ''} - ${t.bairro || ''}`,
-                lat: t.lat,
-                lng: t.lng,
-                distance: t.distance // Return distance
-            }));
-
-            return NextResponse.json(mobileTrees);
-        }
-
-        // Default: Return ALL trees (Optimized for Map)
-        const trees = await prisma.tree.findMany({
-            where,
-            orderBy: { id_arvore: 'desc' },
-            select: {
-                id_arvore: true,
-                lat: true,
-                lng: true,
-                numero_etiqueta: true,
-                species: {
-                    select: {
-                        nome_comum: true
-                    }
-                },
-                inspections: {
-                    orderBy: { data_inspecao: 'desc' },
-                    take: 1,
-                    select: {
-                        phytosanitary: {
-                            orderBy: { valid_from: 'desc' },
-                            take: 1,
-                            select: {
-                                estado_saude: true
-                            }
-                        }
-                    }
-                }
+        // Retorna com Cache Headers agressivos
+        return NextResponse.json(mapData, {
+            headers: {
+                'Cache-Control': 'public, max-age=120, s-maxage=300, stale-while-revalidate=600'
             }
         });
 
-        return NextResponse.json(trees);
     } catch (error) {
         console.error('Error fetching trees:', error);
         return NextResponse.json({ error: 'Failed to fetch trees' }, { status: 500 });
@@ -214,29 +153,46 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { speciesId, numero_etiqueta, rua, numero, bairro, endereco, lat, lng, photo_uri } = body;
 
-        const newTree = await prisma.tree.create({
-            data: {
-                speciesId: Number(speciesId),
-                numero_etiqueta,
-                rua,
-                numero,
-                bairro,
-                endereco,
-                lat,
-                lng,
-                photos: photo_uri ? {
-                    create: {
-                        blob_url: photo_uri,
-                        file_name: 'tree_photo.jpg' // Default name as we don't have one
-                    }
-                } : undefined
-            },
-            include: {
-                species: true
+        // Note: Prisma does not support inserting into Unsupported fields directly with create().
+        // We need to use $executeRaw or first create and then update with raw SQL.
+        // We'll use a transaction for safety.
+
+        const newTreeId = await prisma.$transaction(async (tx) => {
+            const tree = await tx.tree.create({
+                data: {
+                    speciesId: Number(speciesId),
+                    numero_etiqueta,
+                    rua,
+                    numero: numero ? String(numero) : null,
+                    bairro,
+                    endereco,
+                    photos: photo_uri ? {
+                        create: {
+                            blob_url: photo_uri,
+                            file_name: 'tree_photo.jpg'
+                        }
+                    } : undefined
+                },
+                select: { id_arvore: true }
+            });
+
+            if (lat && lng) {
+                await tx.$executeRaw`
+                    UPDATE "Tree" 
+                    SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(lng)}, ${parseFloat(lat)}), 4326)
+                    WHERE "id_arvore" = ${tree.id_arvore}
+                `;
             }
+
+            return tree.id_arvore;
         });
 
-        return NextResponse.json(newTree, { status: 201 });
+        const createdTree = await prisma.tree.findUnique({
+            where: { id_arvore: newTreeId },
+            include: { species: true }
+        });
+
+        return NextResponse.json(createdTree, { status: 201 });
     } catch (error) {
         console.error('Error creating tree:', error);
         return NextResponse.json({ error: 'Failed to create tree' }, { status: 500 });

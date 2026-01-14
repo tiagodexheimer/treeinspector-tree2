@@ -7,37 +7,48 @@ export async function GET() {
         // optimizing to fetch only necessary fields
         // Fetch trees with minimal fields for aggregation
         // We fetch ALL trees to calculate health statistics accurately, not just those needing management
-        const trees = await prisma.tree.findMany({
-            where: {
-                // Ensure we mostly get trees with location/neighborhood
-                bairro: { not: null },
-            },
-            select: {
-                id_arvore: true,
-                bairro: true,
-                lat: true,
-                lng: true,
-                inspections: {
-                    orderBy: { data_inspecao: 'desc' },
-                    take: 1,
-                    select: {
-                        managementActions: {
-                            select: {
-                                necessita_manejo: true,
-                                manejo_tipo: true,
-                                supressao_tipo: true,
-                                poda_tipos: true
-                            }
-                        },
-                        phytosanitary: {
-                            select: {
-                                estado_saude: true
-                            }
-                        }
-                    }
-                }
-            }
-        });
+        // Fetch trees using Raw SQL to extract PostGIS coordinates and latest health/management data
+        const trees: any[] = await prisma.$queryRaw`
+            SELECT 
+                t.id_arvore,
+                t.bairro,
+                ST_Y(t.localizacao::geometry) as lat,
+                ST_X(t.localizacao::geometry) as lng,
+                (
+                    SELECT p.estado_saude 
+                    FROM "PhytosanitaryData" p
+                    JOIN "Inspection" i ON p."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, p.valid_from DESC
+                    LIMIT 1
+                ) as estado_saude,
+                (
+                    SELECT m.necessita_manejo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as necessita_manejo,
+                (
+                    SELECT m.manejo_tipo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as manejo_tipo,
+                (
+                    SELECT m.supressao_tipo 
+                    FROM "ManagementAction" m
+                    JOIN "Inspection" i ON m."inspectionId" = i.id_inspecao
+                    WHERE i."treeId" = t.id_arvore
+                    ORDER BY i.data_inspecao DESC, m.valid_from DESC
+                    LIMIT 1
+                ) as supressao_tipo
+            FROM "Tree" t
+            WHERE t.bairro IS NOT NULL
+        `;
 
         // Aggregate by Bairro
         const stats = new Map<string, {
@@ -97,17 +108,19 @@ export async function GET() {
                 entry.countLatChat++;
             }
 
-            const inspection = tree.inspections[0];
-            if (!inspection) continue;
+            // Sum coordinates
+            if (tree.lat && tree.lng) {
+                entry.latSum += tree.lat;
+                entry.lngSum += tree.lng;
+                entry.countLatChat++;
+            }
 
             // Health Stats
-            const health = inspection.phytosanitary[0]?.estado_saude || 'Regular'; // Default to regular if missing? Or ignore.
+            const health = tree.estado_saude || 'Regular';
             if (health) {
-                // Normalize keys slightly if needed, but assuming DB standard
                 if (entry.health[health] !== undefined) {
                     entry.health[health]++;
                 } else {
-                    // Handle variations or map to closest
                     if (health.includes('Morta') || health.includes('Desvitalizada')) entry.health['Morta/Desvitalizada']++;
                     else if (health.includes('Ruim')) entry.health['Ruim']++;
                     else if (health.includes('Regular')) entry.health['Regular']++;
@@ -116,10 +129,9 @@ export async function GET() {
             }
 
             // Management Stats
-            const action = inspection.managementActions[0];
-            if (action && action.necessita_manejo) {
-                const type = action.manejo_tipo?.toLowerCase();
-                const subType = action.supressao_tipo?.toLowerCase();
+            if (tree.necessita_manejo) {
+                const type = tree.manejo_tipo?.toLowerCase();
+                const subType = tree.supressao_tipo?.toLowerCase();
 
                 if (subType?.includes('remoção') || subType?.includes('remocao')) {
                     entry.remocao++;

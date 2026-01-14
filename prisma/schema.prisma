@@ -41,8 +41,6 @@ model Tree {
   
   // Geospatial data (PostGIS POINT with WGS 84)
   localizacao     Unsupported("geometry(Point, 4326)")?
-  lat             Float?
-  lng             Float?
   
   // Address fields
   rua             String?
@@ -61,6 +59,7 @@ model Tree {
   
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+
 }
 
 // ==================== INSPECTIONS & TEMPORAL DATA ====================

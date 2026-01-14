@@ -104,18 +104,11 @@ export async function GET(request: Request) {
             const latVal = parseFloat(lat);
             const lngVal = parseFloat(lng);
 
-            // Find trees nearby
-            // Reuse Haversine or simple box? simple box for speed
-            // 1 deg ~ 111km
-            const delta = r / 111000;
-
-            const nearbyTrees = await prisma.tree.findMany({
-                where: {
-                    lat: { gte: latVal - delta, lte: latVal + delta },
-                    lng: { gte: lngVal - delta, lte: lngVal + delta }
-                },
-                select: { id_arvore: true }
-            });
+            // Find trees nearby using PostGIS
+            const nearbyTrees: any[] = await prisma.$queryRaw`
+                SELECT id_arvore FROM "Tree"
+                WHERE ST_DWithin(localizacao, ST_SetSRID(ST_MakePoint(${lngVal}, ${latVal}), 4326)::geography, ${r})
+            `;
 
             const treeIds = nearbyTrees.map(t => t.id_arvore);
 
@@ -139,7 +132,26 @@ export async function GET(request: Request) {
             orderBy: { created_at: 'desc' }
         });
 
-        return NextResponse.json(serviceOrders);
+        // Precisamos adicionar lat/lng manualmente para cada árvore em cada OS
+        const serviceOrdersWithCoords = await Promise.all(serviceOrders.map(async (so) => {
+            const treesWithCoords = await Promise.all(so.trees.map(async (tree: any) => {
+                const coords: any[] = await prisma.$queryRaw`
+                    SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
+                    FROM "Tree" WHERE id_arvore = ${tree.id_arvore}
+                `;
+                return {
+                    ...tree,
+                    lat: coords[0]?.lat || null,
+                    lng: coords[0]?.lng || null
+                };
+            }));
+            return {
+                ...so,
+                trees: treesWithCoords
+            };
+        }));
+
+        return NextResponse.json(serviceOrdersWithCoords);
 
     } catch (error) {
         console.error('Error fetching service orders:', error);

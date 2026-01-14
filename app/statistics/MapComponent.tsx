@@ -40,7 +40,15 @@ interface MapComponentProps {
     gridType: GridType;
 }
 
+const iconCache: Record<string, any> = {};
+
 const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridType: GridType) => {
+    const cacheKey = mode === 'grid'
+        ? `grid-${(stat as GridStat).count}-${gridType}-${(stat as GridStat).predominant_action || (stat as GridStat).predominant_health}`
+        : `${mode}-${(stat as NeighborhoodStat).bairro}-${(stat as NeighborhoodStat).predominant_health || ''}`;
+
+    if (iconCache[cacheKey]) return iconCache[cacheKey];
+
     if (mode === 'grid') {
         const s = stat as GridStat;
         let color = '#9ca3af'; // Default Gray (No action / Regular)
@@ -85,13 +93,14 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
         </div>
         `;
 
-        return divIcon({
+        iconCache[cacheKey] = divIcon({
             html: html,
             className: 'bg-transparent',
             iconSize: [size, size],
             iconAnchor: [size / 2, size / 2],
             popupAnchor: [0, -size / 2]
         });
+        return iconCache[cacheKey];
     }
 
     // Existing modes (Neighborhood)
@@ -127,7 +136,8 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
             <span style="background: white; padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 2px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${s.bairro}</span>
         </div>`;
 
-        return divIcon({ html, className: 'bg-transparent', iconSize: [60, 80], iconAnchor: [30, 80], popupAnchor: [0, -80] });
+        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [60, 80], iconAnchor: [30, 80], popupAnchor: [0, -80] });
+        return iconCache[cacheKey];
     } else {
         // Health Mode (Neighborhood)
         let color = '#eab308';
@@ -146,7 +156,8 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
             <span style="background: white; padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 2px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${s.bairro}</span>
         </div>`;
 
-        return divIcon({ html, className: 'bg-transparent', iconSize: [40, 60], iconAnchor: [20, 60], popupAnchor: [0, -60] });
+        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [40, 60], iconAnchor: [20, 60], popupAnchor: [0, -60] });
+        return iconCache[cacheKey];
     }
 };
 

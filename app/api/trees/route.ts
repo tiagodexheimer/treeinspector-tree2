@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Força a renderização dinâmica para garantir dados sempre atualizados,
 // mas controlaremos o cache via headers na resposta do mapa.
@@ -109,8 +110,40 @@ export async function GET(request: Request) {
         // 2. MODO MAPA GERAL (PostGIS 추출)
         // ==========================================
 
-        // Busca TUDO usando SQL Raw para extrair coordenadas do PostGIS
-        // Busca TUDO usando SQL Raw para extrair coordenadas do PostGIS
+        const bairro = searchParams.get('bairro');
+        const endereco = searchParams.get('endereco');
+        const etiqueta = searchParams.get('etiqueta');
+        const species = searchParams.get('species');
+
+        // Bounding Box parameters
+        const minLat = searchParams.get('minLat');
+        const maxLat = searchParams.get('maxLat');
+        const minLng = searchParams.get('minLng');
+        const maxLng = searchParams.get('maxLng');
+
+        // Build WHERE clause dynamically
+        let whereClause = Prisma.sql`WHERE t.localizacao IS NOT NULL`;
+
+        if (bairro) {
+            whereClause = Prisma.sql`${whereClause} AND t.bairro ILIKE ${'%' + bairro + '%'}`;
+        }
+        if (endereco) {
+            whereClause = Prisma.sql`${whereClause} AND (t.rua ILIKE ${'%' + endereco + '%'} OR t.endereco ILIKE ${'%' + endereco + '%'})`;
+        }
+        if (etiqueta) {
+            whereClause = Prisma.sql`${whereClause} AND t.numero_etiqueta ILIKE ${'%' + etiqueta + '%'}`;
+        }
+        if (species) {
+            // Join with Species table is already in query
+            whereClause = Prisma.sql`${whereClause} AND (s.nome_comum ILIKE ${'%' + species + '%'} OR s.nome_cientifico ILIKE ${'%' + species + '%'})`;
+        }
+
+        // BBOX Filter
+        if (minLat && maxLat && minLng && maxLng) {
+            whereClause = Prisma.sql`${whereClause} AND t.localizacao && ST_MakeEnvelope(${parseFloat(minLng)}, ${parseFloat(minLat)}, ${parseFloat(maxLng)}, ${parseFloat(maxLat)}, 4326)`;
+        }
+
+        // Busca usando SQL Raw com filtros dinâmicos
         const trees: any[] = await prisma.$queryRaw`
             SELECT 
                 t.id_arvore as id,
@@ -129,7 +162,7 @@ export async function GET(request: Request) {
                 LIMIT 1
             ) last_i ON true
             LEFT JOIN "PhytosanitaryData" p ON p."inspectionId" = last_i.id_inspecao
-            WHERE t.localizacao IS NOT NULL
+            ${whereClause}
         `;
 
         const mapData = trees.map(t => ({

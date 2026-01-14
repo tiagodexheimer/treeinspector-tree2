@@ -119,69 +119,87 @@ function Markers() {
   const [zoom, setZoom] = useState(10);
   const [trees, setTrees] = useState<MapTree[]>([]);
 
-  // 1. Busca TUDO na inicialização (uma única vez)
-  useEffect(() => {
-    async function fetchAllTrees() {
-      try {
-        // Sem filtros, pega tudo
-        const response = await fetch('/api/trees');
-        const data = await response.json();
+  // 1. Ref para debounce e abort controller
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-        if (Array.isArray(data)) {
-          setTrees(data);
-          // Opcional: Ajustar o mapa para ver todos os pontos carregados
-          // if (data.length > 0) {
-          //    const group = L.featureGroup(data.map(t => L.marker([t.lat, t.lng])));
-          //    map.fitBounds(group.getBounds());
-          // }
-        }
-      } catch (error) {
+  // Função de busca dinâmica
+  const fetchTreesInBounds = async (mapBounds: L.LatLngBounds) => {
+    // Cancel previous request if exists
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      const sw = mapBounds.getSouthWest();
+      const ne = mapBounds.getNorthEast();
+
+      const params = new URLSearchParams({
+        minLat: sw.lat.toString(),
+        maxLat: ne.lat.toString(),
+        minLng: sw.lng.toString(),
+        maxLng: ne.lng.toString()
+      });
+
+      const response = await fetch(`/api/trees?${params.toString()}`, {
+        signal: controller.signal
+      });
+
+      if (!response.ok) throw new Error('Network response was not ok');
+
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setTrees(data);
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
         console.error('Failed to fetch trees:', error);
       }
     }
-    fetchAllTrees();
-  }, []); // Array vazio = roda só ao montar componente
+  };
 
-  // 2. Atualiza apenas bounds/zoom para o Supercluster calcular agrupamento
+  // 2. Atualiza bounds/zoom e dispara fetch com debounce
   useEffect(() => {
     if (!map) return;
 
     const updateMap = () => {
       const b = map.getBounds();
-      const currentBounds = [
+
+      // Update bounds for Supercluster
+      setBounds([
         b.getSouthWest().lng,
         b.getSouthWest().lat,
         b.getNorthEast().lng,
         b.getNorthEast().lat
-      ];
-      const currentZoom = Math.round(map.getZoom());
+      ]);
 
-      // Use functional updates to compare and avoid unnecessary re-renders
-      setBounds((prev: any) => {
-        if (prev &&
-          prev[0] === currentBounds[0] &&
-          prev[1] === currentBounds[1] &&
-          prev[2] === currentBounds[2] &&
-          prev[3] === currentBounds[3]) {
-          return prev;
-        }
-        return currentBounds;
-      });
+      setZoom(Math.round(map.getZoom()));
 
-      setZoom((prev: number) => {
-        if (prev === currentZoom) return prev;
-        return currentZoom;
-      });
+      // Debounce API call
+      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchTreesInBounds(b);
+      }, 300); // 300ms debounce
     };
 
+    // Initial load
     updateMap();
+
     map.on('moveend', updateMap);
     map.on('zoomend', updateMap);
+
     return () => {
       map.off('moveend', updateMap);
       map.off('zoomend', updateMap);
+      if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, [map]);
+
+
 
   // 3. Prepara pontos para o Supercluster (usando as chaves curtas da API nova)
   const points = useMemo(() => trees.map(tree => ({

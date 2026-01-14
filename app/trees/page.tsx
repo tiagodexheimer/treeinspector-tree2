@@ -176,6 +176,7 @@ export default function TreesPage() {
                     </div>
 
                     {/* Pagination Controls */}
+                    {/* Pagination Controls */}
                     <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
                         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                             <div>
@@ -185,25 +186,76 @@ export default function TreesPage() {
                             </div>
                             <div>
                                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                    {/* First Page */}
+                                    <button
+                                        onClick={() => setPage(1)}
+                                        disabled={page === 1}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        title="Primeira Página"
+                                    >
+                                        <span className="sr-only">Primeira</span>
+                                        &laquo;
+                                    </button>
+
+                                    {/* Previous Page */}
                                     <button
                                         onClick={() => setPage(Math.max(1, page - 1))}
                                         disabled={page === 1}
-                                        className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        className={`relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        title="Anterior"
                                     >
-                                        Anterior
+                                        <span className="sr-only">Anterior</span>
+                                        &lt;
                                     </button>
-                                    <button
-                                        disabled
-                                        className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                                    >
-                                        {page}
-                                    </button>
+
+                                    {/* Page Numbers */}
+                                    {(() => {
+                                        const pages = [];
+                                        const maxVisible = 5;
+                                        let start = Math.max(1, page - Math.floor(maxVisible / 2));
+                                        let end = Math.min(totalPages, start + maxVisible - 1);
+
+                                        if (end - start + 1 < maxVisible) {
+                                            start = Math.max(1, end - maxVisible + 1);
+                                        }
+
+                                        for (let i = start; i <= end; i++) {
+                                            pages.push(
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setPage(i)}
+                                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${page === i
+                                                        ? 'z-10 bg-green-50 border-green-500 text-green-600'
+                                                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                                                        }`}
+                                                >
+                                                    {i}
+                                                </button>
+                                            );
+                                        }
+                                        return pages;
+                                    })()}
+
+                                    {/* Next Page */}
                                     <button
                                         onClick={() => setPage(Math.min(totalPages, page + 1))}
                                         disabled={page >= totalPages}
-                                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${page >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        className={`relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium ${page >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        title="Próxima"
                                     >
-                                        Próxima
+                                        <span className="sr-only">Próxima</span>
+                                        &gt;
+                                    </button>
+
+                                    {/* Last Page */}
+                                    <button
+                                        onClick={() => setPage(totalPages)}
+                                        disabled={page >= totalPages}
+                                        className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${page >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50'}`}
+                                        title="Última Página"
+                                    >
+                                        <span className="sr-only">Última</span>
+                                        &raquo;
                                     </button>
                                 </nav>
                             </div>

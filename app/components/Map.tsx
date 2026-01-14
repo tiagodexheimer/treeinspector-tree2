@@ -203,12 +203,15 @@ function Markers() {
   const superclusterOptions = useMemo(() => ({
     radius: 75,
     maxZoom: 17,
-    map: (props: any) => ({
-      bom: props.status?.includes('Bom') ? 1 : 0,
-      regular: props.status?.includes('Regular') ? 1 : 0,
-      ruim: (props.status?.includes('Ruim') || props.status?.toLowerCase().includes('péssim')) ? 1 : 0,
-      morta: (props.status?.includes('Morta') || props.status?.includes('Desv')) ? 1 : 0,
-    }),
+    map: (props: any) => {
+      const s = (props.status || '').toLowerCase();
+      return {
+        bom: s.includes('bom') ? 1 : 0,
+        regular: s.includes('regular') ? 1 : 0,
+        ruim: (s.includes('ruim') || s.includes('péssim') || s.includes('pessim')) ? 1 : 0,
+        morta: (s.includes('morta') || s.includes('desv')) ? 1 : 0,
+      };
+    },
     reduce: (acc: any, props: any) => {
       acc.bom += props.bom;
       acc.regular += props.regular;

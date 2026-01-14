@@ -31,20 +31,30 @@ export async function GET(
             return NextResponse.json({ error: 'Tree not found' }, { status: 404 });
         }
 
-        // Extrair coordenadas via PostGIS
-        const coords: any[] = await prisma.$queryRaw`
-            SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
-            FROM "Tree" WHERE id_arvore = ${id}
-        `;
+        // Extrair coordenadas via PostGIS (com tratamento de erro)
+        let lat: number | null = null;
+        let lng: number | null = null;
+
+        try {
+            const coords: any[] = await prisma.$queryRaw`
+                SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
+                FROM "Tree" WHERE id_arvore = ${id} AND localizacao IS NOT NULL
+            `;
+            lat = coords[0]?.lat || null;
+            lng = coords[0]?.lng || null;
+        } catch (coordError) {
+            console.warn(`Could not extract coordinates for tree ${id}:`, coordError);
+        }
 
         const treeWithCoords = {
             ...tree,
-            lat: coords[0]?.lat || null,
-            lng: coords[0]?.lng || null
+            lat,
+            lng
         };
 
         return NextResponse.json(treeWithCoords);
     } catch (error) {
+        console.error('Error fetching tree:', error);
         return NextResponse.json({ error: 'Failed to fetch tree' }, { status: 500 });
     }
 }

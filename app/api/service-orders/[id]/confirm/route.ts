@@ -20,12 +20,12 @@ export async function PATCH(
                 observations,
             },
             include: {
-                tree: {
+                trees: {
                     include: {
                         species: true,
                     },
                 },
-                management: true,
+                managementActions: true,
             },
         });
 

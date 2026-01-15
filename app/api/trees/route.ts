@@ -151,7 +151,9 @@ export async function GET(request: Request) {
                 ST_X(t.localizacao::geometry) as lng,
                 t.numero_etiqueta as lbl,
                 s.nome_comum as sp,
-                p.estado_saude as st
+                p.estado_saude as st,
+                p.severity_level as sev,
+                (SELECT COUNT(*)::int FROM "_PestCatalogToPhytosanitaryData" pc WHERE pc."B" = p.id) as pc
             FROM "Tree" t
             LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
             LEFT JOIN LATERAL (
@@ -167,7 +169,9 @@ export async function GET(request: Request) {
 
         const mapData = trees.map(t => ({
             ...t,
-            st: t.st || 'Regular'
+            st: t.st || 'Regular',
+            sev: t.sev || 0,
+            pc: t.pc || 0
         }));
 
         // Retorna com Cache Headers agressivos

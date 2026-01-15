@@ -6,9 +6,11 @@ import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
-// FIX: Adicionado useRef na importação abaixo
 import { useEffect, useState, useMemo, useRef } from 'react';
 import useSupercluster from 'use-supercluster';
+import dynamic from 'next/dynamic';
+
+const PhytosanitaryHeatmap = dynamic(() => import('./PhytosanitaryHeatmap'), { ssr: false });
 
 interface Tree {
   id_arvore: number;
@@ -26,7 +28,6 @@ interface Tree {
   }[];
 }
 
-// Interface simplificada para bater com a API nova
 interface MapTree {
   id: number;
   lat: number;
@@ -34,9 +35,10 @@ interface MapTree {
   lbl: string; // etiqueta
   sp: string;  // especie
   st: string;  // status (saúde)
+  sev?: number; // severity
+  pc?: number; // pest count
 }
 
-// Helper to get color from health status
 const getHealthColor = (status: string): string => {
   const s = status?.toLowerCase() || '';
   if (s.includes('ruim') || s.includes('péssim')) return '#ef4444'; // Red
@@ -45,7 +47,6 @@ const getHealthColor = (status: string): string => {
   return '#22c55e'; // Green (Bom)
 };
 
-// Memoize icons to avoid re-creation
 const iconCache: Record<string, any> = {};
 
 const getTreeIcon = (status: string) => {
@@ -118,8 +119,8 @@ function Markers() {
   const [bounds, setBounds] = useState<any>(null);
   const [zoom, setZoom] = useState(10);
   const [trees, setTrees] = useState<MapTree[]>([]);
+  const [showHeatmap, setShowHeatmap] = useState(false); // NEW STATE
 
-  // 1. Ref para debounce e abort controller
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -160,14 +161,11 @@ function Markers() {
     }
   };
 
-  // 2. Atualiza bounds/zoom e dispara fetch com debounce
   useEffect(() => {
     if (!map) return;
 
     const updateMap = () => {
       const b = map.getBounds();
-
-      // Update bounds for Supercluster
       setBounds([
         b.getSouthWest().lng,
         b.getSouthWest().lat,
@@ -177,17 +175,14 @@ function Markers() {
 
       setZoom(Math.round(map.getZoom()));
 
-      // Debounce API call
       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
 
       fetchTimeoutRef.current = setTimeout(() => {
         fetchTreesInBounds(b);
-      }, 300); // 300ms debounce
+      }, 300);
     };
 
-    // Initial load
     updateMap();
-
     map.on('moveend', updateMap);
     map.on('zoomend', updateMap);
 
@@ -200,8 +195,6 @@ function Markers() {
   }, [map]);
 
 
-
-  // 3. Prepara pontos para o Supercluster (usando as chaves curtas da API nova)
   const points = useMemo(() => trees.map(tree => ({
     type: 'Feature',
     properties: {
@@ -217,7 +210,6 @@ function Markers() {
     }
   })), [trees]);
 
-  // Memoize options to prevent unstable references that trigger re-clustering loops
   const superclusterOptions = useMemo(() => ({
     radius: 75,
     maxZoom: 17,
@@ -245,9 +237,47 @@ function Markers() {
     options: superclusterOptions
   });
 
+  const heatmapPoints = useMemo(() => {
+    if (!showHeatmap) return [];
+    return trees
+      .filter((t: any) => {
+        // Heatmap triggers:
+        // 1. High Severity (>= 2)
+        // 2. Confirmed Pests (pc > 0)
+        // 3. Bad Health Status (Ruim, Morta, Desvitalizada)
+        // Explicitly EXCLUDE 'Regular' and 'Bom' unless they match above criteria
+        const badStatus = t.st && (t.st.includes('Ruim') || t.st.includes('Morta') || t.st.includes('Desvitalizada') || t.st.includes('Péssima'));
+        return (t.sev && t.sev >= 2) || (t.pc && t.pc > 0) || badStatus;
+      })
+      .map((t: any) => ({
+        lat: t.lat,
+        lng: t.lng,
+        // Intensity tuning:
+        // Severity 5 -> 1.0 (Red)
+        // Severity 3 -> 0.6 (Yellow)
+        // Pest Count > 0 -> 0.7 (Orange) if no severity
+        // Bad Status -> 0.5 (Green/Yellowish fallback)
+        intensity: t.sev ? (t.sev / 5) : (t.pc ? 0.7 : 0.5)
+      }));
+  }, [trees, showHeatmap]);
+
   return (
     <>
-      {
+      <div className="leaflet-top leaflet-right" style={{ pointerEvents: 'auto', marginTop: '10px', marginRight: '10px' }}>
+        <button
+          onClick={() => setShowHeatmap(!showHeatmap)}
+          className={`font-bold py-2 px-4 rounded shadow border transition-colors ${showHeatmap
+            ? 'bg-orange-600 text-white border-orange-700 hover:bg-orange-700'
+            : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+            }`}
+        >
+          {showHeatmap ? '🔥 Mapa de Calor: ON' : '🌲 Mapa de Calor: OFF'}
+        </button>
+      </div>
+
+      {showHeatmap && <PhytosanitaryHeatmap points={heatmapPoints} />}
+
+      {!showHeatmap &&
         clusters.map((cluster) => {
           const [longitude, latitude] = cluster.geometry.coordinates;
           const { cluster: isCluster, point_count } = cluster.properties;

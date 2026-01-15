@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import GrowthChart from '../../../components/GrowthChart';
-import HealthTrendChart from '../../../components/HealthTrendChart'; // Import added
+import HealthTrendChart from '../../../components/HealthTrendChart';
+import InspectionComparisonGallery from '../../../components/InspectionComparisonGallery'; // Import added // Import added
 import dynamic from 'next/dynamic';
 import ServiceOrderCreateModal from '../../components/ServiceOrderCreateModal';
 
@@ -292,6 +293,9 @@ export default function TreeDetailPage() {
                         <h2 className="text-xl font-semibold mb-4 border-b pb-2">Evolução da Saúde</h2>
                         <HealthTrendChart data={healthChartData} />
                     </div>
+
+                    {/* Comparison Gallery (New) */}
+                    <InspectionComparisonGallery inspections={tree.inspections} />
                 </div>
 
                 {/* Column 3: History & Service Orders */}

@@ -109,9 +109,9 @@ model DendrometricData {
 
 model PestCatalog {
   id              Int      @id @default(autoincrement())
-  common_name     String
-  scientific_name String?
-  type            String?  // 'Fungo', 'Inseto', 'Urbano', etc.
+  nome_comum      String   @unique
+  nome_cientifico String?
+  tipo            String?  // 'Fungo', 'Inseto', 'Urbano', etc.
   
   phytosanitaryData PhytosanitaryData[]
 

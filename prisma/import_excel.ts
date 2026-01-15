@@ -213,14 +213,17 @@ async function main() {
                             }]
                         },
                         phytosanitary: {
-                            severity_level: saude === 'Bom' ? 0 : 2, // Basic assumption
-                            pests: {
-                                connectOrCreate: pragas.map(p => ({
-                                    where: { nome_comum: p },
-                                    create: { nome_comum: p, tipo: 'Praga' }
-                                }))
-                            },
-                            valid_from: dataInspecao
+                            create: [{
+                                severity_level: saude === 'Bom' ? 0 : 2,
+                                estado_saude: saude, // Don't forget this one!
+                                pests: {
+                                    connectOrCreate: pragas.map(p => ({
+                                        where: { nome_comum: p },
+                                        create: { nome_comum: p, tipo: 'Praga' }
+                                    }))
+                                },
+                                valid_from: dataInspecao
+                            }]
                         },
                         managementActions: {
                             create: [{

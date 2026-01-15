@@ -85,11 +85,14 @@ export async function GET() {
             cell.count++;
 
             // Health Count - Optimized normalization
-            const health = tree.estado_saude || 'Regular';
+            // Health Count - Optimized normalization
+            const healthRaw = tree.estado_saude || 'Regular';
+            const health = healthRaw.toLowerCase();
             let normalizedHealth = 'Regular';
-            if (health.includes('Bom')) normalizedHealth = 'Bom';
-            else if (health.includes('Ruim') || health.includes('péssim')) normalizedHealth = 'Ruim';
-            else if (health.includes('Morta') || health.includes('Desv')) normalizedHealth = 'Morta/Desvitalizada';
+
+            if (health.includes('bom')) normalizedHealth = 'Bom';
+            else if (health.includes('ruim') || health.includes('péssim') || health.includes('pessim')) normalizedHealth = 'Ruim';
+            else if (health.includes('morta') || health.includes('desv')) normalizedHealth = 'Morta/Desvitalizada';
 
             cell.health[normalizedHealth]++;
 
@@ -112,6 +115,14 @@ export async function GET() {
                 }
             }
         }
+
+        // DEBUG: Log distribution of raw health values
+        const healthDistribution: Record<string, number> = {};
+        trees.forEach((t: any) => {
+            const h = t.estado_saude || 'NULL';
+            healthDistribution[h] = (healthDistribution[h] || 0) + 1;
+        });
+        console.log('DEBUG: Grid Health Distribution:', healthDistribution);
 
         // Format result
         const result = Array.from(grid.values()).map(cell => {
@@ -155,7 +166,7 @@ export async function GET() {
 
         return NextResponse.json(result, {
             headers: {
-                'Cache-Control': 'public, max-age=300, s-maxage=600, stale-while-revalidate=1200'
+                'Cache-Control': 'no-store, max-age=0'
             }
         });
     } catch (error) {

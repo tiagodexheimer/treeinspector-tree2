@@ -67,10 +67,10 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
             else color = '#e5e7eb'; // Very light gray for no action
         } else {
             // Health
-            const health = item.predominant_health || 'Regular';
-            if (health.includes('Bom')) color = '#22c55e'; // Green
-            else if (health.includes('Ruim')) color = '#ef4444'; // Red
-            else if (health.includes('Morta') || health.includes('Desv')) color = '#000000'; // Black
+            const health = (item.predominant_health || 'Regular').toLowerCase();
+            if (health.includes('bom')) color = '#22c55e'; // Green
+            else if (health.includes('ruim')) color = '#ef4444'; // Red
+            else if (health.includes('morta') || health.includes('desv')) color = '#000000'; // Black
             else color = '#eab308'; // Default/Regular -> Yellow
         }
 
@@ -331,10 +331,10 @@ const getGridRectColor = (stat: GridStat, gridType: GridType): string => {
         if (action === 'Transplante') return '#8b5cf6';
         return '#9ca3af';
     } else {
-        const health = stat.predominant_health || 'Regular';
-        if (health.includes('Bom')) return '#22c55e';
-        if (health.includes('Ruim')) return '#ef4444';
-        if (health.includes('Morta') || health.includes('Desv')) return '#000000';
+        const health = (stat.predominant_health || 'Regular').toLowerCase();
+        if (health.includes('bom')) return '#22c55e';
+        if (health.includes('ruim')) return '#ef4444';
+        if (health.includes('morta') || health.includes('desv')) return '#000000';
         return '#eab308';
     }
 };

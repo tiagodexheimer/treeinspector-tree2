@@ -12,7 +12,7 @@ const utmProjection = "+proj=utm +zone=22 +south +ellps=WGS84 +datum=WGS84 +unit
 const wgs84Projection = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
 
 const directoryPath = path.join(process.cwd(), 'modelo');
-const BATCH_SIZE = 100; // Number of trees per batch
+const BATCH_SIZE = 5; // Very small batch to be safe
 
 function getFirstFile() {
     try {
@@ -233,7 +233,7 @@ async function main() {
                 });
                 importedCount++;
             }
-        }, { timeout: 120000 }); // 2 min timeout per batch
+        }, { timeout: 600000 }); // 10 min timeout per batch
 
         console.log(`  Batch ${batchNum}/${totalBatches} complete (${importedCount}/${parsedRows.length} rows).`);
     }

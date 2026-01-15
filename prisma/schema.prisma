@@ -107,6 +107,25 @@ model DendrometricData {
   @@index([inspectionId])
 }
 
+model PestCatalog {
+  id              Int      @id @default(autoincrement())
+  common_name     String
+  scientific_name String?
+  type            String?  // 'Fungo', 'Inseto', 'Urbano', etc.
+  
+  phytosanitaryData PhytosanitaryData[]
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+enum RiskProbability {
+  Baixa
+  Moderada
+  Alta
+  Extrema
+}
+
 model PhytosanitaryData {
   id              Int      @id @default(autoincrement())
   inspectionId    Int
@@ -115,12 +134,17 @@ model PhytosanitaryData {
   // Health assessment
   estado_saude    String?   // 'Desvitalizada', 'Ruim', 'Regular', 'Bom'
   
-  // Pests/Diseases
-  pragas          String[] // Array of: 'Erva-de-passarinho', 'Fungos', 'Cupim'
+  // NEW FIELDS
+  pests           PestCatalog[]
+  severity_level  Int?      // 1-5 (New version of danos_severidade)
+  
+  // TRAQ Risk Assessment
+  risk_probability RiskProbability?
+  target_value    Int?      // 1-4 (Target Value Rating)
+  risk_rating     Int?      // 1-12 (Calculated or assigned)
   
   // Damage
   danos_tipo       String? // Description of damage
-  danos_severidade String? // 'Leve', 'Médio', 'Alto'
   
   // Temporal validity
   valid_from      DateTime

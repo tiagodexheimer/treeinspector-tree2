@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import GrowthChart from '../../../components/GrowthChart';
+import HealthTrendChart from '../../../components/HealthTrendChart'; // Import added
 import dynamic from 'next/dynamic';
 import ServiceOrderCreateModal from '../../components/ServiceOrderCreateModal';
 
@@ -11,6 +12,13 @@ const MiniMap = dynamic(() => import('../../components/MiniMap'), {
     ssr: false,
     loading: () => <div className="h-96 w-full bg-gray-100 animate-pulse rounded-lg flex items-center justify-center text-gray-400">Carregando Mapa...</div>
 });
+
+const HEALTH_SCORE_MAP: Record<string, number> = {
+    'Bom': 3,
+    'Regular': 2,
+    'Ruim': 1,
+    'Desvitalizada': 0
+};
 
 export default function TreeDetailPage() {
     const params = useParams();
@@ -123,6 +131,23 @@ export default function TreeDetailPage() {
                 date: new Date(insp.data_inspecao).toLocaleDateString(),
                 dap: Number(dendro.dap1_cm) || 0,
                 height: Number(dendro.altura_total_m) || 0,
+                timestamp: new Date(insp.data_inspecao).getTime()
+            };
+        })
+        .filter(Boolean)
+        .sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+    const healthChartData = tree?.inspections
+        ?.map((insp: any) => {
+            const phyto = insp.phytosanitary?.[0];
+            if (!phyto || !phyto.estado_saude) return null;
+            const score = HEALTH_SCORE_MAP[phyto.estado_saude];
+            if (score === undefined) return null;
+
+            return {
+                date: new Date(insp.data_inspecao).toLocaleDateString(),
+                health: phyto.estado_saude,
+                score: score,
                 timestamp: new Date(insp.data_inspecao).getTime()
             };
         })
@@ -262,6 +287,11 @@ export default function TreeDetailPage() {
                         <h2 className="text-xl font-semibold mb-4 border-b pb-2">Crescimento (DAP & Altura)</h2>
                         <GrowthChart data={chartData} />
                     </div>
+
+                    <div className="bg-white p-6 rounded-lg shadow">
+                        <h2 className="text-xl font-semibold mb-4 border-b pb-2">Evolução da Saúde</h2>
+                        <HealthTrendChart data={healthChartData} />
+                    </div>
                 </div>
 
                 {/* Column 3: History & Service Orders */}
@@ -323,6 +353,64 @@ export default function TreeDetailPage() {
                             })()}
                         </div>
                     )}
+
+                    {/* Phytosanitary & Risk Analysis (New) */}
+                    {tree.inspections?.[0]?.phytosanitary?.[0] && (
+                        <div className="bg-white p-6 rounded-lg shadow border-l-4 border-l-purple-500">
+                            <h2 className="text-xl font-semibold mb-4 border-b pb-2 flex justify-between items-center h-full">
+                                Análise de Risco & Fitossanidade
+                            </h2>
+
+                            <div className="space-y-4">
+                                {/* Risk Rating (TRAQ) */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-gray-50 p-3 rounded">
+                                        <span className="block text-xs text-gray-500 uppercase font-bold">Probabilidade de Falha</span>
+                                        <span className={`font-medium ${tree.inspections[0].phytosanitary[0].risk_probability === 'Extrema' ? 'text-red-700 font-bold' :
+                                            tree.inspections[0].phytosanitary[0].risk_probability === 'Alta' ? 'text-orange-600' :
+                                                'text-gray-800'
+                                            }`}>
+                                            {tree.inspections[0].phytosanitary[0].risk_probability || 'Não avaliada'}
+                                        </span>
+                                    </div>
+                                    <div className="bg-gray-50 p-3 rounded">
+                                        <span className="block text-xs text-gray-500 uppercase font-bold">Classificação de Risco</span>
+                                        <span className="text-lg font-bold text-gray-800">
+                                            {tree.inspections[0].phytosanitary[0].risk_rating ?
+                                                `${tree.inspections[0].phytosanitary[0].risk_rating}/12` : '-'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Pest Presence */}
+                                <div>
+                                    <span className="block text-sm font-bold text-gray-700 mb-1">Pragas Identificadas:</span>
+                                    {tree.inspections[0].phytosanitary[0].pests && tree.inspections[0].phytosanitary[0].pests.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {tree.inspections[0].phytosanitary[0].pests.map((pest: any) => (
+                                                <span key={pest.id} className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-red-200">
+                                                    {pest.common_name}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <span className="text-gray-500 text-sm italic">Nenhuma praga registrada na última inspeção.</span>
+                                    )}
+                                </div>
+
+                                {/* Severity & Notes */}
+                                {tree.inspections[0].phytosanitary[0].severity_level && (
+                                    <div className="text-sm">
+                                        <span className="font-bold text-gray-700">Severidade Geral: </span>
+                                        <span className="text-gray-800">
+                                            {['Insignificante', 'Leve', 'Moderada', 'Alta', 'Extrema'][tree.inspections[0].phytosanitary[0].severity_level - 1]}
+                                            ({tree.inspections[0].phytosanitary[0].severity_level}/5)
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                     {/* Unified History Section */}
                     <div className="bg-white shadow rounded-lg p-6">
                         <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Histórico Completo</h2>
@@ -361,9 +449,18 @@ export default function TreeDetailPage() {
                                             {item.type === 'inspection' ? (
                                                 <div className="mt-1 text-sm text-gray-600">
                                                     <p>Saúde: <span className="font-medium">{item.phytosanitary?.[0]?.estado_saude || 'Não avaliada'}</span></p>
-                                                    {item.phytosanitary?.[0]?.pragas?.length > 0 && (
+
+                                                    {/* Severity Level (New) */}
+                                                    {item.phytosanitary?.[0]?.severity_level && (
+                                                        <p className="text-xs text-gray-600">
+                                                            Severidade: <span className="font-medium">{['Leve', 'Leve', 'Média', 'Média', 'Alta'][item.phytosanitary[0].severity_level - 1] || item.phytosanitary[0].severity_level}</span>
+                                                        </p>
+                                                    )}
+
+                                                    {/* Pests (New Catalog) */}
+                                                    {item.phytosanitary?.[0]?.pests?.length > 0 && (
                                                         <p className="text-xs text-red-500 mt-1">
-                                                            Pragas: {item.phytosanitary[0].pragas.join(', ')}
+                                                            Pragas: {item.phytosanitary[0].pests.map((p: any) => p.common_name).join(', ')}
                                                         </p>
                                                     )}
                                                 </div>

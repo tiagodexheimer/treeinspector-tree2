@@ -17,7 +17,11 @@ export async function GET(
                     orderBy: { data_inspecao: 'desc' },
                     include: {
                         dendrometrics: true,
-                        phytosanitary: true,
+                        phytosanitary: {
+                            include: {
+                                pests: true
+                            }
+                        },
                         managementActions: true,
                         photos: true
                     }

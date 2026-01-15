@@ -211,7 +211,13 @@ async function main() {
                         phytosanitary: {
                             create: {
                                 estado_saude: row.estadoSaude || 'Regular',
-                                pragas: row.pragas,
+                                severity_level: row.estadoSaude?.includes('Bom') ? 0 : 2, // Basic default
+                                pests: {
+                                    connectOrCreate: row.pragas.map(p => ({
+                                        where: { nome_comum: p },
+                                        create: { nome_comum: p, tipo: 'Praga' }
+                                    }))
+                                },
                                 valid_from: new Date()
                             }
                         },

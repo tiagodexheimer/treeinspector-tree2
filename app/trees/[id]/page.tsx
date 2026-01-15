@@ -189,6 +189,10 @@ export default function TreeDetailPage() {
 
                 {/* Column 2: Data & Charts */}
                 <div className="space-y-6">
+
+
+
+
                     <div className="bg-white p-6 rounded-lg shadow">
                         <h2 className="text-xl font-semibold mb-4 border-b pb-2">Dados Cadastrais</h2>
                         <div className="space-y-4">
@@ -262,6 +266,63 @@ export default function TreeDetailPage() {
 
                 {/* Column 3: History & Service Orders */}
                 <div className="space-y-6">
+                    {/* Management Recommendation Card (Moved) */}
+                    {tree.inspections?.[0] && (
+                        <div className={`bg-white p-6 rounded-lg shadow border-l-4 ${tree.inspections[0].managementActions?.[0]?.necessita_manejo ? 'border-l-orange-500' : 'border-l-green-500'}`}>
+                            <h2 className="text-xl font-semibold mb-4 border-b pb-2 flex justify-between items-center">
+                                Recomendação Técnica
+                                <span className="text-xs font-normal text-gray-400">
+                                    {new Date(tree.inspections[0].data_inspecao).toLocaleDateString()}
+                                </span>
+                            </h2>
+
+                            {(() => {
+                                const action = tree.inspections[0].managementActions?.[0];
+                                if (!action || !action.necessita_manejo) {
+                                    return (
+                                        <div className="flex items-center gap-2 text-green-700 bg-green-50 p-3 rounded">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <span className="font-medium">Nenhuma intervenção necessária</span>
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${action.manejo_tipo === 'Supressão' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                                }`}>
+                                                {action.manejo_tipo}
+                                            </span>
+                                            {action.supressao_tipo && (
+                                                <span className="text-gray-700 font-medium border border-gray-200 px-2 py-1 rounded text-sm">
+                                                    {action.supressao_tipo}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {action.poda_tipos && action.poda_tipos.length > 0 && (
+                                            <div className="bg-gray-50 p-3 rounded text-sm">
+                                                <span className="font-bold text-gray-700 block mb-1">Tipos de Poda:</span>
+                                                <ul className="list-disc list-inside text-gray-600">
+                                                    {action.poda_tipos.map((t: string, i: number) => (
+                                                        <li key={i}>{t}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        {action.justification && (
+                                            <div className="text-sm text-gray-600 italic border-l-2 border-gray-300 pl-3 py-1">
+                                                "{action.justification}"
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
                     {/* Unified History Section */}
                     <div className="bg-white shadow rounded-lg p-6">
                         <h2 className="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Histórico Completo</h2>
@@ -343,6 +404,6 @@ export default function TreeDetailPage() {
                 onSubmit={handleCreateOS}
                 treeCount={1}
             />
-        </div>
+        </div >
     );
 }

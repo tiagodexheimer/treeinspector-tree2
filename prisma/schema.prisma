@@ -80,6 +80,9 @@ model Inspection {
   photos        InspectionPhoto[]
   
   created_at      DateTime @default(now())
+
+  @@index([treeId])
+  @@index([data_inspecao])
 }
 
 // Temporal Data Pattern: Valid Time
@@ -100,6 +103,8 @@ model DendrometricData {
   // Temporal validity
   valid_from      DateTime
   valid_to        DateTime? // Null means current (infinity)
+
+  @@index([inspectionId])
 }
 
 model PhytosanitaryData {
@@ -120,6 +125,8 @@ model PhytosanitaryData {
   // Temporal validity
   valid_from      DateTime
   valid_to        DateTime?
+
+  @@index([inspectionId])
 }
 
 // ==================== MANAGEMENT & SERVICE ORDERS ====================
@@ -147,6 +154,8 @@ model ManagementAction {
   // Temporal validity
   valid_from      DateTime
   valid_to        DateTime?
+  
+  @@index([inspectionId])
   
   // Relationship to Service Orders
   serviceOrders   ServiceOrder[]

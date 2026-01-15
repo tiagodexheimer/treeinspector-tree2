@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { divIcon } from 'leaflet';
-import { MapContainer, TileLayer, Marker, Popup, Rectangle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Rectangle, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
@@ -43,19 +44,22 @@ interface MapComponentProps {
 
 const iconCache: Record<string, any> = {};
 
-const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridType: GridType) => {
+const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridType: GridType, scale: number = 1) => {
     const cacheKey = mode === 'grid'
-        ? `grid-${(stat as GridStat).count}-${gridType}-${(stat as GridStat).predominant_action || (stat as GridStat).predominant_health}`
-        : `${mode}-${(stat as NeighborhoodStat).bairro}-${(stat as NeighborhoodStat).predominant_health || ''}`;
+        ? `grid-${(stat as GridStat).count}-${gridType}-${(stat as GridStat).predominant_action || (stat as GridStat).predominant_health}-v2-s${scale}`
+        : `${mode}-${(stat as NeighborhoodStat).bairro}-${(stat as NeighborhoodStat).predominant_health || ''}-v2-s${scale}`;
 
     if (iconCache[cacheKey]) return iconCache[cacheKey];
 
+    // Scaling factor for sizes
+    const s = (val: number) => Math.round(val * scale);
+
     if (mode === 'grid') {
-        const s = stat as GridStat;
+        const item = stat as GridStat;
         let color = '#9ca3af'; // Default Gray (No action / Regular)
 
         if (gridType === 'management') {
-            const action = s.predominant_action;
+            const action = item.predominant_action;
             if (action === 'Remocao') color = '#ef4444';
             else if (action === 'Substituicao') color = '#f59e0b';
             else if (action === 'Poda') color = '#3b82f6';
@@ -63,7 +67,7 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
             else color = '#e5e7eb'; // Very light gray for no action
         } else {
             // Health
-            const health = s.predominant_health || 'Regular';
+            const health = item.predominant_health || 'Regular';
             if (health.includes('Bom')) color = '#22c55e'; // Green
             else if (health.includes('Ruim')) color = '#ef4444'; // Red
             else if (health.includes('Morta') || health.includes('Desv')) color = '#000000'; // Black
@@ -71,7 +75,9 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
         }
 
         // Dynamic Size based on count
-        const size = Math.max(20, Math.min(80, Math.log2(s.count + 1) * 8 + 10));
+        const baseSize = Math.max(20, Math.min(80, Math.log2(item.count + 1) * 8 + 10));
+        const size = s(baseSize);
+
         const fontSize = Math.max(10, size / 3);
 
         const html = `
@@ -90,7 +96,7 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
                 font-weight: bold;
                 font-size: ${fontSize}px;
             ">
-                ${s.count}
+                ${item.count}
             </div>
         </div>
         `;
@@ -105,70 +111,212 @@ const getChartIcon = (stat: NeighborhoodStat | GridStat, mode: StatMode, gridTyp
         return iconCache[cacheKey];
     }
 
-    // Existing modes (Neighborhood)
-    const s = stat as NeighborhoodStat;
+    // Neighborhood Mode
+    const ns = stat as NeighborhoodStat;
 
     if (mode === 'management') {
-        const transplante = s.transplante || 0;
-        const total = s.remocao + s.substituicao + s.poda + transplante;
-        const max = Math.max(s.remocao, s.substituicao, s.poda, transplante, 5);
+        const transplante = ns.transplante || 0;
+        const total_count = ns.remocao + ns.substituicao + ns.poda + transplante;
+        const max = Math.max(ns.remocao, ns.substituicao, ns.poda, transplante, 5);
 
-        const hRemocao = (s.remocao / max) * 60;
-        const hSubstituicao = (s.substituicao / max) * 60;
-        const hPoda = (s.poda / max) * 60;
-        const hTransplante = (transplante / max) * 60;
+        const hRemocao = (ns.remocao / max) * s(60);
+        const hSubstituicao = (ns.substituicao / max) * s(60);
+        const hPoda = (ns.poda / max) * s(60);
+        const hTransplante = (transplante / max) * s(60);
+
+        // Hide details if too small
+        const showDetails = scale >= 0.6;
+        const iconW = s(80);
+        const iconH = s(80);
+        const barW = s(12);
 
         const html = `
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <div style="display: flex; align-items: flex-end; gap: 4px; padding: 4px; background: rgba(255,255,255,0.8); border-radius: 4px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                 ${s.remocao > 0 ? `
+            <div style="display: flex; align-items: flex-end; gap: ${s(4)}px; padding: ${s(4)}px; background: rgba(255,255,255,0.9); border-radius: 4px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                 ${ns.remocao > 0 && showDetails ? `
                  <div style="display: flex; flex-direction: column; align-items: center;">
-                    <span style="font-size: 10px; font-weight: bold; color: #ef4444;">${s.remocao}</span>
-                    <div style="width: 12px; height: ${hRemocao}px; background-color: #ef4444; border-radius: 2px 2px 0 0;"></div>
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #ef4444;">${ns.remocao}</span>
+                    <div style="width: ${barW}px; height: ${hRemocao}px; background-color: #ef4444; border-radius: 2px 2px 0 0;"></div>
                  </div>` : ''}
-                 ${s.substituicao > 0 ? `
+                 ${ns.substituicao > 0 && showDetails ? `
                  <div style="display: flex; flex-direction: column; align-items: center;">
-                    <span style="font-size: 10px; font-weight: bold; color: #f59e0b;">${s.substituicao}</span>
-                    <div style="width: 12px; height: ${hSubstituicao}px; background-color: #f59e0b; border-radius: 2px 2px 0 0;"></div>
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #f59e0b;">${ns.substituicao}</span>
+                    <div style="width: ${barW}px; height: ${hSubstituicao}px; background-color: #f59e0b; border-radius: 2px 2px 0 0;"></div>
                  </div>` : ''}
-                 ${s.poda > 0 ? `
+                 ${ns.poda > 0 && showDetails ? `
                  <div style="display: flex; flex-direction: column; align-items: center;">
-                    <span style="font-size: 10px; font-weight: bold; color: #3b82f6;">${s.poda}</span>
-                    <div style="width: 12px; height: ${hPoda}px; background-color: #3b82f6; border-radius: 2px 2px 0 0;"></div>
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #3b82f6;">${ns.poda}</span>
+                    <div style="width: ${barW}px; height: ${hPoda}px; background-color: #3b82f6; border-radius: 2px 2px 0 0;"></div>
                  </div>` : ''}
-                 ${transplante > 0 ? `
+                 ${transplante > 0 && showDetails ? `
                  <div style="display: flex; flex-direction: column; align-items: center;">
-                    <span style="font-size: 10px; font-weight: bold; color: #8b5cf6;">${transplante}</span>
-                    <div style="width: 12px; height: ${hTransplante}px; background-color: #8b5cf6; border-radius: 2px 2px 0 0;"></div>
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #8b5cf6;">${transplante}</span>
+                    <div style="width: ${barW}px; height: ${hTransplante}px; background-color: #8b5cf6; border-radius: 2px 2px 0 0;"></div>
                  </div>` : ''}
+                 ${!showDetails ? `<span style="font-size: ${s(12)}px; font-weight: bold;">${total_count}</span>` : ''}
             </div>
-            <span style="background: white; padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 2px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${s.bairro}</span>
+            ${scale > 0.4 ? `<span style="background: white; padding: 2px 4px; border-radius: 4px; font-size: ${s(11)}px; font-weight: bold; margin-top: 2px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${ns.bairro}</span>` : ''}
         </div>`;
 
-        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [80, 80], iconAnchor: [40, 80], popupAnchor: [0, -80] });
+        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [iconW, iconH], iconAnchor: [iconW / 2, iconH], popupAnchor: [0, -iconH] });
         return iconCache[cacheKey];
     } else {
         // Health Mode (Neighborhood)
-        let color = '#eab308';
-        const health = s.predominant_health || 'Regular';
-        if (health.includes('Bom')) color = '#22c55e';
-        else if (health.includes('Ruim')) color = '#ef4444';
-        else if (health.includes('Morta') || health.includes('Desv')) color = '#000000';
+        const bom = ns.health_counts?.['Bom'] || 0;
+        const regular = ns.health_counts?.['Regular'] || 0;
+        const ruim = ns.health_counts?.['Ruim'] || 0;
+        const morta = ns.health_counts?.['Morta/Desvitalizada'] || 0;
 
-        const count = s.health_counts ? s.health_counts[health] || 0 : 0;
+        const max = Math.max(bom, regular, ruim, morta, 5);
+        const total = bom + regular + ruim + morta;
+
+        const hBom = (bom / max) * s(60);
+        const hRegular = (regular / max) * s(60);
+        const hRuim = (ruim / max) * s(60);
+        const hMorta = (morta / max) * s(60);
+
+        const showDetails = scale >= 0.6;
+        const iconW = s(80);
+        const iconH = s(80);
+        const barW = s(12);
 
         const html = `
         <div style="display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 40px; height: 40px; background-color: ${color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; opacity: 0.9;">
-                ${count}
+            <div style="display: flex; align-items: flex-end; gap: ${s(4)}px; padding: ${s(4)}px; background: rgba(255,255,255,0.9); border-radius: 4px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.2); min-width: ${s(20)}px; min-height: ${s(20)}px; justify-content: center;">
+                 ${total === 0 ? `<span style="font-size: ${s(10)}px; color: #999;">Sem Dados</span>` : ''}
+                 ${bom > 0 && showDetails ? `
+                 <div style="display: flex; flex-direction: column; align-items: center;">
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #22c55e;">${bom}</span>
+                    <div style="width: ${barW}px; height: ${hBom}px; background-color: #22c55e; border-radius: 2px 2px 0 0;"></div>
+                 </div>` : ''}
+                 ${regular > 0 && showDetails ? `
+                 <div style="display: flex; flex-direction: column; align-items: center;">
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #eab308;">${regular}</span>
+                    <div style="width: ${barW}px; height: ${hRegular}px; background-color: #eab308; border-radius: 2px 2px 0 0;"></div>
+                 </div>` : ''}
+                 ${ruim > 0 && showDetails ? `
+                 <div style="display: flex; flex-direction: column; align-items: center;">
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #ef4444;">${ruim}</span>
+                    <div style="width: ${barW}px; height: ${hRuim}px; background-color: #ef4444; border-radius: 2px 2px 0 0;"></div>
+                 </div>` : ''}
+                 ${morta > 0 && showDetails ? `
+                 <div style="display: flex; flex-direction: column; align-items: center;">
+                    <span style="font-size: ${s(10)}px; font-weight: bold; color: #000000;">${morta}</span>
+                    <div style="width: ${barW}px; height: ${hMorta}px; background-color: #000000; border-radius: 2px 2px 0 0;"></div>
+                 </div>` : ''}
+                 ${!showDetails && total > 0 ? `<span style="font-size: ${s(12)}px; font-weight: bold;">${total}</span>` : ''}
             </div>
-            <span style="background: white; padding: 2px 4px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 2px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${s.bairro}</span>
+            ${scale > 0.4 ? `<span style="background: white; padding: 2px 4px; border-radius: 4px; font-size: ${s(11)}px; font-weight: bold; margin-top: 2px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${ns.bairro}</span>` : ''}
         </div>`;
 
-        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [40, 60], iconAnchor: [20, 60], popupAnchor: [0, -60] });
+        iconCache[cacheKey] = divIcon({ html, className: 'bg-transparent', iconSize: [iconW, iconH], iconAnchor: [iconW / 2, iconH], popupAnchor: [0, -iconH] });
         return iconCache[cacheKey];
     }
 };
+
+// Componente para renderizar marcadores de estatísticas com acesso ao Zoom
+function StatsMarkers({ stats, gridStats, statMode, gridType, onSelectCell, selectedCell }: {
+    stats: NeighborhoodStat[];
+    gridStats: GridStat[];
+    statMode: StatMode;
+    gridType: GridType;
+    onSelectCell: (idx: number | null) => void;
+    selectedCell: number | null;
+}) {
+    const map = useMap();
+    const [zoom, setZoom] = useState(map.getZoom());
+
+    useEffect(() => {
+        const handler = () => {
+            setZoom(map.getZoom());
+        };
+        map.on('zoomend', handler);
+        return () => {
+            map.off('zoomend', handler);
+        };
+    }, [map]);
+
+    // Calculate scale based on zoom (13 is base)
+    // Zoom 13 -> 1.0, Zoom 12 -> 0.7, Zoom 11 -> 0.4 ...
+    // Zoom 14 -> 1.2
+    let scale = 1.0;
+    if (zoom < 12) scale = 0.5;
+    else if (zoom < 13) scale = 0.7;
+    else if (zoom >= 14) scale = 1.2;
+
+    const data = statMode === 'grid'
+        ? (Array.isArray(gridStats) ? gridStats : [])
+        : (Array.isArray(stats) ? stats : []);
+
+    return (
+        <>
+            {data.map((stat: any, idx: number) => (
+                stat.lat && stat.lng ? (
+                    <Marker
+                        key={idx}
+                        position={[stat.lat, stat.lng]}
+                        icon={getChartIcon(stat, statMode, gridType, scale)}
+                        eventHandlers={{
+                            click: () => {
+                                if (statMode === 'grid' && onSelectCell) {
+                                    onSelectCell(selectedCell === idx ? null : idx);
+                                }
+                            }
+                        }}
+                    >
+                        <Popup>
+                            {statMode === 'grid' ? (
+                                <>
+                                    <strong>Micro-Região</strong><br />
+                                    Total Árvores: {(stat as GridStat).count}<hr className="my-1" />
+                                    {gridType === 'health' ? (
+                                        <>
+                                            <strong>Saúde Predominante: {(stat as GridStat).predominant_health}</strong><br />
+                                            <div className="text-xs mt-1 grid grid-cols-2 gap-x-2">
+                                                <span>🟢 Bom:</span> <strong>{(stat as GridStat).health_counts?.['Bom'] || 0}</strong>
+                                                <span>🟡 Regular:</span> <strong>{(stat as GridStat).health_counts?.['Regular'] || 0}</strong>
+                                                <span>🔴 Ruim:</span> <strong>{(stat as GridStat).health_counts?.['Ruim'] || 0}</strong>
+                                                <span>⚫ Morta:</span> <strong>{(stat as GridStat).health_counts?.['Morta/Desvitalizada'] || 0}</strong>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <strong>Ação Predominante: {(stat as GridStat).predominant_action || 'Nenhuma'}</strong><br />
+                                            <div className="text-xs mt-1">
+                                                Remoção: {(stat as GridStat).management_counts?.['Remocao'] || 0}<br />
+                                                Subst.: {(stat as GridStat).management_counts?.['Substituicao'] || 0}<br />
+                                                Poda: {(stat as GridStat).management_counts?.['Poda'] || 0}<br />
+                                                Transplante: {(stat as GridStat).management_counts?.['Transplante'] || 0}
+                                            </div>
+                                        </>
+                                    )}
+                                    <div className="mt-2 pt-2 border-t border-gray-200 text-center">
+                                        <a
+                                            href={`/statistics/details?lat=${(stat as GridStat).grid_lat}&lng=${(stat as GridStat).grid_lng}`}
+                                            className="inline-block px-3 py-1 bg-blue-600 !text-white font-bold text-xs rounded hover:bg-blue-700 transition decoration-0"
+                                            style={{ color: 'white', textDecoration: 'none' }}
+                                        >
+                                            Ver Lista de Árvores
+                                        </a>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <strong>{(stat as NeighborhoodStat).bairro}</strong><br />
+                                    {statMode === 'management' ? (
+                                        <>Remoção: {(stat as NeighborhoodStat).remocao}<br />Substituição: {(stat as NeighborhoodStat).substituicao}<br />Poda: {(stat as NeighborhoodStat).poda}<br />Transplante: {(stat as NeighborhoodStat).transplante || 0}</>
+                                    ) : (
+                                        <>Predominante: {(stat as NeighborhoodStat).predominant_health}<br />(Bom/Reg/Ruim/Morta)</>
+                                    )}
+                                </>
+                            )}
+                        </Popup>
+                    </Marker>
+                ) : null
+            ))}
+        </>
+    );
+}
 
 // Grid cell size in degrees (must match API)
 const GRID_SIZE = 0.003;
@@ -223,70 +371,14 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                 );
             })()}
 
-            {(statMode === 'grid' ? (Array.isArray(gridStats) ? gridStats : []) : (Array.isArray(stats) ? stats : [])).map((stat, idx) => (
-                stat.lat && stat.lng ? (
-                    <Marker
-                        key={idx}
-                        position={[stat.lat, stat.lng]}
-                        icon={getChartIcon(stat as any, statMode, gridType)}
-                        eventHandlers={{
-                            click: () => {
-                                if (statMode === 'grid') {
-                                    setSelectedCell(selectedCell === idx ? null : idx);
-                                }
-                            }
-                        }}
-                    >
-                        <Popup>
-                            {statMode === 'grid' ? (
-                                <>
-                                    <strong>Micro-Região</strong><br />
-                                    Total Árvores: {(stat as GridStat).count}<hr className="my-1" />
-                                    {gridType === 'health' ? (
-                                        <>
-                                            <strong>Saúde Predominante: {(stat as GridStat).predominant_health}</strong><br />
-                                            <div className="text-xs mt-1 grid grid-cols-2 gap-x-2">
-                                                <span>🟢 Bom:</span> <strong>{(stat as GridStat).health_counts?.['Bom'] || 0}</strong>
-                                                <span>🟡 Regular:</span> <strong>{(stat as GridStat).health_counts?.['Regular'] || 0}</strong>
-                                                <span>🔴 Ruim:</span> <strong>{(stat as GridStat).health_counts?.['Ruim'] || 0}</strong>
-                                                <span>⚫ Morta:</span> <strong>{(stat as GridStat).health_counts?.['Morta/Desvitalizada'] || 0}</strong>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <strong>Ação Predominante: {(stat as GridStat).predominant_action || 'Nenhuma'}</strong><br />
-                                            <div className="text-xs mt-1">
-                                                Remoção: {(stat as GridStat).management_counts?.['Remocao'] || 0}<br />
-                                                Subst.: {(stat as GridStat).management_counts?.['Substituicao'] || 0}<br />
-                                                Poda: {(stat as GridStat).management_counts?.['Poda'] || 0}<br />
-                                                Transplante: {(stat as GridStat).management_counts?.['Transplante'] || 0}
-                                            </div>
-                                        </>
-                                    )}
-                                    <div className="mt-2 pt-2 border-t border-gray-200 text-center">
-                                        <a
-                                            href={`/statistics/details?lat=${(stat as GridStat).grid_lat}&lng=${(stat as GridStat).grid_lng}`}
-                                            className="inline-block px-3 py-1 bg-blue-600 !text-white font-bold text-xs rounded hover:bg-blue-700 transition decoration-0"
-                                            style={{ color: 'white', textDecoration: 'none' }}
-                                        >
-                                            Ver Lista de Árvores
-                                        </a>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <strong>{(stat as NeighborhoodStat).bairro}</strong><br />
-                                    {statMode === 'management' ? (
-                                        <>Remoção: {(stat as NeighborhoodStat).remocao}<br />Substituição: {(stat as NeighborhoodStat).substituicao}<br />Poda: {(stat as NeighborhoodStat).poda}<br />Transplante: {(stat as NeighborhoodStat).transplante || 0}</>
-                                    ) : (
-                                        <>Predominante: {(stat as NeighborhoodStat).predominant_health}<br />(Bom/Reg/Ruim)</>
-                                    )}
-                                </>
-                            )}
-                        </Popup>
-                    </Marker>
-                ) : null
-            ))}
+            <StatsMarkers
+                stats={stats}
+                gridStats={gridStats}
+                statMode={statMode}
+                gridType={gridType}
+                onSelectCell={setSelectedCell}
+                selectedCell={selectedCell}
+            />
 
             <div className="leaflet-bottom leaflet-right" style={{ pointerEvents: 'auto', marginBottom: '20px', marginRight: '20px' }}>
                 <div className="leaflet-control leaflet-bar bg-white p-4 shadow-lg rounded-lg border border-gray-200">
@@ -344,7 +436,7 @@ export default function MapComponent({ stats, gridStats, statMode, gridType }: M
                                         <span className="text-sm text-gray-700">Morta</span>
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2 max-w-[150px]">
-                                        Círculo e cor indicam o estado predominante no bairro.
+                                        Gráfico de barras indica a quantidade de árvores por estado de saúde.
                                     </p>
                                 </div>
                             </>

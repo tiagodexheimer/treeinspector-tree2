@@ -92,16 +92,19 @@ export async function GET() {
             }
 
             // Health Stats
-            const health = tree.estado_saude || 'Regular';
-            if (health) {
-                if (entry.health[health] !== undefined) {
-                    entry.health[health]++;
-                } else {
-                    if (health.includes('Morta') || health.includes('Desvitalizada')) entry.health['Morta/Desvitalizada']++;
-                    else if (health.includes('Ruim')) entry.health['Ruim']++;
-                    else if (health.includes('Regular')) entry.health['Regular']++;
-                    else if (health.includes('Bom')) entry.health['Bom']++;
-                }
+            // Normalize to handle case sensitivity and variations
+            const rawHealth = tree.estado_saude || 'Regular';
+            const h = rawHealth.toLowerCase();
+
+            if (h.includes('morta') || h.includes('desv')) {
+                entry.health['Morta/Desvitalizada']++;
+            } else if (h.includes('ruim') || h.includes('péssim') || h.includes('pessim')) {
+                entry.health['Ruim']++;
+            } else if (h.includes('bom') || h.includes('boa')) {
+                entry.health['Bom']++;
+            } else {
+                // Default fallback to Regular for any other value (including 'regular', null default, etc)
+                entry.health['Regular']++;
             }
 
             // Management Stats

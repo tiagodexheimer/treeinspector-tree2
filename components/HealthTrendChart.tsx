@@ -31,12 +31,21 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         const score = payload[0].value;
         const status = REVERSE_MAP[score] || 'Desconhecido';
+        // Format the label (which is now a timestamp) or use the date from payload
+        const dateStr = typeof label === 'number' ? new Date(label).toLocaleDateString() : label;
+
         return (
             <div className="bg-white p-2 border border-gray-200 shadow rounded text-sm">
-                <p className="font-bold">{label}</p>
+                <p className="font-bold">{dateStr}</p>
                 <p style={{ color: payload[0].color }}>
                     Estado: <span className="font-medium">{status}</span>
                 </p>
+                {/* Show time if available in the payload */}
+                {payload[0].payload.timestamp && (
+                    <p className="text-[10px] text-gray-400">
+                        {new Date(payload[0].payload.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                )}
             </div>
         );
     }
@@ -51,14 +60,17 @@ export default function HealthTrendChart({ data }: HealthTrendChartProps) {
     return (
         <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                <LineChart data={data} margin={{ top: 10, right: 10, left: 30, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
+                    <XAxis
+                        dataKey="timestamp"
+                        tickFormatter={(unix) => new Date(unix).toLocaleDateString()}
+                    />
                     <YAxis
                         domain={[0, 3]}
                         ticks={[0, 1, 2, 3]}
                         tickFormatter={(value) => REVERSE_MAP[value] || ''}
-                        width={80}
+                        width={90}
                     />
 
                     {/* Zones */}

@@ -2,6 +2,7 @@
 import * as xlsx from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import proj4 from 'proj4';
 import { PrismaClient, Prisma } from '@prisma/client';
 
@@ -12,7 +13,7 @@ const utmProjection = "+proj=utm +zone=22 +south +ellps=WGS84 +datum=WGS84 +unit
 const wgs84Projection = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs";
 
 const directoryPath = path.join(process.cwd(), 'modelo');
-const BATCH_SIZE = 5; // Very small batch to be safe
+const BATCH_SIZE = 100; // Process 100 trees per transaction for speed
 
 function getFirstFile() {
     try {
@@ -101,7 +102,7 @@ function parseRow(row: any): ParsedRow {
     // Management inference
     const manejoTipo = manejoKey ? row[manejoKey] : null;
     const necessitaManejo = !!manejoTipo && manejoTipo.toLowerCase() !== 'não' && manejoTipo.toLowerCase() !== 'nenhum';
-    const pragas = pragaKey && row[pragaKey] ? [row[pragaKey]] : [];
+    const pragas = parsePests(pragaKey ? row[pragaKey] : null);
 
     let lat: number | null = null;
     let lng: number | null = null;
@@ -115,6 +116,81 @@ function parseRow(row: any): ParsedRow {
     }
 
     return { nomeCientifico, nomeComum, familia, dap1, dap2, dap3, dap4, altura, rua, numero, bairro, lat, lng, estadoSaude, etiqueta, necessitaManejo, manejoTipo, pragas };
+}
+
+/**
+ * Parse pest data from raw text, handling multiple pests separated by "e", "/", or ","
+ * Normalizes pest names and filters out invalid entries
+ */
+// Parse pest names (using the improved logic)
+function parsePests(rawText: string | null | undefined): string[] {
+    if (!rawText || typeof rawText !== 'string') return [];
+
+    // Normalize: lowercase, trim, remove extra spaces
+    const normalized = rawText.trim().toLowerCase().replace(/\s+/g, ' ');
+
+    const pestMapping: Record<string, string> = {
+        'erva-de-passarinho': 'Erva-de-passarinho',
+        'erva de passarinho': 'Erva-de-passarinho',
+        'erva passarinho': 'Erva-de-passarinho',
+        'formigas': 'Formigas',
+        'formiga': 'Formigas',
+        'fungo': 'Fungo',
+        'fungos': 'Fungo',
+        'cupim': 'Cupim',
+        'cupinzeiro': 'Cupim',
+        'broca': 'Broca',
+        'mata-pau': 'Mata-pau',
+        'mata pau': 'Mata-pau',
+        'schefflera': 'Schefflera',
+        'ficus': 'Ficus',
+        'pulgão': 'Pulgão',
+        'pulgao': 'Pulgão',
+        'insetos': 'Insetos',
+        'inseto': 'Insetos',
+        'berruga foliar': 'Berruga foliar'
+    };
+
+    const invalidTerms = [
+        'não', 'nao', 'nenhum', 'nenhuma', 'sem',
+        'tronco oco', 'oco', 'árvore', 'arvore', 'rebrotando',
+        'por toda', 'presença de', 'folhas queimadas', 'queimadas',
+        'cortes causados', 'amarração', 'arranhões', 'fio',
+        'na base', 'base'
+    ];
+
+    // Check if it's a single pest first (no delimiters)
+    // Important: check this BEFORE splitting to handle "erva-de-passarinho" correctly
+    if (!normalized.includes(' e ') && !normalized.includes('/') && !normalized.includes(',')) {
+        const mapped = pestMapping[normalized];
+        if (mapped) return [mapped];
+    }
+
+    // Separar por delimitadores: " e ", "/", ","
+    const parts = normalized
+        .split(/\s+e\s+|\s*\/\s*|,\s*/)
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+    const validPests = new Set<string>();
+
+    for (const part of parts) {
+        if (part.length < 3) continue;
+
+        const containsInvalid = invalidTerms.some(term =>
+            part.includes(term) || part === term
+        );
+        if (containsInvalid) continue;
+
+        if (part.length > 30) continue;
+
+        const mapped = pestMapping[part];
+        if (mapped) {
+            validPests.add(mapped);
+        }
+    }
+
+    return Array.from(validPests);
 }
 
 async function main() {
@@ -153,7 +229,24 @@ async function main() {
     }
     console.log(`  Cached ${speciesMap.size} species.`);
 
-    // 2. Process in batches
+    // 2. Pre-process Pests: bulk upsert
+    console.log("Pre-processing pests...");
+    const pestMap = new Map<string, number>();
+    // Collect all unique pest names from all rows (flat array)
+    const uniquePests = new Set<string>();
+    parsedRows.forEach(row => row.pragas.forEach((p: string) => uniquePests.add(p)));
+
+    for (const pestName of uniquePests) {
+        const pest = await prisma.pestCatalog.upsert({
+            where: { nome_comum: pestName },
+            update: {},
+            create: { nome_comum: pestName, tipo: 'Praga' }
+        });
+        pestMap.set(pestName, pest.id); // Use 'id' from schema
+    }
+    console.log(`  Cached ${pestMap.size} pest types.`);
+
+    // 3. Process in batches with LAYERED BULK INSERT
     const totalBatches = Math.ceil(parsedRows.length / BATCH_SIZE);
     let importedCount = 0;
 
@@ -161,81 +254,197 @@ async function main() {
         const batch = parsedRows.slice(i, i + BATCH_SIZE);
         const batchNum = Math.floor(i / BATCH_SIZE) + 1;
 
-        await prisma.$transaction(async (tx) => {
-            for (const row of batch) {
-                const speciesId = speciesMap.get(row.nomeCientifico) || 1;
-
-                // Create Tree
-                const tree = await tx.tree.create({
-                    data: {
+        try {
+            await prisma.$transaction(async (tx) => {
+                // --- LAYER 1: TREES ---
+                const treeData = batch.map(row => {
+                    const speciesId = speciesMap.get(row.nomeCientifico) || 1;
+                    return {
+                        uuid: crypto.randomUUID(), // Temp UUID for mapping
                         speciesId,
                         rua: row.rua,
                         numero: row.numero ? String(row.numero) : null,
                         bairro: row.bairro,
                         endereco: `${row.rua || ''}, ${row.numero || ''}, ${row.bairro || ''}`.replace(/^, /, '').replace(/, $/, ''),
                         numero_etiqueta: row.etiqueta
-                    }
+                    };
                 });
 
-                // Update location with PostGIS
-                if (row.lat && row.lng) {
-                    await tx.$executeRaw`
-                        UPDATE "Tree" SET "localizacao" = ST_SetSRID(ST_MakePoint(${row.lng}, ${row.lat}), 4326) WHERE "id_arvore" = ${tree.id_arvore}
-                    `;
-                }
+                await tx.tree.createMany({ data: treeData });
 
-                // Detect suppression info for better semantics
-                let supressao_tipo = undefined;
-                if (row.manejoTipo) {
-                    const m = row.manejoTipo.toLowerCase();
-                    if (m.includes('remo') || m.includes('subst')) {
-                        supressao_tipo = row.manejoTipo;
-                    }
-                }
+                // Fetch back Trees to get IDs
+                const createdTrees = await tx.tree.findMany({
+                    where: { uuid: { in: treeData.map(t => t.uuid) } },
+                    select: { id_arvore: true, uuid: true }
+                });
 
-                // Create Inspection with nested data
-                await tx.inspection.create({
-                    data: {
-                        treeId: tree.id_arvore,
-                        dendrometrics: {
-                            create: {
-                                dap1_cm: row.dap1,
-                                dap2_cm: row.dap2 > 0 ? row.dap2 : undefined,
-                                dap3_cm: row.dap3 > 0 ? row.dap3 : undefined,
-                                dap4_cm: row.dap4 > 0 ? row.dap4 : undefined,
-                                altura_total_m: row.altura,
-                                altura_copa_m: 0,
-                                valid_from: new Date()
-                            }
-                        },
-                        phytosanitary: {
-                            create: {
-                                estado_saude: row.estadoSaude || 'Regular',
-                                severity_level: row.estadoSaude?.includes('Bom') ? 0 : 2, // Basic default
-                                pests: {
-                                    connectOrCreate: row.pragas.map(p => ({
-                                        where: { nome_comum: p },
-                                        create: { nome_comum: p, tipo: 'Praga' }
-                                    }))
-                                },
-                                valid_from: new Date()
-                            }
-                        },
-                        managementActions: {
-                            create: {
-                                necessita_manejo: row.necessitaManejo,
-                                manejo_tipo: row.manejoTipo,
-                                supressao_tipo: supressao_tipo,
-                                valid_from: new Date()
-                            }
+                const treeIdMap = new Map<string, number>();
+                createdTrees.forEach(t => {
+                    if (t.uuid) treeIdMap.set(t.uuid, t.id_arvore);
+                });
+
+                // --- LAYER 2: LOCATIONS (PostGIS) ---
+                // Prepare values for bulk update
+                const locationValues = batch
+                    .map((row, idx) => {
+                        const uuid = treeData[idx].uuid;
+                        const id = treeIdMap.get(uuid);
+                        if (id && row.lat && row.lng) {
+                            return `(${id}, ${row.lat}, ${row.lng})`;
                         }
+                        return null;
+                    })
+                    .filter(val => val !== null);
+
+                if (locationValues.length > 0) {
+                    await tx.$executeRawUnsafe(`
+                        UPDATE "Tree" SET "localizacao" = ST_SetSRID(ST_MakePoint(v.lng, v.lat), 4326)
+                        FROM (VALUES ${locationValues.join(',')}) AS v(id, lat, lng)
+                        WHERE "Tree"."id_arvore" = v.id
+                    `);
+                }
+
+                // --- LAYER 3: INSPECTIONS ---
+                const inspectionData = batch.map((row, idx) => {
+                    const treeUuid = treeData[idx].uuid;
+                    const treeId = treeIdMap.get(treeUuid);
+                    if (!treeId) throw new Error(`Tree ID not found for UUID ${treeUuid}`);
+
+                    return {
+                        uuid: crypto.randomUUID(),
+                        treeId: treeId,
+                        data_inspecao: new Date()
+                    };
+                });
+
+                await tx.inspection.createMany({ data: inspectionData });
+
+                const createdInspections = await tx.inspection.findMany({
+                    where: { uuid: { in: inspectionData.map(i => i.uuid) } },
+                    select: { id_inspecao: true, uuid: true }
+                });
+
+                const inspIdMap = new Map<string, number>();
+                createdInspections.forEach(i => {
+                    if (i.uuid) inspIdMap.set(i.uuid, i.id_inspecao);
+                });
+
+                // --- LAYER 4: DETAILS (Dendro, Phyto, Management) ---
+                const dendroData: any[] = [];
+                const phytoData: any[] = [];
+                const mgmtData: any[] = [];
+                const phytoUuidToPestsMap = new Map<string, number[]>(); // Map Phyto UUID -> Pest IDs
+
+                batch.forEach((row, idx) => {
+                    const inspUuid = inspectionData[idx].uuid;
+                    const inspId = inspIdMap.get(inspUuid);
+                    if (!inspId) return;
+
+                    // Dendro
+                    dendroData.push({
+                        inspectionId: inspId,
+                        dap1_cm: row.dap1,
+                        dap2_cm: row.dap2 > 0 ? row.dap2 : undefined,
+                        dap3_cm: row.dap3 > 0 ? row.dap3 : undefined,
+                        dap4_cm: row.dap4 > 0 ? row.dap4 : undefined,
+                        altura_total_m: row.altura,
+                        altura_copa_m: 0,
+                        valid_from: new Date()
+                    });
+
+                    // Management
+                    let supressao_tipo = undefined;
+                    if (row.manejoTipo) {
+                        const m = row.manejoTipo.toLowerCase();
+                        if (m.includes('remo') || m.includes('subst')) supressao_tipo = row.manejoTipo;
+                    }
+
+                    mgmtData.push({
+                        inspectionId: inspId,
+                        necessita_manejo: row.necessitaManejo,
+                        manejo_tipo: row.manejoTipo,
+                        supressao_tipo: supressao_tipo,
+                        valid_from: new Date()
+                    });
+
+                    // Phyto (NEED UUID TO LINK PESTS LATER)
+                    const phytoUuid = crypto.randomUUID(); // We can't use createMany because we need IDs back for Pests? 
+                    // Actually we can use createMany, but we need to fetch them back.
+                    // We can use inspectionId as the key to fetch them back if 1:1.
+
+                    phytoData.push({
+                        inspectionId: inspId,
+                        estado_saude: row.estadoSaude || 'Regular',
+                        severity_level: row.estadoSaude?.includes('Bom') ? 0 : 2,
+                        valid_from: new Date()
+                    });
+
+                    // Prepare pests
+                    const pestIds = row.pragas
+                        .map((p: string) => pestMap.get(p))
+                        .filter((id: number | undefined) => id !== undefined) as number[];
+
+                    if (pestIds.length > 0) {
+                        // Store relation: InspectionID -> PestIDs. 
+                        // After inserting Phyto, will fetch Phyto IDs by InspectionID and insert relations.
+                        // We use a Map<InspectionID, PestIDs>
+                        // But wait, allow me to just use an array since inspectionIds are unique here
                     }
                 });
-                importedCount++;
-            }
-        }, { timeout: 600000 }); // 10 min timeout per batch
 
-        console.log(`  Batch ${batchNum}/${totalBatches} complete (${importedCount}/${parsedRows.length} rows).`);
+                await tx.dendrometricData.createMany({ data: dendroData });
+                await tx.managementAction.createMany({ data: mgmtData });
+                await tx.phytosanitaryData.createMany({ data: phytoData });
+
+                // --- LAYER 5: PEST RELATIONS ---
+                // We need Phyto IDs to link pests.
+                // Fetch created PhytosanitaryData by inspectionIds
+                const createdPhyto = await tx.phytosanitaryData.findMany({
+                    where: { inspectionId: { in: Array.from(inspIdMap.values()) } },
+                    select: { id: true, inspectionId: true }
+                });
+
+                const pestRelations: string[] = [];
+
+                // Build relation VALUES
+                const inspIdToPhytoId = new Map<number, number>();
+                createdPhyto.forEach(p => inspIdToPhytoId.set(p.inspectionId, p.id));
+
+                batch.forEach((row, idx) => {
+                    const inspUuid = inspectionData[idx].uuid;
+                    const inspId = inspIdMap.get(inspUuid);
+                    if (!inspId) return;
+
+                    const phytoId = inspIdToPhytoId.get(inspId);
+                    if (!phytoId) return;
+
+                    const pestIds = row.pragas
+                        .map((p: string) => pestMap.get(p))
+                        .filter((id: number | undefined) => id !== undefined) as number[];
+
+                    pestIds.forEach(pestId => {
+                        // Prisma implicit m-n table: "_PestCatalogToPhytosanitaryData" ("A", "B") where A = PestCatalog, B = Phyto
+                        pestRelations.push(`(${pestId}, ${phytoId})`);
+                    });
+                });
+
+                if (pestRelations.length > 0) {
+                    await tx.$executeRawUnsafe(`
+                        INSERT INTO "_PestCatalogToPhytosanitaryData" ("A", "B")
+                        VALUES ${pestRelations.join(',')}
+                        ON CONFLICT DO NOTHING
+                    `);
+                }
+
+                importedCount += batch.length;
+
+            }, { timeout: 600000 }); // 10 min timeout
+
+            console.log(`  Batch ${batchNum}/${totalBatches} complete (${importedCount}/${parsedRows.length} rows).`);
+
+        } catch (error) {
+            console.error(`Error in batch ${batchNum}:`, error);
+        }
     }
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);

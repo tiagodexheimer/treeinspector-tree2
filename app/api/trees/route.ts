@@ -63,15 +63,14 @@ export async function GET(request: Request) {
                 // Usando raw query para busca por raio no PostGIS
                 const trees: any[] = await prisma.$queryRaw`
                     SELECT 
-                        t.id_arvore, 
+                        t.id_arvore as id, 
                         ST_Y(t.localizacao::geometry) as lat, 
                         ST_X(t.localizacao::geometry) as lng, 
-                        t.numero_etiqueta,
-                        t.rua, 
-                        t.numero, 
+                        t.numero_etiqueta as etiqueta,
+                        t.rua || ', ' || t.numero as address, 
                         t.bairro,
-                        s.nome_comum,
-                        s.nome_cientifico,
+                        s.nome_comum as species_common,
+                        s.nome_cientifico as species_scientific,
                         ST_Distance(t.localizacao, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography) as distance
                     FROM "Tree" t
                     LEFT JOIN "Species" s ON t."speciesId" = s.id_especie

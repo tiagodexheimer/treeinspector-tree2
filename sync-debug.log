@@ -1,0 +1,4 @@
+[2026-01-19T15:53:31.800Z] PAYLOAD_SIZE: 1887 bytes
+[2026-01-19T15:53:31.800Z] ITEMS: 3
+[2026-01-19T15:53:31.800Z] SAMPLE_ITEM: {"inspection":{"data_inspecao":"2026-01-19T15:21:04.313Z","dendrometric":{"altura_total_m":9,"dap1_cm":29.60281942},"management":{"necessita_manejo":false,"poda_tipos":[]},"photos":[],"phytosanitary":{"estado_saude":"bom","pragas":[]},"uuid":"035fe4f7-da9a-4b87-ad31-dc46a9366f8a"},"tree":{"lat":-29.850630399142844,"lng":-51.16237599999927,"nome_popular":"Ipê-roxo","numero_etiqueta":"76","speciesId":1,"uuid":"a69ece3c-9813-47e2-a844-cb7acabb3ce0"}}
+

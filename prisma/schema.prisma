@@ -11,6 +11,12 @@ datasource db {
 
 // ==================== SPECIES & TAXONOMY ====================
 
+enum TreeSize {
+  Pequeno  // Até 6m
+  Medio    // 6-12m
+  Grande   // Acima de 12m
+}
+
 model Species {
   id_especie      Int      @id @default(autoincrement())
   nome_comum      String
@@ -18,7 +24,13 @@ model Species {
   
   // Taxonomic enrichment (GBIF)
   family          String?
-  native_status   String?  // 'Native', 'Exotic', 'Unknown'
+  native_status   String?  // 'Nativa', 'Exótica', 'Desconhecida'
+  
+  // NEW FIELDS - Species characteristics
+  porte           TreeSize?  // Porte da espécie
+  growth_rate     String?    // 'Lento', 'Médio', 'Rápido'
+  max_height_m    Decimal?   // Altura máxima esperada
+  description     String?    // Descrição/características
   
   // External IDs
   gbif_id         BigInt?

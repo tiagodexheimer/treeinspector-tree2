@@ -35,6 +35,15 @@ export async function GET(
             return NextResponse.json({ error: 'Tree not found' }, { status: 404 });
         }
 
+        // Debug logging
+        console.log(`Tree ${id} fetched, inspections count:`, tree.inspections?.length);
+        if (tree.inspections?.[0]) {
+            console.log(`First inspection phyto data:`, tree.inspections[0].phytosanitary);
+            if (tree.inspections[0].phytosanitary?.[0]) {
+                console.log(`First phyto pests:`, tree.inspections[0].phytosanitary[0].pests);
+            }
+        }
+
         // Extrair coordenadas via PostGIS (com tratamento de erro)
         let lat: number | null = null;
         let lng: number | null = null;

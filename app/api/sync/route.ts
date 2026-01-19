@@ -58,39 +58,68 @@ export async function POST(request: Request) {
                         targetSpeciesId = 1;
                     }
 
-                    // Upsert: Create or Update based on UUID without coordinates first
-                    const upsertedTree = await tx.tree.upsert({
-                        where: { uuid: tree.uuid },
-                        update: {
-                            numero_etiqueta: tree.numero_etiqueta,
-                            nome_popular: tree.nome_popular,
-                            cover_photo: tree.cover_photo,
-                            rua: tree.rua,
-                            numero: tree.numero,
-                            bairro: tree.bairro,
-                            speciesId: targetSpeciesId,
-                        },
-                        create: {
-                            uuid: tree.uuid,
-                            numero_etiqueta: tree.numero_etiqueta,
-                            nome_popular: tree.nome_popular,
-                            cover_photo: tree.cover_photo,
-                            rua: tree.rua,
-                            numero: tree.numero,
-                            bairro: tree.bairro,
-                            speciesId: targetSpeciesId,
-                        }
-                    });
+                    // INTELLIGENT LINKING LOGIC
+                    // 1. Try to find by UUID (standard sync)
+                    let existingTree = await tx.tree.findUnique({ where: { uuid: tree.uuid } });
 
-                    // Update location with PostGIS
-                    if (tree.lat && tree.lng) {
-                        await tx.$executeRaw`
-                            UPDATE "Tree" 
-                            SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(tree.lng)}, ${parseFloat(tree.lat)}), 4326)
-                            WHERE "id_arvore" = ${upsertedTree.id_arvore}
-                        `;
+                    // 2. If not found, try to find by Tag (fallback for first sync of existing trees)
+                    if (!existingTree && tree.numero_etiqueta) {
+                        existingTree = await tx.tree.findFirst({
+                            where: { numero_etiqueta: tree.numero_etiqueta },
+                            orderBy: { id_arvore: 'asc' } // Always prefer the oldest/canonical tree
+                        });
                     }
-                    treeId = upsertedTree.id_arvore;
+
+                    if (existingTree) {
+                        // UPDATE existing tree
+                        const updated = await tx.tree.update({
+                            where: { id_arvore: existingTree.id_arvore },
+                            data: {
+                                // Do NOT update UUID to keep server canonical identity
+                                nome_popular: tree.nome_popular || existingTree.nome_popular,
+                                cover_photo: tree.cover_photo || existingTree.cover_photo,
+                                speciesId: targetSpeciesId,
+                                // Only update address/location if provided and seems valid?
+                                // For now, trust the incoming sync as 'latest'
+                                rua: tree.rua || existingTree.rua,
+                                numero: tree.numero || existingTree.numero,
+                                bairro: tree.bairro || existingTree.bairro,
+                            }
+                        });
+
+                        // Update Location separately if needed
+                        if (tree.lat && tree.lng) {
+                            await tx.$executeRaw`
+                                UPDATE "Tree" 
+                                SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(tree.lng)}, ${parseFloat(tree.lat)}), 4326)
+                                WHERE "id_arvore" = ${updated.id_arvore}
+                            `;
+                        }
+                        treeId = updated.id_arvore;
+                    } else {
+                        // CREATE new tree (really new)
+                        const created = await tx.tree.create({
+                            data: {
+                                uuid: tree.uuid,
+                                numero_etiqueta: tree.numero_etiqueta,
+                                nome_popular: tree.nome_popular,
+                                cover_photo: tree.cover_photo,
+                                rua: tree.rua,
+                                numero: tree.numero,
+                                bairro: tree.bairro,
+                                speciesId: targetSpeciesId,
+                            }
+                        });
+
+                        if (tree.lat && tree.lng) {
+                            await tx.$executeRaw`
+                                UPDATE "Tree" 
+                                SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(tree.lng)}, ${parseFloat(tree.lat)}), 4326)
+                                WHERE "id_arvore" = ${created.id_arvore}
+                            `;
+                        }
+                        treeId = created.id_arvore;
+                    }
                 }
 
                 // Use inspection's linked tree if we didn't process a tree block but have a way to link?
@@ -119,9 +148,20 @@ export async function POST(request: Request) {
                             phytosanitary: {
                                 create: inspection.phytosanitary ? [{
                                     estado_saude: inspection.phytosanitary.estado_saude,
-                                    pragas: inspection.phytosanitary.pragas || [],
-                                    danos_tipo: inspection.phytosanitary.danos_tipo,
-                                    danos_severidade: inspection.phytosanitary.danos_severidade,
+                                    // New fields with safety casting
+                                    severity_level: inspection.phytosanitary.severity_level ? Number(inspection.phytosanitary.severity_level) : undefined,
+                                    risk_probability: inspection.phytosanitary.risk_probability,
+                                    target_value: inspection.phytosanitary.target_value ? Number(inspection.phytosanitary.target_value) : undefined,
+                                    risk_rating: inspection.phytosanitary.risk_rating ? Number(inspection.phytosanitary.risk_rating) : undefined,
+
+                                    // Pests relation
+                                    pests: {
+                                        connectOrCreate: (inspection.phytosanitary.pragas || []).map((p: string) => ({
+                                            where: { nome_comum: p },
+                                            create: { nome_comum: p, tipo: 'Praga' }
+                                        }))
+                                    },
+
                                     valid_from: new Date(),
                                     valid_to: null
                                 }] : []

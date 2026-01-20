@@ -59,12 +59,31 @@ export async function POST(request: Request) {
                         continue;
                     }
 
-                    // Validate Species ID
-                    let targetSpeciesId = (!tree.speciesId || isNaN(Number(tree.speciesId))) ? 1 : Number(tree.speciesId);
-                    if (!validSpeciesIds.has(targetSpeciesId)) {
+                    // Validate Species ID and fetch canonical names if possible
+                    console.log(`[SYNC DEBUG] Tree UUID=${tree.uuid}, Raw speciesId='${tree.speciesId}' (type: ${typeof tree.speciesId}), nome_popular='${tree.nome_popular}'`);
+                    let targetSpeciesId = (!tree.speciesId || isNaN(Number(tree.speciesId))) ? 2 : Number(tree.speciesId); // Default to 2 (NI) if null/invalid
+                    let nomePopular = tree.nome_popular;
+
+                    const speciesRecord = await tx.species.findUnique({
+                        where: { id_especie: targetSpeciesId },
+                        select: { nome_comum: true, nome_cientifico: true }
+                    });
+
+                    if (speciesRecord) {
+                        // Trust canonical names ONLY if it's NOT a generic/default species (1=Jerivá, 2=NI)
+                        // This allows users to type a custom name without it being overwritten by the catalog default.
+                        if (targetSpeciesId !== 1 && targetSpeciesId !== 2) {
+                            nomePopular = speciesRecord.nome_comum;
+                        } else {
+                            // If generic, but mobile sent nothing, use the generic name
+                            nomePopular = tree.nome_popular || speciesRecord.nome_comum;
+                        }
+                    } else {
                         console.warn(`Species ID ${targetSpeciesId} not found in DB, falling back to 1`);
                         targetSpeciesId = 1;
                     }
+
+                    console.log(`Processing Tree: Tag=${tree.numero_etiqueta}, Received Name='${tree.nome_popular}', Resolved Name='${nomePopular}', SpeciesId=${targetSpeciesId}`);
 
                     // INTELLIGENT LINKING LOGIC
                     // 1. Try to find by UUID (standard sync)
@@ -84,8 +103,8 @@ export async function POST(request: Request) {
                             where: { id_arvore: existingTree.id_arvore },
                             data: {
                                 // Do NOT update UUID to keep server canonical identity
-                                nome_popular: tree.nome_popular || existingTree.nome_popular,
-                                cover_photo: tree.cover_photo || existingTree.cover_photo,
+                                nome_popular: nomePopular || existingTree.nome_popular,
+                                cover_photo: (tree.cover_photo && !tree.cover_photo.startsWith('content://')) ? tree.cover_photo : existingTree.cover_photo,
                                 speciesId: targetSpeciesId,
                                 // Only update address/location if provided and seems valid?
                                 // For now, trust the incoming sync as 'latest'
@@ -110,7 +129,7 @@ export async function POST(request: Request) {
                             data: {
                                 uuid: tree.uuid,
                                 numero_etiqueta: tree.numero_etiqueta,
-                                nome_popular: tree.nome_popular,
+                                nome_popular: nomePopular,
                                 cover_photo: (tree.cover_photo && !tree.cover_photo.startsWith('content://')) ? tree.cover_photo : null,
                                 rua: tree.rua,
                                 numero: tree.numero,

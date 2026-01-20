@@ -8,23 +8,41 @@ export async function GET(request: Request) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const q = searchParams.get('q');
 
-        const where = q ? {
-            OR: [
-                { nome_comum: { contains: q, mode: 'insensitive' as const } },
-                { nome_cientifico: { contains: q, mode: 'insensitive' as const } },
-                { family: { contains: q, mode: 'insensitive' as const } }
-            ]
-        } : {};
+        let species;
+        let total;
 
-        const [species, total] = await Promise.all([
-            prisma.species.findMany({
-                where,
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: { nome_comum: 'asc' }
-            }),
-            prisma.species.count({ where })
-        ]);
+        if (q) {
+            // Use unaccent for accent-insensitive search in PostgreSQL
+            // We use raw query to access specialized unaccent function
+            const searchTerm = `%${q}%`;
+
+            species = await prisma.$queryRaw<any[]>`
+                SELECT * FROM "Species"
+                WHERE unaccent(nome_comum) ILIKE unaccent(${searchTerm})
+                   OR unaccent(nome_cientifico) ILIKE unaccent(${searchTerm})
+                   OR unaccent(family) ILIKE unaccent(${searchTerm})
+                ORDER BY nome_comum ASC
+                LIMIT ${limit}
+                OFFSET ${(page - 1) * limit}
+            `;
+
+            const totalResult = await prisma.$queryRaw<any[]>`
+                SELECT COUNT(*) as count FROM "Species"
+                WHERE unaccent(nome_comum) ILIKE unaccent(${searchTerm})
+                   OR unaccent(nome_cientifico) ILIKE unaccent(${searchTerm})
+                   OR unaccent(family) ILIKE unaccent(${searchTerm})
+            `;
+            total = Number(totalResult[0].count);
+        } else {
+            [species, total] = await Promise.all([
+                prisma.species.findMany({
+                    skip: (page - 1) * limit,
+                    take: limit,
+                    orderBy: { nome_comum: 'asc' }
+                }),
+                prisma.species.count()
+            ]);
+        }
 
         return NextResponse.json({
             data: species,

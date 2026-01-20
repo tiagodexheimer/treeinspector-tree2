@@ -8,13 +8,17 @@ const INFINITY_DATE = null;
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+        console.log('Sync payload received:', JSON.stringify(body).substring(0, 500) + '...');
         const { sync_batch } = body;
 
         // Expected payload: { sync_batch: [ { tree: ..., inspection: ... } ] }
 
         if (!Array.isArray(sync_batch)) {
+            console.error('Invalid sync_batch:', sync_batch);
             return NextResponse.json({ error: 'Invalid payload: sync_batch must be an array' }, { status: 400 });
         }
+
+        console.log(`Processing sync batch with ${sync_batch.length} items`);
 
         const results = [];
 
@@ -41,6 +45,10 @@ export async function POST(request: Request) {
         await prisma.$transaction(async (tx) => {
             for (const item of sync_batch) {
                 const { tree, inspection } = item;
+                console.log(`Processing item: Tree UUID=${tree?.uuid}, Tag=${tree?.numero_etiqueta}, Photo=${tree?.cover_photo}`);
+                if (inspection?.photos) {
+                    console.log(`  Inspection Photos: ${inspection.photos.map((p: any) => p.uri).join(', ')}`);
+                }
                 let treeId: number | null = null;
 
                 // 1. Process Tree (Upsert by UUID)
@@ -88,7 +96,7 @@ export async function POST(request: Request) {
                         });
 
                         // Update Location separately if needed
-                        if (tree.lat && tree.lng) {
+                        if (tree.lat != null && tree.lng != null) {
                             await tx.$executeRaw`
                                 UPDATE "Tree" 
                                 SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(tree.lng)}, ${parseFloat(tree.lat)}), 4326)
@@ -103,7 +111,7 @@ export async function POST(request: Request) {
                                 uuid: tree.uuid,
                                 numero_etiqueta: tree.numero_etiqueta,
                                 nome_popular: tree.nome_popular,
-                                cover_photo: tree.cover_photo,
+                                cover_photo: (tree.cover_photo && !tree.cover_photo.startsWith('content://')) ? tree.cover_photo : null,
                                 rua: tree.rua,
                                 numero: tree.numero,
                                 bairro: tree.bairro,
@@ -111,7 +119,7 @@ export async function POST(request: Request) {
                             }
                         });
 
-                        if (tree.lat && tree.lng) {
+                        if (tree.lat != null && tree.lng != null) {
                             await tx.$executeRaw`
                                 UPDATE "Tree" 
                                 SET "localizacao" = ST_SetSRID(ST_MakePoint(${parseFloat(tree.lng)}, ${parseFloat(tree.lat)}), 4326)
@@ -188,7 +196,13 @@ export async function POST(request: Request) {
                         await tx.inspection.upsert({
                             where: { uuid: inspection.uuid },
                             update: {
-                                // Idempotent update: currently we don't overwrite history on sync
+                                // Update photos if provided
+                                photos: inspection.photos ? {
+                                    deleteMany: {}, // Simple way for MVP: replace all photos with incoming set
+                                    create: inspection.photos.filter((p: any) => p.uri && !p.uri.startsWith('content://')).map((p: any) => ({
+                                        uri: p.uri
+                                    }))
+                                } : undefined
                             },
                             create: {
                                 uuid: inspection.uuid,

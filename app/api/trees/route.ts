@@ -71,6 +71,7 @@ export async function GET(request: Request) {
                         t.bairro,
                         s.nome_comum as species_common,
                         s.nome_cientifico as species_scientific,
+                        (SELECT blob_url FROM "PhotoMetadata" pm WHERE pm.tree_id = t.id_arvore ORDER BY captured_at DESC LIMIT 1) as photo_url,
                         ST_Distance(t.localizacao, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography) as distance
                     FROM "Tree" t
                     LEFT JOIN "Species" s ON t."speciesId" = s.id_especie

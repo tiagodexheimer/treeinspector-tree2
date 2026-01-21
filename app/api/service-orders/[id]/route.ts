@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id: idParam } = await context.params;
@@ -58,9 +60,24 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
                 serviceSubtypes,
                 description,
                 status,
-                assigned_to
+                assigned_to,
+                executed_at: status === 'Concluída' ? new Date() : undefined
+            },
+            include: {
+                managementActions: true
             }
         });
+
+        // If the OS is concluded, we should mark associated management actions as done
+        if (status === 'Concluída') {
+            const managementIds = updatedOrder.managementActions.map(ma => ma.id);
+            if (managementIds.length > 0) {
+                await prisma.managementAction.updateMany({
+                    where: { id: { in: managementIds } },
+                    data: { necessita_manejo: false }
+                });
+            }
+        }
 
         return NextResponse.json(updatedOrder);
     } catch (error) {

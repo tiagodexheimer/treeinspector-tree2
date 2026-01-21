@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -9,12 +11,12 @@ export async function POST(
     const id = parseInt(idString);
     const body = await request.json();
     const { description, photos } = body;
-    // photos: array of { uri: string } ? or array of strings?
-    // Let's assume array of strings (uris) for simplicity or array of objects if needed.
-    // Based on `ServiceOrderPhoto` model: `uri` string.
 
     try {
-        const os = await prisma.serviceOrder.findUnique({ where: { id } });
+        const os = await prisma.serviceOrder.findUnique({
+            where: { id },
+            include: { managementActions: true }
+        });
 
         if (!os) {
             return NextResponse.json({ error: 'Service Order not found' }, { status: 404 });
@@ -28,7 +30,7 @@ export async function POST(
                 description: description,
                 photos: photos && Array.isArray(photos) ? {
                     create: photos.map((photo: string) => ({
-                        uri: photo // Assuming photo is a string URL
+                        uri: photo
                     }))
                 } : undefined
             },
@@ -36,6 +38,15 @@ export async function POST(
                 photos: true
             }
         });
+
+        // Close associated management actions
+        const managementIds = os.managementActions.map(ma => ma.id);
+        if (managementIds.length > 0) {
+            await prisma.managementAction.updateMany({
+                where: { id: { in: managementIds } },
+                data: { necessita_manejo: false }
+            });
+        }
 
         return NextResponse.json(updatedOS);
     } catch (error) {

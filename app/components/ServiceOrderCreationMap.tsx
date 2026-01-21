@@ -10,20 +10,15 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import useSupercluster from 'use-supercluster';
 import ServiceOrderCreateModal from './ServiceOrderCreateModal';
 
-interface Tree {
-    id_arvore: number;
+interface MapTree {
+    id: number;
     lat: number;
     lng: number;
-    numero_etiqueta: string;
-    speciesId: number;
-    species?: {
-        nome_comum: string;
-    };
-    inspections?: {
-        phytosanitary?: {
-            estado_saude?: string;
-        }[];
-    }[];
+    lbl: string; // etiqueta
+    sp: string;  // especie
+    st: string;  // status (saúde)
+    sev?: number; // severity
+    pc?: number; // pest count
 }
 
 // Helper to get color from health status
@@ -121,7 +116,7 @@ function Markers({ isSelectionMode, onSelectedIdsChange, selectedTreeIds }: Mark
     const map = useMap();
     const [bounds, setBounds] = useState<any>(null);
     const [zoom, setZoom] = useState(10);
-    const [trees, setTrees] = useState<Tree[]>([]);
+    const [trees, setTrees] = useState<MapTree[]>([]);
 
     // Selection States
     const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
@@ -135,6 +130,7 @@ function Markers({ isSelectionMode, onSelectedIdsChange, selectedTreeIds }: Mark
     useEffect(() => {
         async function fetchTrees() {
             try {
+                // Use the same bounded fetch or just get all for now, but ensure correct format
                 const response = await fetch('/api/trees');
                 const data = await response.json();
                 if (Array.isArray(data)) {
@@ -173,10 +169,10 @@ function Markers({ isSelectionMode, onSelectedIdsChange, selectedTreeIds }: Mark
         type: 'Feature',
         properties: {
             cluster: false,
-            treeId: tree.id_arvore,
-            etiqueta: tree.numero_etiqueta,
-            species: tree.species?.nome_comum,
-            status: tree.inspections?.[0]?.phytosanitary?.[0]?.estado_saude || 'Regular'
+            treeId: tree.id,
+            etiqueta: tree.lbl,
+            species: tree.sp,
+            status: tree.st || 'Regular'
         },
         geometry: {
             type: 'Point',
@@ -212,7 +208,7 @@ function Markers({ isSelectionMode, onSelectedIdsChange, selectedTreeIds }: Mark
             selectionBounds.contains([tree.lat, tree.lng])
         );
 
-        const newIds = treesInBox.map(t => t.id_arvore);
+        const newIds = treesInBox.map(t => t.id);
         onSelectedIdsChange(prev => {
             const combined = new Set([...prev, ...newIds]);
             return Array.from(combined);

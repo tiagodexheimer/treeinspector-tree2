@@ -21,7 +21,23 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
             return NextResponse.json({ error: 'Service Order not found' }, { status: 404 });
         }
 
-        return NextResponse.json(order);
+        // Add coordinates to each tree manually
+        const orderWithCoords = {
+            ...order,
+            trees: await Promise.all(order.trees.map(async (tree: any) => {
+                const coords: any[] = await prisma.$queryRaw`
+                    SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
+                    FROM "Tree" WHERE id_arvore = ${tree.id_arvore}
+                `;
+                return {
+                    ...tree,
+                    lat: coords[0]?.lat || null,
+                    lng: coords[0]?.lng || null
+                };
+            }))
+        };
+
+        return NextResponse.json(orderWithCoords);
     } catch (error) {
         console.error('Error fetching service order:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

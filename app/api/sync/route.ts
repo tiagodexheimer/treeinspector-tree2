@@ -86,10 +86,19 @@ export async function POST(request: Request) {
                     console.log(`Processing Tree: Tag=${tree.numero_etiqueta}, Received Name='${tree.nome_popular}', Resolved Name='${nomePopular}', SpeciesId=${targetSpeciesId}`);
 
                     // INTELLIGENT LINKING LOGIC
-                    // 1. Try to find by UUID (standard sync)
-                    let existingTree = await tx.tree.findUnique({ where: { uuid: tree.uuid } });
+                    let existingTree = null;
 
-                    // 2. If not found, try to find by Tag (fallback for first sync of existing trees)
+                    // 1. Try to find by id_arvore (Remote ID) - MOST RELIABLE
+                    if (tree.id_arvore) {
+                        existingTree = await tx.tree.findUnique({ where: { id_arvore: Number(tree.id_arvore) } });
+                    }
+
+                    // 2. Try to find by UUID (standard sync)
+                    if (!existingTree && tree.uuid) {
+                        existingTree = await tx.tree.findUnique({ where: { uuid: tree.uuid } });
+                    }
+
+                    // 3. If not found, try to find by Tag (fallback for first sync)
                     if (!existingTree && tree.numero_etiqueta) {
                         existingTree = await tx.tree.findFirst({
                             where: { numero_etiqueta: tree.numero_etiqueta },

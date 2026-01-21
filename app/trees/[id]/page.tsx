@@ -411,9 +411,6 @@ export default function TreeDetailPage() {
                             </h3>
                             <HealthTrendChart data={healthChartData} />
                         </div>
-
-                        {/* Comparison Gallery */}
-                        <InspectionComparisonGallery inspections={tree.inspections} />
                     </div>
 
                     {/* Column 3: Analysis & History */}
@@ -748,6 +745,11 @@ export default function TreeDetailPage() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Comparison Gallery spanning 3 columns */}
+                    <div className="lg:col-span-3">
+                        <InspectionComparisonGallery inspections={tree.inspections} />
                     </div>
                 </div>
             </div>

@@ -1,0 +1,42 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="512"
+  height="512"
+>
+  <!-- Árvore -->
+  <circle cx="170" cy="190" r="70" fill="#4CAF50"/>
+  <circle cx="120" cy="220" r="60" fill="#43A047"/>
+  <circle cx="220" cy="220" r="60" fill="#43A047"/>
+  <rect x="155" y="250" width="30" height="90" rx="6" fill="#6D4C41"/>
+
+  <!-- Cidade -->
+  <rect x="260" y="180" width="60" height="160" rx="6" fill="#90A4AE"/>
+  <rect x="330" y="210" width="70" height="130" rx="6" fill="#B0BEC5"/>
+
+  <!-- Janelas -->
+  <rect x="275" y="200" width="15" height="15" fill="#ECEFF1"/>
+  <rect x="300" y="200" width="15" height="15" fill="#ECEFF1"/>
+  <rect x="275" y="230" width="15" height="15" fill="#ECEFF1"/>
+  <rect x="300" y="230" width="15" height="15" fill="#ECEFF1"/>
+
+  <!-- Marcador de localização -->
+  <path
+    d="M350 300
+       C350 260 400 260 400 300
+       C400 340 350 380 350 380
+       C350 380 300 340 300 300
+       C300 260 350 260 350 300Z"
+    fill="#66BB6A"
+  />
+
+  <!-- Check -->
+  <path
+    d="M330 300 L345 315 L375 285"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

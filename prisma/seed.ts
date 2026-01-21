@@ -4,10 +4,9 @@ const prisma = new PrismaClient()
 
 async function main() {
     const species = await prisma.species.upsert({
-        where: { id_especie: 1 },
+        where: { nome_cientifico: 'Unknown' },
         update: {},
         create: {
-            id_especie: 1,
             nome_cientifico: 'Unknown',
             nome_comum: 'Desconhecida',
         },

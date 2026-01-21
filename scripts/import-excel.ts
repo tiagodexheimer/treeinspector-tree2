@@ -47,6 +47,7 @@ interface ParsedRow {
     necessitaManejo: boolean;
     manejoTipo: string | null;
     pragas: string[];
+    dataVistoria: Date;
 }
 
 function parseRow(row: any): ParsedRow {
@@ -72,6 +73,7 @@ function parseRow(row: any): ParsedRow {
     const estadoKey = getKey(row, 'estado fitossanitário') || getKey(row, 'estado fitossanitario') || getKey(row, 'estado geral');
     const manejoKey = getKey(row, 'tipo de manejo');
     const pragaKey = getKey(row, 'tipo de praga');
+    const dataKey = getKey(row, 'data') || getKey(row, 'data da vistoria') || getKey(row, 'vistoria');
 
     const nomeCientifico = (nomeCientificoKey ? row[nomeCientificoKey] : 'Desconhecida')?.trim() || 'Desconhecida';
     const nomeComum = (nomeComumKey ? row[nomeComumKey] : 'Desconhecida')?.trim() || 'Desconhecida';
@@ -99,6 +101,19 @@ function parseRow(row: any): ParsedRow {
     const estadoSaude = estadoKey ? row[estadoKey] : 'Regular';
     const etiqueta = row['Código'] ? String(row['Código']) : (row['ID'] ? String(row['ID']) : undefined);
 
+    // Date parsing
+    let dataVistoria = new Date();
+    if (dataKey) {
+        const rawDate = row[dataKey];
+        if (typeof rawDate === 'number') {
+            // Excel serial date
+            dataVistoria = new Date((rawDate - 25569) * 86400 * 1000);
+        } else if (rawDate) {
+            const parsed = new Date(rawDate);
+            if (!isNaN(parsed.getTime())) dataVistoria = parsed;
+        }
+    }
+
     // Management inference
     const manejoTipo = manejoKey ? row[manejoKey] : null;
     const necessitaManejo = !!manejoTipo && manejoTipo.toLowerCase() !== 'não' && manejoTipo.toLowerCase() !== 'nenhum';
@@ -115,7 +130,7 @@ function parseRow(row: any): ParsedRow {
         } catch (e) { /* ignore */ }
     }
 
-    return { nomeCientifico, nomeComum, familia, dap1, dap2, dap3, dap4, altura, rua, numero, bairro, lat, lng, estadoSaude, etiqueta, necessitaManejo, manejoTipo, pragas };
+    return { nomeCientifico, nomeComum, familia, dap1, dap2, dap3, dap4, altura, rua, numero, bairro, lat, lng, estadoSaude, etiqueta, necessitaManejo, manejoTipo, pragas, dataVistoria };
 }
 
 /**
@@ -246,6 +261,10 @@ async function main() {
     }
     console.log(`  Cached ${pestMap.size} pest types.`);
 
+    // Resolve default species ID once (from seed or mapping)
+    const defaultSpeciesInstance = await prisma.species.findUnique({ where: { nome_cientifico: 'Unknown' } });
+    const defaultSpeciesId = speciesMap.get('Unknown') || defaultSpeciesInstance?.id_especie || 1;
+
     // 3. Process in batches with LAYERED BULK INSERT
     const totalBatches = Math.ceil(parsedRows.length / BATCH_SIZE);
     let importedCount = 0;
@@ -258,7 +277,7 @@ async function main() {
             await prisma.$transaction(async (tx) => {
                 // --- LAYER 1: TREES ---
                 const treeData = batch.map(row => {
-                    const speciesId = speciesMap.get(row.nomeCientifico) || 1;
+                    const speciesId = speciesMap.get(row.nomeCientifico) || defaultSpeciesId;
                     return {
                         uuid: crypto.randomUUID(), // Temp UUID for mapping
                         speciesId,
@@ -313,7 +332,7 @@ async function main() {
                     return {
                         uuid: crypto.randomUUID(),
                         treeId: treeId,
-                        data_inspecao: new Date()
+                        data_inspecao: row.dataVistoria
                     };
                 });
 
@@ -349,7 +368,7 @@ async function main() {
                         dap4_cm: row.dap4 > 0 ? row.dap4 : undefined,
                         altura_total_m: row.altura,
                         altura_copa_m: 0,
-                        valid_from: new Date()
+                        valid_from: row.dataVistoria
                     });
 
                     // Management
@@ -364,7 +383,7 @@ async function main() {
                         necessita_manejo: row.necessitaManejo,
                         manejo_tipo: row.manejoTipo,
                         supressao_tipo: supressao_tipo,
-                        valid_from: new Date()
+                        valid_from: row.dataVistoria
                     });
 
                     // Phyto (NEED UUID TO LINK PESTS LATER)
@@ -376,7 +395,7 @@ async function main() {
                         inspectionId: inspId,
                         estado_saude: row.estadoSaude || 'Regular',
                         severity_level: row.estadoSaude?.includes('Bom') ? 0 : 2,
-                        valid_from: new Date()
+                        valid_from: row.dataVistoria
                     });
 
                     // Prepare pests

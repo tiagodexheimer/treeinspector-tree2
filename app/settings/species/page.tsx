@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface Species {
     id_especie: number;
@@ -17,12 +18,24 @@ interface Species {
 }
 
 export default function SpeciesPage() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [species, setSpecies] = useState<Species[]>([]);
     const [search, setSearch] = useState('');
     const [editing, setEditing] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (role !== 'ADMIN') {
+                router.push('/');
+            }
+        }
+    }, [status, session, router]);
 
     const [formData, setFormData] = useState({
         nome_comum: '',
@@ -36,7 +49,7 @@ export default function SpeciesPage() {
     });
 
     const role = (session?.user as any)?.role;
-    const canManageSpecies = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canManageSpecies = role === 'ADMIN';
 
     useEffect(() => {
         fetchSpecies();
@@ -122,6 +135,14 @@ export default function SpeciesPage() {
             max_height_m: '',
             description: ''
         });
+    }
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            </div>
+        );
     }
 
     return (

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
+import { useRouter } from 'next/navigation';
 
 interface Pest {
     id: number;
@@ -11,10 +13,23 @@ interface Pest {
 }
 
 export default function PestsPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [pests, setPests] = useState<Pest[]>([]);
     const [editing, setEditing] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [formData, setFormData] = useState({ nome_comum: '', nome_cientifico: '', tipo: '' });
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (role !== 'ADMIN') {
+                router.push('/');
+            }
+        }
+    }, [status, session, router]);
 
     useEffect(() => {
         fetchPests();
@@ -52,6 +67,14 @@ export default function PestsPage() {
         if (!confirm('Deletar esta praga?')) return;
         await fetch(`/api/pests/${id}`, { method: 'DELETE' });
         fetchPests();
+    }
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-700"></div>
+            </div>
+        );
     }
 
     return (

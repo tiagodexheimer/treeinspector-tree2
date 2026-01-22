@@ -1,8 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function SettingsPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (role !== 'ADMIN') {
+                router.push('/');
+            }
+        }
+    }, [status, session, router]);
+
     const settingsCards = [
         {
             title: 'Gerenciar Espécies',
@@ -38,6 +55,14 @@ export default function SettingsPage() {
             color: 'from-blue-500 to-indigo-600'
         }
     ];
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">

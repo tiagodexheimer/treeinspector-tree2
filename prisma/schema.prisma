@@ -17,6 +17,13 @@ enum TreeSize {
   Grande   // Acima de 12m
 }
 
+enum Role {
+  ADMIN
+  GESTOR
+  INSPETOR
+  OPERACIONAL
+}
+
 model Species {
   id_especie      Int      @id @default(autoincrement())
   nome_comum      String
@@ -38,6 +45,23 @@ model Species {
   
   trees           Tree[]
   
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String?
+  email           String   @unique
+  password        String   // Hash
+  role            Role     @default(OPERACIONAL)
+  active          Boolean  @default(true)
+  
+  // Relationships
+  inspectionsCreated   Inspection[]   @relation("InspectionCreator")
+  serviceOrdersCreated ServiceOrder[] @relation("ServiceOrderCreator")
+  serviceOrdersAssigned ServiceOrder[] @relation("ServiceOrderAssignee")
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 }
@@ -91,6 +115,10 @@ model Inspection {
   
   photos        InspectionPhoto[]
   
+  // Auth & RBAC
+  createdById     String?
+  createdBy       User?     @relation("InspectionCreator", fields: [createdById], references: [id])
+
   created_at      DateTime @default(now())
 
   @@index([treeId])
@@ -225,6 +253,13 @@ model ServiceOrder {
   created_at      DateTime @default(now())
   executed_at     DateTime?
   
+  // Auth & RBAC
+  createdById     String?
+  createdBy       User?     @relation("ServiceOrderCreator", fields: [createdById], references: [id])
+  
+  assignedToId    String?
+  assignedTo      User?     @relation("ServiceOrderAssignee", fields: [assignedToId], references: [id])
+
   @@index([status])
   @@index([assigned_to])
 }

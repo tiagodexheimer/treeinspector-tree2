@@ -7,17 +7,22 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
+      const role = (auth?.user as any)?.role;
       const isOnAdmin = nextUrl.pathname.startsWith("/admin");
-      
+      const isOnServiceOrders = nextUrl.pathname.startsWith("/service-orders");
+
       if (isOnAdmin) {
-        if (isLoggedIn) {
-          // Check role in separate logic or here if role is in auth object
-          // For now just basic check, fine-grained role check usually in middleware or layout
-          return (auth?.user as any)?.role === "ADMIN";
-        }
-        return false; // Redirect unauthenticated users to login page
+        if (isLoggedIn) return role === "ADMIN";
+        return false;
       }
-      
+
+      if (isOnServiceOrders) {
+        if (isLoggedIn) {
+          return ["ADMIN", "GESTOR", "INSPETOR", "OPERACIONAL"].includes(role);
+        }
+        return false;
+      }
+
       return true;
     },
     jwt({ token, user, trigger, session }) {

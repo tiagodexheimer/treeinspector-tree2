@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface Tree {
     id_arvore: number;
@@ -14,6 +15,7 @@ interface Tree {
 }
 
 export default function TreesPage() {
+    const { data: session } = useSession();
     const [trees, setTrees] = useState<Tree[]>([]);
     const [loading, setLoading] = useState(true);
     const [bairro, setBairro] = useState('');
@@ -25,6 +27,9 @@ export default function TreesPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
+
+    const role = (session?.user as any)?.role;
+    const canCreate = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
 
     useEffect(() => {
         fetchTrees();
@@ -78,9 +83,11 @@ export default function TreesPage() {
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Listagem de Árvores</h1>
                 <div className="flex gap-4">
-                    <Link href="/trees/new" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium">
-                        + Nova Árvore
-                    </Link>
+                    {canCreate && (
+                        <Link href="/trees/new" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium">
+                            + Nova Árvore
+                        </Link>
+                    )}
                     <Link href="/" className="text-green-600 hover:text-green-800 font-medium flex items-center">
                         Ver Mapa
                     </Link>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface Species {
     id_especie: number;
@@ -11,8 +12,20 @@ interface Species {
 
 export default function NewTreePage() {
     const router = useRouter();
+    const { data: session, status } = useSession();
     const [loading, setLoading] = useState(false);
     const [speciesList, setSpeciesList] = useState<Species[]>([]);
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+                router.push('/trees');
+            }
+        }
+    }, [status, session, router]);
 
     const [formData, setFormData] = useState({
         numero_etiqueta: '',

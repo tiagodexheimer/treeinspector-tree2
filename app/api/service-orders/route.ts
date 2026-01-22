@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {
+        const session = await auth();
+        if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+        const role = (session.user as any).role;
+        if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+        }
+
         const body = await request.json();
-        const { treeIds, description, status, assigned_to, serviceType, serviceSubtypes } = body;
+        const { treeIds, description, status, assignedToId, serviceType, serviceSubtypes } = body;
         // treeIds should be an array of numbers
 
         if (!treeIds || !Array.isArray(treeIds) || treeIds.length === 0) {
@@ -48,8 +57,9 @@ export async function POST(request: Request) {
         const newOS = await prisma.serviceOrder.create({
             data: {
                 status: status || 'Planejada',
-                assigned_to: assigned_to,
-                description: description, // Initial description?? Or observations?
+                createdById: session.user.id,
+                assignedToId: assignedToId,
+                description: description,
                 observations: description, // Use description as observations for now ?
                 trees: {
                     connect: treeIds.map((id: any) => ({ id_arvore: id }))
@@ -76,6 +86,9 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     try {
+        const session = await auth();
+        const role = (session?.user as any)?.role;
+
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status'); // 'active', 'finished', or specific status
         const lat = searchParams.get('lat');
@@ -94,6 +107,14 @@ export async function GET(request: Request) {
             };
         } else if (status) {
             where.status = status;
+        }
+
+        // RBAC Filter: Operacional only sees assigned to them or unassigned
+        if (role === 'OPERACIONAL') {
+            where.OR = [
+                { assignedToId: session?.user?.id },
+                { assignedToId: null }
+            ];
         }
 
         // If Lat/Lng provided, logic is complex because OS has multiple Trees.

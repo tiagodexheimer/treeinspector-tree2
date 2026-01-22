@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
 import { Prisma } from '@prisma/client';
+import { auth } from '@/auth';
 
 // Força a renderização dinâmica para garantir dados sempre atualizados,
 // mas controlaremos o cache via headers na resposta do mapa.
@@ -189,6 +190,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const session = await auth();
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+        }
+
+        const role = (session.user as any).role;
+        if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+            return NextResponse.json({ error: 'Não autorizado para criar árvores' }, { status: 403 });
+        }
+
         const body = await request.json();
         const { speciesId, numero_etiqueta, rua, numero, bairro, endereco, lat, lng, photo_uri } = body;
 

@@ -60,16 +60,18 @@ export default function Navigation() {
                                 Estatísticas
                             </Link>
 
-                            <Link
-                                href="/service-orders"
-                                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/service-orders'
-                                    ? 'border-green-500 text-gray-900'
-                                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    }`}
-                            >
-                                <ClipboardList className="w-4 h-4 mr-1" />
-                                Ordens de Serviço
-                            </Link>
+                            {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
+                                <Link
+                                    href="/service-orders"
+                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/service-orders'
+                                        ? 'border-green-500 text-gray-900'
+                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <ClipboardList className="w-4 h-4 mr-1" />
+                                    Ordens de Serviço
+                                </Link>
+                            )}
 
                             {role === 'ADMIN' && (
                                 <Link

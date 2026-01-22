@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import GrowthChart from '../../../components/GrowthChart';
 import HealthTrendChart from '../../../components/HealthTrendChart';
 import InspectionComparisonGallery from '../../../components/InspectionComparisonGallery';
@@ -31,6 +32,7 @@ const HEALTH_COLORS: Record<string, string> = {
 export default function TreeDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const { data: session } = useSession();
     const [tree, setTree] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
@@ -46,6 +48,11 @@ export default function TreeDetailPage() {
         lat: '',
         lng: ''
     });
+
+    const role = (session?.user as any)?.role;
+    const canEdit = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canCreateOS = ['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role);
+    const canDelete = role === 'ADMIN';
 
     useEffect(() => {
         fetchTree();
@@ -205,15 +212,21 @@ export default function TreeDetailPage() {
                                 </>
                             ) : (
                                 <>
-                                    <button onClick={() => setEditing(true)} className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all">
-                                        Editar
-                                    </button>
-                                    <button onClick={() => setIsOSModalOpen(true)} className="px-4 py-2 bg-white text-emerald-600 rounded-lg font-medium hover:bg-white/90 transition-all shadow-lg">
-                                        Criar O.S.
-                                    </button>
-                                    <button onClick={handleDelete} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 backdrop-blur-sm text-white rounded-lg transition-all">
-                                        Excluir
-                                    </button>
+                                    {canEdit && (
+                                        <button onClick={() => setEditing(true)} className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all">
+                                            Editar
+                                        </button>
+                                    )}
+                                    {canCreateOS && (
+                                        <button onClick={() => setIsOSModalOpen(true)} className="px-4 py-2 bg-white text-emerald-600 rounded-lg font-medium hover:bg-white/90 transition-all shadow-lg">
+                                            Criar O.S.
+                                        </button>
+                                    )}
+                                    {canDelete && (
+                                        <button onClick={handleDelete} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 backdrop-blur-sm text-white rounded-lg transition-all">
+                                            Excluir
+                                        </button>
+                                    )}
                                 </>
                             )}
                         </div>

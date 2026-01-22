@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
+import { auth } from '@/auth';
 
 export async function GET(request: Request) {
     try {
@@ -60,6 +61,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+    const role = (session.user as any).role;
+    if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+    }
+
     try {
         const body = await request.json();
 

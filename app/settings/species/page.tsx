@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface Species {
     id_especie: number;
@@ -16,6 +17,7 @@ interface Species {
 }
 
 export default function SpeciesPage() {
+    const { data: session } = useSession();
     const [species, setSpecies] = useState<Species[]>([]);
     const [search, setSearch] = useState('');
     const [editing, setEditing] = useState<number | null>(null);
@@ -32,6 +34,9 @@ export default function SpeciesPage() {
         max_height_m: '',
         description: ''
     });
+
+    const role = (session?.user as any)?.role;
+    const canManageSpecies = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
 
     useEffect(() => {
         fetchSpecies();
@@ -145,12 +150,14 @@ export default function SpeciesPage() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
-                    <button
-                        onClick={() => { setShowAddForm(!showAddForm); resetForm(); }}
-                        className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-                    >
-                        {showAddForm ? 'Cancelar' : '+ Adicionar Espécie'}
-                    </button>
+                    {canManageSpecies && (
+                        <button
+                            onClick={() => { setShowAddForm(!showAddForm); resetForm(); }}
+                            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                        >
+                            {showAddForm ? 'Cancelar' : '+ Adicionar Espécie'}
+                        </button>
+                    )}
                 </div>
 
                 {/* Add Form */}
@@ -170,7 +177,7 @@ export default function SpeciesPage() {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Científico</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Origem</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Porte</th>
-                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>
+                                {canManageSpecies && <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -210,20 +217,22 @@ export default function SpeciesPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <button
-                                                onClick={() => startEdit(sp)}
-                                                className="text-emerald-600 hover:text-emerald-700 font-medium"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(sp.id_especie)}
-                                                className="text-red-600 hover:text-red-700 font-medium"
-                                            >
-                                                Deletar
-                                            </button>
-                                        </td>
+                                        {canManageSpecies && (
+                                            <td className="px-6 py-4 text-right space-x-2">
+                                                <button
+                                                    onClick={() => startEdit(sp)}
+                                                    className="text-emerald-600 hover:text-emerald-700 font-medium"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(sp.id_especie)}
+                                                    className="text-red-600 hover:text-red-700 font-medium"
+                                                >
+                                                    Deletar
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 )
                             ))}

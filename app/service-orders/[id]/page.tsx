@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import ServiceOrderEditModal from '../../components/ServiceOrderEditModal';
 
@@ -14,9 +15,13 @@ const ServiceOrderMap = dynamic(() => import('../../components/ServiceOrderMap')
 
 export default function ServiceOrderDetailsPage() {
     const params = useParams();
-    const router = useRouter(); // To refresh
+    const router = useRouter();
+    const { data: session } = useSession();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+
+    const role = (session?.user as any)?.role;
+    const canEditOrCancel = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -169,30 +174,34 @@ export default function ServiceOrderDetailsPage() {
                             <div className="space-y-3">
                                 {isActive && (
                                     <>
-                                        <button
-                                            onClick={() => setIsEditModalOpen(true)}
-                                            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium"
-                                        >
-                                            Editar Detalhes
-                                        </button>
+                                        {canEditOrCancel && (
+                                            <button
+                                                onClick={() => setIsEditModalOpen(true)}
+                                                className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium"
+                                            >
+                                                Editar Detalhes
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => updateStatus('Concluída')}
                                             className="w-full border-2 border-green-600 text-green-700 py-2 rounded hover:bg-green-50 transition font-medium"
                                         >
                                             Marcar como Concluída
                                         </button>
-                                        <button
-                                            onClick={() => updateStatus('Cancelada')}
-                                            className="w-full border border-red-200 text-red-600 py-2 rounded hover:bg-red-50 transition"
-                                        >
-                                            Cancelar OS
-                                        </button>
+                                        {canEditOrCancel && (
+                                            <button
+                                                onClick={() => updateStatus('Cancelada')}
+                                                className="w-full border border-red-200 text-red-600 py-2 rounded hover:bg-red-50 transition"
+                                            >
+                                                Cancelar OS
+                                            </button>
+                                        )}
                                     </>
                                 )}
                                 {!isActive && (
                                     <div className="text-center text-gray-500 py-4 italic">
                                         Esta ordem de serviço está {order.status.toLowerCase()}. Nenhuma ação disponível.
-                                        {(order.status === 'Cancelada' || order.status === 'Concluída') && (
+                                        {canEditOrCancel && (order.status === 'Cancelada' || order.status === 'Concluída') && (
                                             <button
                                                 onClick={() => updateStatus('Planejada')} // Reopen?
                                                 className="mt-4 text-sm text-blue-600 underline block w-full"

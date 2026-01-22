@@ -36,7 +36,7 @@ export default function Navigation() {
                                 Mapa
                             </Link>
 
-                            {role !== 'OPERACIONAL' && (
+                            {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
                                 <Link
                                     href="/trees"
                                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/trees'
@@ -59,6 +59,19 @@ export default function Navigation() {
                                 <BarChart3 className="w-4 h-4 mr-1" />
                                 Estatísticas
                             </Link>
+
+                            {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
+                                <Link
+                                    href="/settings/species"
+                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/settings/species'
+                                        ? 'border-green-500 text-gray-900'
+                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <TreeDeciduous className="w-4 h-4 mr-1" />
+                                    Espécies
+                                </Link>
+                            )}
 
                             {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
                                 <Link

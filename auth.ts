@@ -17,11 +17,39 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
                 if (parsedCredentials.success) {
                     const { email, password } = parsedCredentials.data;
-                    const user = await prisma.user.findUnique({ where: { email } });
-                    if (!user || !user.active) return null;
+                    console.log(`[auth] 🔍 Tentando login: ${email}`);
 
-                    const passwordsMatch = await bcrypt.compare(password, user.password);
-                    if (passwordsMatch) return user;
+                    try {
+                        console.log(`[auth] 🔄 Verificando ligação à Base de Dados...`);
+                        await prisma.$connect();
+                        console.log(`[auth] 🔗 Ligação à DB OK.`);
+
+                        // Cast para evitar erro de lint se types não estiverem sync
+                        const userModel = (prisma as any).user;
+                        const user = await userModel.findUnique({ where: { email } });
+
+                        if (!user) {
+                            console.log(`[auth] ❌ Utilizador não encontrado na DB: ${email}`);
+                            return null;
+                        }
+                        if (!user.active) {
+                            console.log(`[auth] ⚠️ Utilizador inativo: ${email}`);
+                            return null;
+                        }
+
+                        const passwordsMatch = await bcrypt.compare(password, user.password);
+                        if (passwordsMatch) {
+                            console.log(`[auth] ✅ Login bem sucedido: ${email}`);
+                            return user;
+                        } else {
+                            console.log(`[auth] ❌ Palavra-passe incorreta para: ${email}`);
+                        }
+                    } catch (dbError: any) {
+                        console.error(`[auth] 🚨 Erro de ligação à Base de Dados:`, dbError.message);
+                        return null;
+                    }
+                } else {
+                    console.log(`[auth] ⚠️ Formato de credenciais inválido:`, parsedCredentials.error.format());
                 }
 
                 return null;

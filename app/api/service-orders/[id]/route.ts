@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,11 +48,31 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+    const role = (session.user as any).role;
+    const { id: idParam } = await context.params;
+    const id = parseInt(idParam);
+    const body = await request.json();
+    const { serviceType, serviceSubtypes, description, status, assigned_to } = body;
+
+    // RBAC: OPERACIONAL can ONLY conclude
+    if (role === 'OPERACIONAL') {
+        const allowedKeys = ['status'];
+        const bodyKeys = Object.keys(body);
+        const hasDisallowedKeys = bodyKeys.some(key => !allowedKeys.includes(key));
+
+        if (hasDisallowedKeys || status !== 'Concluída') {
+            return NextResponse.json({
+                error: 'Não autorizado. Papel Operacional apenas pode marcar como Concluída.'
+            }, { status: 403 });
+        }
+    } else if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+    }
+
     try {
-        const { id: idParam } = await context.params;
-        const id = parseInt(idParam);
-        const body = await request.json();
-        const { serviceType, serviceSubtypes, description, status, assigned_to } = body;
 
         const updatedOrder = await prisma.serviceOrder.update({
             where: { id },

@@ -51,7 +51,7 @@ export default function TreeDetailPage() {
 
     const role = (session?.user as any)?.role;
     const canEdit = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
-    const canCreateOS = ['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role);
+    const canCreateOS = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
     const canDelete = role === 'ADMIN';
 
     useEffect(() => {

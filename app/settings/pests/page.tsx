@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from "next-auth/react";
 import { useRouter } from 'next/navigation';
+import Pagination from '../../../components/Pagination';
 
 interface Pest {
     id: number;
@@ -16,6 +17,8 @@ export default function PestsPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [pests, setPests] = useState<Pest[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [editing, setEditing] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [formData, setFormData] = useState({ nome_comum: '', nome_cientifico: '', tipo: '' });
@@ -36,13 +39,18 @@ export default function PestsPage() {
     const canDelete = role === 'ADMIN';
 
     useEffect(() => {
-        fetchPests();
-    }, []);
+        fetchPests(page);
+    }, [page]);
 
-    async function fetchPests() {
-        const res = await fetch('/api/pests');
-        const data = await res.json();
-        setPests(data);
+    async function fetchPests(currentPage: number) {
+        try {
+            const res = await fetch(`/api/pests?page=${currentPage}&limit=10`);
+            const data = await res.json();
+            setPests(data.data || []);
+            setTotalPages(data.pagination?.pages || 1);
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     async function handleSave(id?: number) {
@@ -64,13 +72,14 @@ export default function PestsPage() {
         setEditing(null);
         setShowAddForm(false);
         setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' });
-        fetchPests();
+        setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' });
+        fetchPests(page);
     }
 
     async function handleDelete(id: number) {
         if (!confirm('Deletar esta praga?')) return;
         await fetch(`/api/pests/${id}`, { method: 'DELETE' });
-        fetchPests();
+        fetchPests(page);
     }
 
     if (status === 'loading') {
@@ -171,6 +180,13 @@ export default function PestsPage() {
                     </table>
                     {pests.length === 0 && <div className="text-center py-8 text-gray-500">Nenhuma praga cadastrada</div>}
                 </div>
+
+                {/* Pagination Controls */}
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                />
             </div>
         </div>
     );

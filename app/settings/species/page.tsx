@@ -17,11 +17,18 @@ interface Species {
     description: string | null;
 }
 
+import Pagination from '../../../components/Pagination';
+import AlphabetFilter from '../../../components/AlphabetFilter';
+
 export default function SpeciesPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [species, setSpecies] = useState<Species[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState('');
+    const [letter, setLetter] = useState('');
+    const [availableLetters, setAvailableLetters] = useState<string[]>([]);
     const [editing, setEditing] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -53,14 +60,40 @@ export default function SpeciesPage() {
     const canDelete = role === 'ADMIN';
 
     useEffect(() => {
-        fetchSpecies();
-    }, [search]);
+        setPage(1); // Reset page on filter change
+        fetchSpecies(1);
+    }, [search, letter]);
 
-    async function fetchSpecies() {
+    useEffect(() => {
+        fetchInitials();
+    }, []);
+
+    async function fetchInitials() {
         try {
-            const res = await fetch(`/api/species?q=${search}`);
+            const res = await fetch('/api/species?initials=true');
+            const data = await res.json();
+            setAvailableLetters(data || []);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    useEffect(() => {
+        fetchSpecies(page);
+    }, [page]);
+
+    async function fetchSpecies(currentPage: number) {
+        try {
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', currentPage.toString());
+            queryParams.append('limit', '30');
+            if (search) queryParams.append('q', search);
+            if (letter) queryParams.append('letter', letter);
+
+            const res = await fetch(`/api/species?${queryParams.toString()}`);
             const data = await res.json();
             setSpecies(data.data || []);
+            setTotalPages(data.pagination?.pages || 1);
         } catch (error) {
             console.error(error);
         } finally {
@@ -88,7 +121,7 @@ export default function SpeciesPage() {
             setEditing(null);
             setShowAddForm(false);
             resetForm();
-            fetchSpecies();
+            fetchSpecies(page);
         } catch (error) {
             console.error(error);
             alert('Erro ao salvar espécie');
@@ -105,7 +138,7 @@ export default function SpeciesPage() {
                 alert(error.error || 'Erro ao deletar');
                 return;
             }
-            fetchSpecies();
+            fetchSpecies(page);
         } catch (error) {
             console.error(error);
         }
@@ -163,6 +196,15 @@ export default function SpeciesPage() {
             </div>
 
             <div className="max-w-7xl mx-auto px-8 py-8">
+                <AlphabetFilter
+                    selectedLetter={letter}
+                    onLetterSelect={(l) => {
+                        setLetter(l);
+                        setSearch(''); // Clear search when filtering by letter
+                    }}
+                    availableLetters={availableLetters}
+                />
+
                 {/* Search & Add */}
                 <div className="flex gap-4 mb-6">
                     <input
@@ -170,7 +212,10 @@ export default function SpeciesPage() {
                         placeholder="Buscar espécie..."
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setLetter(''); // Clear letter filter when searching
+                        }}
                     />
                     {canEdit && (
                         <button
@@ -265,6 +310,13 @@ export default function SpeciesPage() {
                     {loading && <div className="text-center py-8 text-gray-500">Carregando...</div>}
                     {!loading && species.length === 0 && <div className="text-center py-8 text-gray-500">Nenhuma espécie encontrada</div>}
                 </div>
+
+                {/* Pagination Controls */}
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                />
             </div>
         </div>
     );

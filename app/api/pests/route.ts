@@ -1,12 +1,30 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const pests = await prisma.pestCatalog.findMany({
-            orderBy: { nome_comum: 'asc' }
+        const { searchParams } = new URL(request.url);
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '10');
+
+        const [pests, total] = await Promise.all([
+            prisma.pestCatalog.findMany({
+                orderBy: { nome_comum: 'asc' },
+                skip: (page - 1) * limit,
+                take: limit,
+            }),
+            prisma.pestCatalog.count()
+        ]);
+
+        return NextResponse.json({
+            data: pests,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
         });
-        return NextResponse.json(pests);
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: 'Failed to fetch pests' }, { status: 500 });

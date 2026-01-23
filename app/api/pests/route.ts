@@ -13,7 +13,17 @@ export async function GET() {
     }
 }
 
+import { auth } from '@/auth';
+
 export async function POST(request: Request) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+    const role = (session.user as any).role;
+    if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+    }
+
     try {
         const body = await request.json();
 

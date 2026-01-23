@@ -25,11 +25,15 @@ export default function PestsPage() {
             router.push('/login');
         } else if (status === 'authenticated') {
             const role = (session?.user as any)?.role;
-            if (role !== 'ADMIN') {
+            if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
                 router.push('/');
             }
         }
     }, [status, session, router]);
+
+    const role = (session?.user as any)?.role;
+    const canEdit = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canDelete = role === 'ADMIN';
 
     useEffect(() => {
         fetchPests();
@@ -93,12 +97,14 @@ export default function PestsPage() {
             </div>
 
             <div className="max-w-5xl mx-auto px-8 py-8">
-                <button
-                    onClick={() => { setShowAddForm(!showAddForm); setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' }); }}
-                    className="mb-6 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-                >
-                    {showAddForm ? 'Cancelar' : '+ Adicionar Praga'}
-                </button>
+                {canEdit && (
+                    <button
+                        onClick={() => { setShowAddForm(!showAddForm); setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' }); }}
+                        className="mb-6 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    >
+                        {showAddForm ? 'Cancelar' : '+ Adicionar Praga'}
+                    </button>
+                )}
 
                 {showAddForm && (
                     <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-red-200">
@@ -113,7 +119,7 @@ export default function PestsPage() {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Comum</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Científico</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipo</th>
-                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>
+                                {canEdit && <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -140,20 +146,24 @@ export default function PestsPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <button
-                                                onClick={() => { setEditing(pest.id); setFormData({ nome_comum: pest.nome_comum, nome_cientifico: pest.nome_cientifico || '', tipo: pest.tipo || '' }); }}
-                                                className="text-red-600 hover:text-red-700 font-medium"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(pest.id)}
-                                                className="text-gray-600 hover:text-gray-700 font-medium"
-                                            >
-                                                Deletar
-                                            </button>
-                                        </td>
+                                        {canEdit && (
+                                            <td className="px-6 py-4 text-right space-x-2">
+                                                <button
+                                                    onClick={() => { setEditing(pest.id); setFormData({ nome_comum: pest.nome_comum, nome_cientifico: pest.nome_cientifico || '', tipo: pest.tipo || '' }); }}
+                                                    className="text-red-600 hover:text-red-700 font-medium"
+                                                >
+                                                    Editar
+                                                </button>
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(pest.id)}
+                                                        className="text-gray-600 hover:text-gray-700 font-medium"
+                                                    >
+                                                        Deletar
+                                                    </button>
+                                                )}
+                                            </td>
+                                        )}
                                     </tr>
                                 )
                             ))}

@@ -31,7 +31,7 @@ export default function SpeciesPage() {
             router.push('/login');
         } else if (status === 'authenticated') {
             const role = (session?.user as any)?.role;
-            if (role !== 'ADMIN') {
+            if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
                 router.push('/');
             }
         }
@@ -49,7 +49,8 @@ export default function SpeciesPage() {
     });
 
     const role = (session?.user as any)?.role;
-    const canManageSpecies = role === 'ADMIN';
+    const canEdit = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canDelete = role === 'ADMIN';
 
     useEffect(() => {
         fetchSpecies();
@@ -171,7 +172,7 @@ export default function SpeciesPage() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
-                    {canManageSpecies && (
+                    {canEdit && (
                         <button
                             onClick={() => { setShowAddForm(!showAddForm); resetForm(); }}
                             className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
@@ -198,7 +199,7 @@ export default function SpeciesPage() {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Científico</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Origem</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Porte</th>
-                                {canManageSpecies && <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>}
+                                {canEdit && <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -238,7 +239,7 @@ export default function SpeciesPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        {canManageSpecies && (
+                                        {canEdit && (
                                             <td className="px-6 py-4 text-right space-x-2">
                                                 <button
                                                     onClick={() => startEdit(sp)}
@@ -246,12 +247,14 @@ export default function SpeciesPage() {
                                                 >
                                                     Editar
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(sp.id_especie)}
-                                                    className="text-red-600 hover:text-red-700 font-medium"
-                                                >
-                                                    Deletar
-                                                </button>
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(sp.id_especie)}
+                                                        className="text-red-600 hover:text-red-700 font-medium"
+                                                    >
+                                                        Deletar
+                                                    </button>
+                                                )}
                                             </td>
                                         )}
                                     </tr>

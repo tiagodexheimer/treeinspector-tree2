@@ -50,8 +50,8 @@ export async function DELETE(
     if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 
     const role = (session.user as any).role;
-    if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
-        return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+    if (role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Não autorizado. Apenas administradores podem deletar.' }, { status: 403 });
     }
 
     try {

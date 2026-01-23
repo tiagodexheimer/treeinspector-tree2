@@ -60,19 +60,6 @@ export default function Navigation() {
                                 Estatísticas
                             </Link>
 
-                            {role === 'ADMIN' && (
-                                <Link
-                                    href="/settings"
-                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname?.startsWith('/settings')
-                                        ? 'border-green-500 text-gray-900'
-                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                        }`}
-                                >
-                                    <Settings className="w-4 h-4 mr-1" />
-                                    Configurações
-                                </Link>
-                            )}
-
                             {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
                                 <Link
                                     href="/service-orders"
@@ -86,18 +73,19 @@ export default function Navigation() {
                                 </Link>
                             )}
 
-                            {role === 'ADMIN' && (
+                            {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
                                 <Link
-                                    href="/admin/users"
-                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname?.startsWith('/admin')
+                                    href="/settings"
+                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname?.startsWith('/settings')
                                         ? 'border-green-500 text-gray-900'
                                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                                         }`}
                                 >
-                                    <ShieldAlert className="w-4 h-4 mr-1" />
-                                    Admin
+                                    <Settings className="w-4 h-4 mr-1" />
+                                    Configurações
                                 </Link>
                             )}
+
                         </div>
                     </div>
 

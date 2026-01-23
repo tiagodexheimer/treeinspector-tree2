@@ -98,16 +98,16 @@ export default function UsersAdmin() {
                 <div>
                     <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                         <ShieldCheck className="w-10 h-10 text-emerald-600" />
-                        Gestão de Utilizadores
+                        Gestão de Usuários
                     </h1>
-                    <p className="mt-2 text-slate-500">Configure os acessos e papéis da equipa do TreeInspector</p>
+                    <p className="mt-2 text-slate-500">Configure os acessos e papéis da equipe do TreeInspector</p>
                 </div>
                 <button
                     onClick={() => handleOpenModal()}
                     className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 hover:scale-[1.02] active:scale-95 transition-all"
                 >
                     <Plus className="w-5 h-5" />
-                    Novo Utilizador
+                    Novo Usuário
                 </button>
             </div>
 
@@ -133,7 +133,7 @@ export default function UsersAdmin() {
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-slate-50 border-b border-gray-100">
-                                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Utilizador</th>
+                                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Usuário</th>
                                     <th className="px-6 py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Papel (Role)</th>
                                     <th className="px-6 py-5 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
                                     <th className="px-6 py-5 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Ações</th>
@@ -155,9 +155,9 @@ export default function UsersAdmin() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 text-xs font-bold rounded-full ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
-                                                    user.role === 'GESTOR' ? 'bg-blue-100 text-blue-700' :
-                                                        user.role === 'INSPETOR' ? 'bg-emerald-100 text-emerald-700' :
-                                                            'bg-gray-100 text-gray-700'
+                                                user.role === 'GESTOR' ? 'bg-blue-100 text-blue-700' :
+                                                    user.role === 'INSPETOR' ? 'bg-emerald-100 text-emerald-700' :
+                                                        'bg-gray-100 text-gray-700'
                                                 }`}>
                                                 {user.role}
                                             </span>
@@ -195,7 +195,7 @@ export default function UsersAdmin() {
                     <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl shadow-slate-900/50 overflow-hidden animate-in zoom-in-95 duration-300">
                         <div className="px-8 py-6 bg-slate-50 border-b border-gray-100 flex justify-between items-center">
                             <h3 className="text-xl font-bold text-slate-900">
-                                {currentUser ? "Editar Utilizador" : "Novo Utilizador"}
+                                {currentUser ? "Editar Usuário" : "Novo Usuário"}
                             </h3>
                             <button
                                 onClick={() => setIsModalOpen(false)}
@@ -277,7 +277,7 @@ export default function UsersAdmin() {
                                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
                                 />
                                 <label htmlFor="active" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
-                                    Utilizador Ativo (Pode fazer login)
+                                    Usuário Ativo (Pode fazer login)
                                 </label>
                             </div>
 

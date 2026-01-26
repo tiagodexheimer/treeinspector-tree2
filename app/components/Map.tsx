@@ -313,7 +313,7 @@ function Markers() {
                 <div className="mt-2 flex gap-2">
                   <Link
                     href={`/trees/${cluster.properties.treeId}`}
-                    className="inline-block px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                    className="inline-block px-4 py-2 bg-green-600 !text-white text-sm font-bold rounded shadow-md hover:bg-green-700 transition"
                   >
                     Ver Detalhes
                   </Link>

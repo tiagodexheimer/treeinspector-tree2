@@ -77,6 +77,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     try {
 
+        const currentOrder = await prisma.serviceOrder.findUnique({
+            where: { id },
+            select: { executed_at: true }
+        });
+
         const updatedOrder = await prisma.serviceOrder.update({
             where: { id },
             data: {
@@ -88,7 +93,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
                 assigned_to,
                 adjustment_notes,
                 checklist,
-                executed_at: status === 'Concluída' ? new Date() : undefined,
+                // Only set executed_at if transitioning to Review and it's not already set
+                executed_at: (status === 'Aguardando Revisão' && !currentOrder?.executed_at)
+                    ? new Date()
+                    : undefined,
                 materials: materials ? {
                     deleteMany: {},
                     create: materials.map((m: any) => ({

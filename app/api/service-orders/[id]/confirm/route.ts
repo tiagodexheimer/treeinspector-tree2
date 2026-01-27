@@ -16,7 +16,6 @@ export async function PATCH(
             },
             data: {
                 status: status || 'Concluída',
-                executed_at: new Date(),
                 observations,
             },
             include: {

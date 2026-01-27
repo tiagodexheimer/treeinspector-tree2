@@ -10,7 +10,9 @@ export async function POST(
     const { id: idString } = await params;
     const id = parseInt(idString);
     const body = await request.json();
-    const { description, photos } = body;
+    const { description, photos, materials } = body;
+    // photos: [{ uri: string, category: 'Antes' | 'Durante' | 'Depois' }]
+    // materials: [{ name: string, quantity: number, unit: string }]
 
     try {
         const os = await prisma.serviceOrder.findUnique({
@@ -25,12 +27,20 @@ export async function POST(
         const updatedOS = await prisma.serviceOrder.update({
             where: { id },
             data: {
-                status: 'Concluída',
+                status: 'Aguardando Revisão',
                 executed_at: new Date(),
                 description: description,
                 photos: photos && Array.isArray(photos) ? {
-                    create: photos.map((photo: string) => ({
-                        uri: photo
+                    create: photos.map((photo: any) => ({
+                        uri: photo.uri,
+                        category: photo.category || 'Depois'
+                    }))
+                } : undefined,
+                materials: materials && Array.isArray(materials) ? {
+                    create: materials.map((mat: any) => ({
+                        name: mat.name,
+                        quantity: mat.quantity,
+                        unit: mat.unit
                     }))
                 } : undefined
             },
@@ -39,14 +49,7 @@ export async function POST(
             }
         });
 
-        // Close associated management actions
-        const managementIds = os.managementActions.map(ma => ma.id);
-        if (managementIds.length > 0) {
-            await prisma.managementAction.updateMany({
-                where: { id: { in: managementIds } },
-                data: { necessita_manejo: false }
-            });
-        }
+        // Closing associated management actions is now handled by the Gestor approval (PATCH)
 
         return NextResponse.json(updatedOS);
     } catch (error) {

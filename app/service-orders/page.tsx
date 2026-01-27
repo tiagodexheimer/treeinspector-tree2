@@ -12,6 +12,7 @@ interface ServiceOrder {
     createdById: string | null;
     assignedToId: string | null;
     assignedTo?: { name: string | null; email: string };
+    priority: 'Baixa' | 'Moderada' | 'Alta' | 'Emergencial';
     trees: {
         id_arvore: number;
         numero_etiqueta: string;
@@ -55,6 +56,7 @@ export default function ServiceOrdersPage() {
         switch (status) {
             case 'Planejada': return 'bg-blue-100 text-blue-800';
             case 'Em Execução': return 'bg-yellow-100 text-yellow-800';
+            case 'Aguardando Revisão': return 'bg-orange-100 text-orange-800';
             case 'Concluída': return 'bg-green-100 text-green-800';
             case 'Cancelada': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
@@ -148,9 +150,16 @@ export default function ServiceOrdersPage() {
                                                         <span className="bg-blue-600 text-white text-[10px] uppercase px-1.5 py-0.5 rounded font-black tracking-tighter animate-pulse">Minha</span>
                                                     )}
                                                 </div>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(os.status)}`}>
+                                                <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${getStatusColor(os.status)}`}>
                                                     {os.status}
                                                 </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 mb-2">
+                                                {os.priority === 'Emergencial' && <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded font-black uppercase">🔥 {os.priority}</span>}
+                                                {os.priority === 'Alta' && <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-black uppercase">⚡ {os.priority}</span>}
+                                                {os.priority === 'Moderada' && <span className="text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded font-black uppercase">{os.priority}</span>}
+                                                {os.priority === 'Baixa' && <span className="text-[10px] bg-gray-400 text-white px-1.5 py-0.5 rounded font-black uppercase">{os.priority}</span>}
                                             </div>
 
                                             <h3 className="text-lg font-bold text-gray-800 mb-2">

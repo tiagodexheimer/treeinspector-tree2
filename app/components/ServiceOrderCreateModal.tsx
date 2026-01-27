@@ -31,6 +31,7 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
     const [serviceType, setServiceType] = useState<string>('');
     const [subtypes, setSubtypes] = useState<string[]>([]);
     const [description, setDescription] = useState('');
+    const [priority, setPriority] = useState<string>('Moderada');
 
     if (!isOpen) return null;
 
@@ -53,7 +54,8 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
             await onSubmit({
                 serviceType,
                 serviceSubtypes: subtypes,
-                description
+                description,
+                priority
             });
             onClose();
         } catch (error) {
@@ -130,6 +132,29 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
+                    </div>
+
+                    {/* Priority */}
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Prioridade</label>
+                        <div className="flex flex-wrap gap-2">
+                            {['Baixa', 'Moderada', 'Alta', 'Emergencial'].map(p => (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => setPriority(p)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${priority === p
+                                        ? p === 'Emergencial' ? 'bg-red-600 text-white border-red-700 ring-2 ring-red-200'
+                                            : p === 'Alta' ? 'bg-orange-500 text-white border-orange-600 ring-2 ring-orange-100'
+                                                : p === 'Moderada' ? 'bg-blue-500 text-white border-blue-600 ring-2 ring-blue-100'
+                                                    : 'bg-gray-600 text-white border-gray-700 ring-2 ring-gray-100'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                                        }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

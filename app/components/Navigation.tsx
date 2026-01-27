@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, User as UserIcon, Settings, BarChart3, Map as MapIcon, TreeDeciduous, ClipboardList, ShieldAlert } from "lucide-react";
+import { LogOut, User as UserIcon, Settings, BarChart3, Map as MapIcon, TreeDeciduous, ClipboardList, ShieldAlert, BookOpen } from "lucide-react";
 
 export default function Navigation() {
     const pathname = usePathname();
@@ -85,6 +85,17 @@ export default function Navigation() {
                                     Configurações
                                 </Link>
                             )}
+
+                            <Link
+                                href="/docs/workflow"
+                                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/docs/workflow'
+                                    ? 'border-green-500 text-gray-900'
+                                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                    }`}
+                            >
+                                <BookOpen className="w-4 h-4 mr-1" />
+                                Manual OS
+                            </Link>
 
                         </div>
                     </div>

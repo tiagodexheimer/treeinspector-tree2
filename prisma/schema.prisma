@@ -166,6 +166,19 @@ enum RiskProbability {
   Extrema
 }
 
+enum ServicePriority {
+  Baixa
+  Moderada
+  Alta
+  Emergencial
+}
+
+enum PhotoCategory {
+  Antes
+  Durante
+  Depois
+}
+
 model PhytosanitaryData {
   id              Int      @id @default(autoincrement())
   inspectionId    Int
@@ -235,15 +248,23 @@ model ServiceOrder {
   managementActions ManagementAction[]
   
   // Status tracking
-  status          String   // 'Planejada', 'Em Execução', 'Concluída', 'Cancelada'
+  status          String   // 'Planejada', 'Em Execução', 'Aguardando Revisão', 'Concluída', 'Cancelada'
+  priority        ServicePriority @default(Moderada)
   assigned_to     String?  // Team/Inspector ID or name
   
   // Notes
   observations    String?
   
+  // Execution data
+  start_time      DateTime?
+  cancel_reason   String?
+  adjustment_notes String?   // Notes from Geostor/Admin requesting changes
+  checklist       Json?     // Example: { "epi": true, "sinalizacao": true, "seguranca": true }
+  
   // Completion data
   description     String?
   photos          ServiceOrderPhoto[]
+  materials       ServiceOrderMaterial[]
   
   // Service Classification
   serviceType     String?     // 'Poda', 'Remoção', 'Substituição', 'Transplante'
@@ -269,7 +290,17 @@ model ServiceOrderPhoto {
   serviceOrderId  Int
   serviceOrder    ServiceOrder @relation(fields: [serviceOrderId], references: [id])
   uri             String
+  category        PhotoCategory @default(Depois)
   created_at      DateTime @default(now())
+}
+
+model ServiceOrderMaterial {
+  id              Int      @id @default(autoincrement())
+  serviceOrderId  Int
+  serviceOrder    ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  name            String
+  quantity        Decimal
+  unit            String?  // 'kg', 'un', 'm', etc.
 }
 
 // ==================== MEDIA STORAGE ====================

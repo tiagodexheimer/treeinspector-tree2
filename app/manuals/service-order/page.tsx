@@ -13,7 +13,8 @@ import {
     Bell,
     Layers,
     Navigation as NavIcon,
-    ChevronLeft
+    ChevronLeft,
+    Clock
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -36,191 +37,247 @@ export default function WorkflowManualPage() {
                 </div>
             </div>
 
-            {/* Visual Flow / Roadmap */}
+            {/* Visual Workflow Diagram */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10">
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden p-8 border border-gray-100">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-8 border-b pb-4">Visão Geral do Ciclo de Vida da OS</h2>
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-8 border-b pb-4">Fluxo de Trabalho de Gestão de Manejo</h2>
 
-                    <div className="relative">
-                        {/* Connection Line (Desktop) */}
-                        <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-blue-50 -translate-y-1/2 z-0"></div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
-                            {/* Step 1 */}
-                            <div className="flex flex-col items-center">
-                                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg mb-4 ring-4 ring-white">
-                                    <Monitor className="w-8 h-8" />
+                    <div className="relative pt-4 pb-12">
+                        {/* The Flow Diagram */}
+                        <div className="flex flex-col space-y-12">
+                            {/* Row 1: Planejamento */}
+                            <div className="flex flex-col md:flex-row items-center justify-around gap-8">
+                                <div className="flex-1 max-w-sm bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
+                                    <p className="text-xs font-bold text-blue-600 uppercase mb-2">Início</p>
+                                    <h4 className="font-bold text-gray-800">Demanda</h4>
+                                    <p className="text-xs text-gray-500">Vistoria ou Solicitação</p>
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-900">1. Planejamento</h3>
-                                <p className="text-sm text-gray-500 text-center mt-2">Plataforma Web</p>
+                                <ArrowRight className="hidden md:block w-6 h-6 text-blue-200" />
+                                <div className="flex-1 max-w-sm bg-blue-600 p-4 rounded-xl shadow-lg text-center text-white">
+                                    <p className="text-xs font-bold text-blue-200 uppercase mb-2">Ação Gestor</p>
+                                    <h4 className="font-bold">Criação da OS</h4>
+                                    <p className="text-xs text-blue-100">Seleção via Mapa/Lista</p>
+                                </div>
+                                <ArrowRight className="hidden md:block w-6 h-6 text-blue-200" />
+                                <div className="flex-1 max-w-sm bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
+                                    <p className="text-xs font-bold text-blue-600 uppercase mb-2">Gestão</p>
+                                    <h4 className="font-bold text-gray-800">Atribuição</h4>
+                                    <p className="text-xs text-gray-500">Definição de Equipe e Prioridade</p>
+                                </div>
                             </div>
 
-                            {/* Step 2 */}
-                            <div className="flex flex-col items-center">
-                                <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-lg mb-4 ring-4 ring-white">
-                                    <Smartphone className="w-8 h-8" />
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900">2. Execução</h3>
-                                <p className="text-sm text-gray-500 text-center mt-2">App Android</p>
+                            <div className="flex justify-center">
+                                <div className="h-12 w-1 bg-gradient-to-b from-blue-200 to-orange-200"></div>
                             </div>
 
-                            {/* Step 3 */}
-                            <div className="flex flex-col items-center">
-                                <div className="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg mb-4 ring-4 ring-white">
-                                    <Layers className="w-8 h-8" />
+                            {/* Row 2: Execução */}
+                            <div className="flex flex-col md:flex-row items-center justify-around gap-8">
+                                <div className="flex-1 max-w-sm bg-orange-50 p-4 rounded-xl border border-orange-100 text-center">
+                                    <p className="text-xs font-bold text-orange-600 uppercase mb-2">Campo</p>
+                                    <h4 className="font-bold text-gray-800">Recebimento</h4>
+                                    <p className="text-xs text-gray-500">Notificação Push no Android</p>
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-900">3. Monitoramento</h3>
-                                <p className="text-sm text-gray-500 text-center mt-2">Dashboard em Tempo Real</p>
+                                <ArrowRight className="hidden md:block w-6 h-6 text-orange-200" />
+                                <div className="flex-1 max-w-sm bg-orange-500 p-4 rounded-xl shadow-lg text-center text-white">
+                                    <p className="text-xs font-bold text-orange-100 uppercase mb-2">Ação Técnico</p>
+                                    <h4 className="font-bold">Execução</h4>
+                                    <p className="text-xs text-orange-50">Checklist, Fotos, Consumo & Tempo</p>
+                                </div>
+                                <ArrowRight className="hidden md:block w-6 h-6 text-orange-200" />
+                                <div className="flex-1 max-w-sm bg-orange-50 p-4 rounded-xl border border-orange-100 text-center">
+                                    <p className="text-xs font-bold text-orange-600 uppercase mb-2">Registro</p>
+                                    <h4 className="font-bold text-gray-800">Finalização</h4>
+                                    <p className="text-xs text-gray-500">Sincronização Cloud</p>
+                                </div>
                             </div>
 
-                            {/* Step 4 */}
-                            <div className="flex flex-col items-center">
-                                <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center text-white shadow-lg mb-4 ring-4 ring-white">
-                                    <CheckCircle2 className="w-8 h-8" />
+                            <div className="flex justify-center">
+                                <div className="h-12 w-1 bg-gradient-to-b from-orange-200 to-green-200"></div>
+                            </div>
+
+                            {/* Row 3: Fechamento */}
+                            <div className="flex flex-col md:flex-row items-center justify-around gap-8">
+                                <div className="flex-1 max-w-sm bg-green-50 p-4 rounded-xl border border-green-100 text-center">
+                                    <p className="text-xs font-bold text-green-600 uppercase mb-2">Revisão</p>
+                                    <h4 className="font-bold text-gray-800">Validação</h4>
+                                    <p className="text-xs text-gray-500">Aprovação do Gestor (Web)</p>
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-900">4. Finalização</h3>
-                                <p className="text-sm text-gray-500 text-center mt-2">Análise & KPIs</p>
+                                <ArrowRight className="hidden md:block w-6 h-6 text-green-200" />
+                                <div className="flex-1 max-w-sm bg-green-600 p-4 rounded-xl shadow-lg text-center text-white">
+                                    <p className="text-xs font-bold text-green-200 uppercase mb-2">Meta</p>
+                                    <h4 className="font-bold">Conclusão</h4>
+                                    <p className="text-xs text-green-100">Encerramento & Relatórios</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Detailed Sections */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 space-y-12">
+            {/* Detailed Content based on Proposal */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 space-y-16">
 
-                {/* Phase 1 */}
-                <section className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="flex flex-col md:flex-row">
-                        <div className="bg-blue-600 md:w-16 flex items-center justify-center p-4">
-                            <span className="text-white font-black text-2xl md:-rotate-90 whitespace-nowrap uppercase tracking-widest">Fase 1</span>
+                {/* 1. Planejamento */}
+                <section>
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="p-3 bg-blue-100 rounded-2xl">
+                            <Monitor className="w-8 h-8 text-blue-600" />
                         </div>
-                        <div className="p-8 flex-1">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <Monitor className="text-blue-600" />
-                                Planejamento e Abertura (Web)
-                            </h2>
-                            <div className="grid md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <div className="flex gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <div className="w-10 h-10 bg-blue-50 rounded flex-shrink-0 flex items-center justify-center">
-                                            <Layers className="w-5 h-5 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-800 uppercase text-xs tracking-wider mb-1">Identificação</h4>
-                                            <p className="text-sm text-gray-600">As OSs são geradas a partir de inspeções técnicas que detectaram risco ou necessidade de manutenção.</p>
-                                        </div>
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-900">1. Fase de Planejamento</h2>
+                            <p className="text-blue-600 font-medium">Plataforma Web (Office)</p>
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 className="font-bold text-xl text-gray-800 mb-4">Organização da Demanda</h3>
+                            <ul className="space-y-4">
+                                <li className="flex gap-3">
+                                    <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0 mt-1" />
+                                    <div>
+                                        <span className="font-bold text-gray-900">Identificação:</span>
+                                        <p className="text-sm text-gray-600">As OSs nascem a partir de vistorias técnicas que identificaram necessidade de manejo ou solicitações externas.</p>
                                     </div>
-                                    <div className="flex gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <div className="w-10 h-10 bg-blue-50 rounded flex-shrink-0 flex items-center justify-center">
-                                            <MapPin className="w-5 h-5 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-800 uppercase text-xs tracking-wider mb-1">Criação Espacial</h4>
-                                            <p className="text-sm text-gray-600">O gestor seleciona árvores no mapa para agrupar serviços próximos, economizando tempo e combustível.</p>
-                                        </div>
+                                </li>
+                                <li className="flex gap-3">
+                                    <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0 mt-1" />
+                                    <div>
+                                        <span className="font-bold text-gray-900">Criação via Mapa:</span>
+                                        <p className="text-sm text-gray-600">Gestor seleciona árvores geograficamente próximas para otimizar o deslocamento da equipe.</p>
                                     </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="flex gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <div className="w-10 h-10 bg-blue-50 rounded flex-shrink-0 flex items-center justify-center">
-                                            <FileCheck className="w-5 h-5 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-800 uppercase text-xs tracking-wider mb-1">Atribuição</h4>
-                                            <p className="text-sm text-gray-600">A OS é vinculada a um técnico específico. O sistema envia notificações push para o dispositivo móvel do encarregado.</p>
-                                        </div>
+                                </li>
+                            </ul>
+                        </div>
+                        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                            <h3 className="font-bold text-xl text-gray-800 mb-4">Gestão de Equipe</h3>
+                            <ul className="space-y-4">
+                                <li className="flex gap-3">
+                                    <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0 mt-1" />
+                                    <div>
+                                        <span className="font-bold text-gray-900">Atribuição Digital:</span>
+                                        <p className="text-sm text-gray-600">Vínculo direto com o Responsável Operacional que possui o App Android.</p>
                                     </div>
-                                </div>
+                                </li>
+                                <li className="flex gap-3">
+                                    <CheckCircle2 className="w-5 h-5 text-blue-500 shrink-0 mt-1" />
+                                    <div>
+                                        <span className="font-bold text-gray-900">Priorização:</span>
+                                        <p className="text-sm text-gray-600">Níveis (Emergencial, Urgente, Normal) ordenam a fila de trabalho em campo.</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 2. Execução */}
+                <section>
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="p-3 bg-orange-100 rounded-2xl">
+                            <Smartphone className="w-8 h-8 text-orange-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-900">2. Fase de Execução</h2>
+                            <p className="text-orange-600 font-medium">App Android (Campo)</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -mr-16 -mt-16 flex items-center justify-center pt-8 pr-8">
+                            <NavIcon className="w-8 h-8 text-orange-200 rotate-12" />
+                        </div>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
+                            {/* 1. Recebimento */}
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <Bell className="w-4 h-4 text-orange-500" />
+                                    1. Recebimento
+                                </h4>
+                                <p className="text-sm text-gray-600">Alertas instantâneos no celular sobre novas tarefas. Notificações detalhadas com mapa e descrição.</p>
+                            </div>
+
+                            {/* 2. Checklist de Início */}
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <FileCheck className="w-4 h-4 text-orange-500" />
+                                    2. Checklist de Início
+                                </h4>
+                                <p className="text-sm text-gray-600">Validação de segurança, conferência de EPIs e sinalização do local antes de liberar o início do cronômetro.</p>
+                            </div>
+
+                            {/* 3. Evidências */}
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <Camera className="w-4 h-4 text-orange-500" />
+                                    3. Evidências
+                                </h4>
+                                <p className="text-sm text-gray-600">Registro fotográfico obrigatório do **Antes** e **Depois** para garantir a rastreabilidade técnica.</p>
+                            </div>
+
+                            {/* 4. Consumo */}
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <Layers className="w-4 h-4 text-orange-500" />
+                                    4. Consumo
+                                </h4>
+                                <p className="text-sm text-gray-600">Registro de materiais e insumos utilizados em tempo real, integrando automaticamente com o inventário.</p>
+                            </div>
+
+                            {/* 5. Tempo de Serviço */}
+                            <div className="space-y-3">
+                                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-orange-500" />
+                                    5. Tempo de Serviço
+                                </h4>
+                                <p className="text-sm text-gray-600">O sistema calcula automaticamente a duração do trabalho em campo, desde o início até a finalização pelo técnico.</p>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* Phase 2 */}
-                <section className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="flex flex-col md:flex-row">
-                        <div className="bg-orange-500 md:w-16 flex items-center justify-center p-4">
-                            <span className="text-white font-black text-2xl md:-rotate-90 whitespace-nowrap uppercase tracking-widest">Fase 2</span>
-                        </div>
-                        <div className="p-8 flex-1">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                <Smartphone className="text-orange-500" />
-                                Execução em Campo (App Android)
-                            </h2>
-                            <div className="grid md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <div className="flex gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <div className="w-10 h-10 bg-orange-50 rounded flex-shrink-0 flex items-center justify-center">
-                                            <Bell className="w-5 h-5 text-orange-500" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-800 uppercase text-xs tracking-wider mb-1">Checklist de Início</h4>
-                                            <p className="text-sm text-gray-600">O técnico valida equipamentos de segurança (EPIs) e sinalização do local antes de iniciar o cronômetro.</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <div className="w-10 h-10 bg-orange-50 rounded flex-shrink-0 flex items-center justify-center">
-                                            <Camera className="w-5 h-5 text-orange-500" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-800 uppercase text-xs tracking-wider mb-1">Evidências</h4>
-                                            <p className="text-sm text-gray-600">Registro fotográfico obrigatório do 'Antes' e 'Depois' para garantir a conformidade técnica do manejo.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div className="flex gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                                        <div className="w-10 h-10 bg-orange-50 rounded flex-shrink-0 flex items-center justify-center">
-                                            <NavIcon className="w-5 h-5 text-orange-500" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-gray-800 uppercase text-xs tracking-wider mb-1">Operação Offline</h4>
-                                            <p className="text-sm text-gray-600">Todo o trabalho pode ser feito sem internet. Os dados são sincronizados automaticamente ao detectar rede WiFi ou 4G.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Final Phases */}
-                <div className="grid lg:grid-cols-2 gap-8">
-                    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                {/* 3 & 4. Monitoramento e Encerramento */}
+                <div className="grid md:grid-cols-2 gap-12">
+                    <section>
                         <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                            <BarChart className="text-indigo-600" />
-                            Acompanhamento
+                            <BarChart className="w-6 h-6 text-indigo-600" />
+                            3. Monitoramento
                         </h2>
-                        <ul className="space-y-4 text-gray-600">
-                            <li className="flex items-start gap-3">
-                                <ArrowRight className="w-5 h-5 text-indigo-600 mt-1 flex-shrink-0" />
-                                <span>Painel de controle Web mostra o progresso em tempo real de cada equipe na rua.</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <ArrowRight className="w-5 h-5 text-indigo-600 mt-1 flex-shrink-0" />
-                                <span>Monitoramento geográfico garante que o serviço foi executado na árvore correta.</span>
-                            </li>
-                        </ul>
-                    </div>
+                        <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl">
+                            <ul className="space-y-4">
+                                <li className="flex gap-3 text-sm text-indigo-900">
+                                    <ArrowRight className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <span>Dashboard dinâmico mostra o status de cada equipe e OS em tempo real.</span>
+                                </li>
+                                <li className="flex gap-3 text-sm text-indigo-900">
+                                    <ArrowRight className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <span>Geolocalização registra a coordenada GPS exata da conclusão do serviço.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
 
-                    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                    <section>
                         <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                            <CheckCircle2 className="text-green-600" />
-                            Revisão e Encerramento
+                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                            4. Fechamento
                         </h2>
-                        <ul className="space-y-4 text-gray-600">
-                            <li className="flex items-start gap-3">
-                                <ArrowRight className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
-                                <span><strong>Aprovação:</strong> O gestor valida as fotos e o material utilizado antes de encerrar o ciclo.</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <ArrowRight className="w-5 h-5 text-green-600 mt-1 flex-shrink-0" />
-                                <span><strong>Ajustes:</strong> Caso o serviço necessite de correção, o gestor pode solicitar ajustes diretamente via Web.</span>
-                            </li>
-                        </ul>
-                    </div>
+                        <div className="bg-green-50 border border-green-100 p-6 rounded-2xl">
+                            <ul className="space-y-4">
+                                <li className="flex gap-3 text-sm text-green-900">
+                                    <ArrowRight className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <span><strong>Validação:</strong> Gestor revisa fotos e descrição do campo antes do encerramento final.</span>
+                                </li>
+                                <li className="flex gap-3 text-sm text-green-900">
+                                    <ArrowRight className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <span><strong>KPIs:</strong> Relatórios automáticos de tempo médio de atendimento e produtividade.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </section>
                 </div>
+
+                {/* Removed Tips section as requested */}
             </main>
         </div>
     );

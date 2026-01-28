@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { MapPin } from 'lucide-react';
 
 interface ServiceOrder {
     id: number;
@@ -16,6 +17,10 @@ interface ServiceOrder {
     trees: {
         id_arvore: number;
         numero_etiqueta: string;
+        rua: string | null;
+        numero: string | null;
+        bairro: string | null;
+        endereco: string | null;
         species?: {
             nome_comum: string;
         }
@@ -162,9 +167,20 @@ export default function ServiceOrdersPage() {
                                                 {os.priority === 'Baixa' && <span className="text-[10px] bg-gray-400 text-white px-1.5 py-0.5 rounded font-black uppercase">{os.priority}</span>}
                                             </div>
 
-                                            <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                            <h3 className="text-lg font-bold text-gray-800 mb-1">
                                                 {os.trees.length} Árvore(s)
                                             </h3>
+
+                                            {os.trees.length > 0 && (
+                                                <div className="flex items-start gap-1.5 text-gray-900 mb-3 bg-green-50 p-2.5 rounded-lg border border-green-100 shadow-sm">
+                                                    <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-green-700" />
+                                                    <span className="text-sm font-black leading-tight uppercase font-mono">
+                                                        {os.trees[0].rua
+                                                            ? `${os.trees[0].rua}${os.trees[0].numero ? `, ${os.trees[0].numero}` : ''}${os.trees[0].bairro ? ` - ${os.trees[0].bairro}` : ''}`
+                                                            : os.trees[0].endereco || 'Endereço não disponível'}
+                                                    </span>
+                                                </div>
+                                            )}
 
                                             <div className="mb-4">
                                                 <div className="flex flex-wrap gap-1">

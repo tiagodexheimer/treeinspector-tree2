@@ -12,7 +12,14 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
             where: { id },
             include: {
                 trees: {
-                    include: {
+                    select: {
+                        id_arvore: true,
+                        numero_etiqueta: true,
+                        rua: true,
+                        numero: true,
+                        bairro: true,
+                        endereco: true,
+                        cover_photo: true,
                         species: true
                     }
                 },

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CHECKLIST_LABELS } from '../lib/constants';
 
 interface ServiceOrderEditModalProps {
     isOpen: boolean;
@@ -191,19 +192,65 @@ export default function ServiceOrderEditModal({ isOpen, onClose, onSubmit, initi
 
                             {/* Checklist Editor */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Checklist de Segurança</label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {checklist && Object.keys(checklist).map(item => (
-                                        <label key={item} className="flex items-center gap-2 p-2 bg-white rounded border border-orange-200 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                checked={checklist[item]}
-                                                onChange={(e) => setChecklist({ ...checklist, [item]: e.target.checked })}
-                                                className="h-4 w-4 text-orange-600 rounded"
-                                            />
-                                            <span className="text-sm text-gray-700">{item}</span>
-                                        </label>
-                                    ))}
+                                <h4 className="block text-xs font-bold text-gray-500 uppercase mb-2">Checklist de Segurança</h4>
+                                <div className="grid grid-cols-1 gap-2 mb-4">
+                                    {checklist && Object.keys(checklist)
+                                        .filter(item => item in CHECKLIST_LABELS)
+                                        .map(item => (
+                                            <label key={item} className="flex items-center gap-2 p-2 bg-white rounded border border-orange-200 cursor-pointer hover:bg-orange-50 transition">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checklist[item]}
+                                                    onChange={(e) => setChecklist({ ...checklist, [item]: e.target.checked })}
+                                                    className="h-4 w-4 text-orange-600 rounded focus:ring-orange-500 border-gray-300"
+                                                />
+                                                <span className="text-sm text-gray-700 font-medium">
+                                                    {CHECKLIST_LABELS[item]}
+                                                </span>
+                                            </label>
+                                        ))}
+                                </div>
+
+                                <h4 className="block text-xs font-bold text-gray-500 uppercase mb-2">Execução (Árvores)</h4>
+                                <div className="space-y-2">
+                                    {checklist && Object.keys(checklist)
+                                        .filter(item => !(item in CHECKLIST_LABELS))
+                                        .map(item => {
+                                            const itemId = item.replace(/\D/g, ''); // Extract numeric ID
+                                            const tree = initialData.trees?.find((t: any) => t.id_arvore.toString() === itemId);
+                                            const isChecked = checklist[item];
+
+                                            return (
+                                                <div key={item} className={`flex items-center gap-3 p-3 bg-white rounded-lg border transition ${isChecked ? 'border-green-200 bg-green-50/30' : 'border-gray-200'}`}>
+                                                    <div className="flex-shrink-0">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isChecked}
+                                                            onChange={(e) => setChecklist({ ...checklist, [item]: e.target.checked })}
+                                                            className="h-5 w-5 text-green-600 rounded focus:ring-green-500 border-gray-300"
+                                                        />
+                                                    </div>
+
+                                                    {tree && tree.cover_photo ? (
+                                                        <div className="h-12 w-12 rounded overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
+                                                            <img src={tree.cover_photo} alt="Árvore" className="h-full w-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-12 w-12 rounded bg-gray-100 flex items-center justify-center text-gray-300 flex-shrink-0">
+                                                            🌳
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-gray-900 text-sm">#{tree?.numero_etiqueta || 'S/N'}</span>
+                                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-mono">ID: {item}</span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 truncate">{tree?.species?.nome_comum || 'Espécie desconhecida'}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </div>
 

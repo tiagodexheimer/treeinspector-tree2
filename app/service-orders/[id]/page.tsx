@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import ServiceOrderEditModal from '../../components/ServiceOrderEditModal';
 import ServiceOrderAdjustmentModal from '../../components/ServiceOrderAdjustmentModal';
+import { CHECKLIST_LABELS } from '../../lib/constants';
 
 // Dynamically import Map to avoid SSR issues
 const ServiceOrderMap = dynamic(() => import('../../components/ServiceOrderMap'), {
@@ -264,18 +265,49 @@ export default function ServiceOrderDetailsPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                         {/* Checklist */}
                                         {order.checklist && Object.keys(order.checklist).length > 0 && (
-                                            <div>
-                                                <label className="block text-sm font-bold text-blue-700 uppercase mb-2 text-[10px] tracking-wider">Checklist de Segurança</label>
-                                                <div className="space-y-2">
-                                                    {Object.entries(order.checklist).map(([item, checked]: [string, any]) => (
-                                                        <div key={item} className="flex items-center gap-2 bg-white px-3 py-2 rounded border border-blue-100 text-sm">
-                                                            <span className={checked ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
-                                                                {checked ? "✓" : "✗"}
-                                                            </span>
-                                                            <span className="text-gray-700">{item}</span>
+                                            <div className="space-y-6">
+                                                {/* Checklist de Preparo */}
+                                                {Object.entries(order.checklist).some(([key]) => key in CHECKLIST_LABELS) && (
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-blue-700 uppercase mb-2 text-[10px] tracking-wider">Atividades de Preparo e Segurança</label>
+                                                        <div className="space-y-2">
+                                                            {Object.entries(order.checklist)
+                                                                .filter(([key]) => key in CHECKLIST_LABELS)
+                                                                .map(([item, checked]: [string, any]) => (
+                                                                    <div key={item} className="flex items-center gap-2 bg-white px-3 py-2 rounded border border-blue-100 text-sm">
+                                                                        <span className={checked ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                                                                            {checked ? "✓" : "✗"}
+                                                                        </span>
+                                                                        <span className="text-gray-700">{CHECKLIST_LABELS[item] || item}</span>
+                                                                    </div>
+                                                                ))}
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Checklist de Execução */}
+                                                {Object.entries(order.checklist).some(([key]) => !(key in CHECKLIST_LABELS)) && (
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-green-700 uppercase mb-2 text-[10px] tracking-wider">Execução do Trabalho (Manejo)</label>
+                                                        <div className="space-y-2">
+                                                            {Object.entries(order.checklist)
+                                                                .filter(([key]) => !(key in CHECKLIST_LABELS))
+                                                                .map(([item, checked]: [string, any]) => {
+                                                                    const itemId = item.replace(/\D/g, ''); // Extract numeric ID
+                                                                    const tree = order.trees?.find((t: any) => t.id_arvore.toString() === itemId);
+                                                                    const label = tree ? `${tree.species?.nome_comum || 'Espécie desconhecida'} (ID: ${tree.id_arvore})` : item;
+                                                                    return (
+                                                                        <div key={item} className="flex items-center gap-2 bg-white px-3 py-2 rounded border border-green-100 text-sm">
+                                                                            <span className={checked ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                                                                                {checked ? "✓" : "✗"}
+                                                                            </span>
+                                                                            <span className="text-gray-700 font-medium">{label}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -328,26 +360,31 @@ export default function ServiceOrderDetailsPage() {
                             )}
                         </div>
 
+                    </div>
+
+                    <div className="space-y-6">
                         <div className="bg-white rounded-lg shadow p-6">
-                            <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Árvores Incluídas ({order.trees.length})</h2>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-2 flex items-center gap-2">
+                                <span>🌳</span> Árvores Incluídas ({order.trees.length})
+                            </h2>
+                            <div className="space-y-3">
                                 {order.trees.map((tree: any) => (
-                                    <Link key={tree.id_arvore} href={`/trees/${tree.id_arvore}`} className="block border rounded p-3 hover:bg-green-50 hover:border-green-300 transition">
+                                    <Link key={tree.id_arvore} href={`/trees/${tree.id_arvore}`} className="block border rounded-lg p-3 hover:bg-green-50 hover:border-green-300 transition shadow-sm bg-gray-50/50">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <span className="font-bold text-gray-900">#{tree.numero_etiqueta || tree.id_arvore}</span>
-                                                <p className="text-sm text-gray-500 italic">{tree.species?.nome_comum || 'Espécie desconhecida'}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-gray-900">#{tree.numero_etiqueta || 'Sem Etiqueta'}</span>
+                                                    <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-mono">ID: {tree.id_arvore}</span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 italic mt-1">{tree.species?.nome_comum || 'Espécie desconhecida'}</p>
                                             </div>
-                                            <span className="text-blue-600 text-sm font-medium">Ver &rarr;</span>
+                                            <span className="text-blue-600 text-[10px] font-bold uppercase tracking-tighter">Detalhes</span>
                                         </div>
                                     </Link>
                                 ))}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Sidebar / Actions */}
-                    <div className="space-y-6">
                         <div className="bg-white rounded-lg shadow p-6">
                             <h3 className="font-bold text-gray-800 mb-4">Ações</h3>
                             <div className="space-y-3">

@@ -9,6 +9,9 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await auth();
+    const cookies = request.headers.get('cookie');
+    console.log(`[start-os] 🔍 Session: ${session ? 'OK' : 'NULL'}, Cookies: ${cookies ? 'present' : 'none'}`);
+
     if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 
     const { id: idString } = await params;

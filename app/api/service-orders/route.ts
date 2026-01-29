@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { treeIds, description, status, assignedToId, serviceType, serviceSubtypes, priority } = body;
+        const { treeIds, description, status, assignedToId, serviceType, serviceSubtypes, priority, managementActionId } = body;
         // treeIds should be an array of numbers
 
         if (!treeIds || !Array.isArray(treeIds) || treeIds.length === 0) {
@@ -43,16 +43,23 @@ export async function POST(request: Request) {
 
         // Collect management actions that need handling
         const managementIds: number[] = [];
-        trees.forEach(t => {
-            const insp = t.inspections[0];
-            if (insp && insp.managementActions && insp.managementActions.length > 0) {
-                // Assuming we want to include the LATEST management action required
-                const action = insp.managementActions[0];
-                if (action.necessita_manejo) {
-                    managementIds.push(action.id);
+
+        // If explicit ID provided, use it
+        if (managementActionId) {
+            managementIds.push(managementActionId);
+        } else {
+            // Auto-detect otherwise
+            trees.forEach(t => {
+                const insp = t.inspections[0];
+                if (insp && insp.managementActions && insp.managementActions.length > 0) {
+                    // Assuming we want to include the LATEST management action required
+                    const action = insp.managementActions[0];
+                    if (action.necessita_manejo) {
+                        managementIds.push(action.id);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         const newOS = await prisma.serviceOrder.create({
             data: {

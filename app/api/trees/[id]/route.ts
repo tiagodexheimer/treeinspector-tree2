@@ -23,7 +23,11 @@ export async function GET(
                                 pests: true
                             }
                         },
-                        managementActions: true,
+                        managementActions: {
+                            include: {
+                                serviceOrders: true
+                            }
+                        },
                         photos: true
                     }
                 },

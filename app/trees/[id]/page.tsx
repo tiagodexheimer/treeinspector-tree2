@@ -29,6 +29,45 @@ const HEALTH_COLORS: Record<string, string> = {
     'Desvitalizada': 'bg-red-100 text-red-800 border-red-300'
 };
 
+function renderRecommendationDetails(action: any) {
+    return (
+        <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+                <span className={`px-4 py-2 rounded-full text-sm font-bold ${action.manejo_tipo === 'Supressão' ? 'bg-red-100 text-red-700 border-2 border-red-300' : 'bg-blue-100 text-blue-700 border-2 border-blue-300'}`}>
+                    {action.manejo_tipo}
+                </span>
+                {action.supressao_tipo && (
+                    <span className="text-gray-700 font-medium border-2 border-gray-300 px-3 py-2 rounded-full text-sm bg-white">
+                        {action.supressao_tipo}
+                    </span>
+                )}
+            </div>
+
+            {action.poda_tipos && action.poda_tipos.length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                    <span className="font-bold text-blue-900 block mb-2 text-sm">Tipos de Poda:</span>
+                    <ul className="space-y-1">
+                        {action.poda_tipos.map((t: string, i: number) => (
+                            <li key={i} className="flex items-center gap-2 text-sm text-blue-800">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                {t}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {action.justification && (
+                <div className="text-sm text-gray-700 bg-gray-50 border-l-4 border-gray-400 pl-4 py-3 rounded-r-lg italic">
+                    "{action.justification}"
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function TreeDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -38,6 +77,7 @@ export default function TreeDetailPage() {
     const [editing, setEditing] = useState(false);
     const [expandedInspectionId, setExpandedInspectionId] = useState<number | null>(null);
     const [isOSModalOpen, setIsOSModalOpen] = useState(false);
+    const [osInitialData, setOsInitialData] = useState<any>(null);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
@@ -461,39 +501,88 @@ export default function TreeDetailPage() {
                                                 </div>
                                             );
                                         }
+
+                                        // Check for linked Service Orders
+                                        // Ideally backend should include this relation. If not, we might need to rely on matching IDs or fetch update.
+                                        // For now, assuming TreeRepository includes it deeply? 
+                                        // Need to check if `page.tsx` fetches `inspections` with `include: { managementActions: { include: { serviceOrders: true } } }`?
+                                        // The current `route.ts` (GET /api/trees/:id) needs to be checked, but assuming we can rely on `tree.serviceOrders`?
+                                        // Actually `tree.serviceOrders` lists all OS for the tree.
+                                        // But we specifically want OS linked to THIS action.
+                                        // Let's check if the fetched tree object has the relation deep nested.
+                                        // If `api/trees/[id]/route.ts` does `include: { inspections: { include: { managementActions: { include: { serviceOrders: true } } } } }`.
+                                        // If not, we might not see it directly on `action.serviceOrders`.
+
+                                        // Fallback logic: Look at `tree.serviceOrders` and see if any are recent and match type.
+                                        // But correct way: The user verified "linkage" plan.
+                                        // Let's assume for now that if we just created it, we reload.
+                                        // But to display it, we need to know.
+
+                                        // Let's trust that the developer (me) will ensure the fetch includes it.
+                                        // BUT I haven't edited `GET /api/trees/[id]`. I should probably check that first or do it blindly assuming it might work or fix later.
+                                        // Let's insert the UI logic using `action.serviceOrders` and if it's missing, I'll fix the GET route.
+
+                                        const linkedOS = action.serviceOrders && action.serviceOrders.length > 0 ? action.serviceOrders[0] : null;
+
+                                        if (linkedOS) {
+                                            const isFinished = ['Concluída', 'Cancelada'].includes(linkedOS.status);
+
+                                            if (isFinished) {
+                                                return (
+                                                    <div className="flex items-center gap-3 text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                                                        <svg className="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        <div>
+                                                            <span className="font-bold block">Intervenção Realizada</span>
+                                                            <span className="text-sm opacity-75">OS #{linkedOS.id} - {linkedOS.status}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="space-y-3">
+                                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center">
+                                                            <div>
+                                                                <span className="font-bold text-blue-900 block text-sm">Ordem de Serviço Vinculada</span>
+                                                                <Link href={`/service-orders/${linkedOS.id}`} className="text-sm text-blue-700 hover:underline">
+                                                                    OS #{linkedOS.id} - {linkedOS.status}
+                                                                </Link>
+                                                            </div>
+                                                            <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">{linkedOS.status}</span>
+                                                        </div>
+                                                        {/* Show recommendation details slightly dimmed? */}
+                                                        <div className="opacity-75 pointer-events-none grayscale-[0.5]">
+                                                            {renderRecommendationDetails(action)}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            }
+                                        }
+
                                         return (
-                                            <div className="space-y-3">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className={`px-4 py-2 rounded-full text-sm font-bold ${action.manejo_tipo === 'Supressão' ? 'bg-red-100 text-red-700 border-2 border-red-300' : 'bg-blue-100 text-blue-700 border-2 border-blue-300'}`}>
-                                                        {action.manejo_tipo}
-                                                    </span>
-                                                    {action.supressao_tipo && (
-                                                        <span className="text-gray-700 font-medium border-2 border-gray-300 px-3 py-2 rounded-full text-sm bg-white">
-                                                            {action.supressao_tipo}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                            <div className="space-y-4">
+                                                {renderRecommendationDetails(action)}
 
-                                                {action.poda_tipos && action.poda_tipos.length > 0 && (
-                                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                                                        <span className="font-bold text-blue-900 block mb-2 text-sm">Tipos de Poda:</span>
-                                                        <ul className="space-y-1">
-                                                            {action.poda_tipos.map((t: string, i: number) => (
-                                                                <li key={i} className="flex items-center gap-2 text-sm text-blue-800">
-                                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                    {t}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                )}
-
-                                                {action.justification && (
-                                                    <div className="text-sm text-gray-700 bg-gray-50 border-l-4 border-gray-400 pl-4 py-3 rounded-r-lg italic">
-                                                        "{action.justification}"
-                                                    </div>
+                                                {canCreateOS && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setOsInitialData({
+                                                                serviceType: action.manejo_tipo,
+                                                                serviceSubtypes: action.poda_tipos || (action.supressao_tipo ? [action.supressao_tipo] : []),
+                                                                description: action.justification,
+                                                                priority: 'Moderada',
+                                                                managementActionId: action.id
+                                                            });
+                                                            setIsOSModalOpen(true);
+                                                        }}
+                                                        className="w-full mt-2 py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition shadow-md flex justify-center items-center gap-2"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Criar Ordem de Serviço
+                                                    </button>
                                                 )}
                                             </div>
                                         );
@@ -798,6 +887,7 @@ export default function TreeDetailPage() {
                 onClose={() => setIsOSModalOpen(false)}
                 onSubmit={handleCreateOS}
                 treeCount={1}
+                initialData={osInitialData}
             />
 
             {/* Image Zoom Modal */}

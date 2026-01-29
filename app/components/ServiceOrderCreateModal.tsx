@@ -5,6 +5,13 @@ interface ServiceOrderCreateModalProps {
     onClose: () => void;
     onSubmit: (data: any) => Promise<void>;
     treeCount: number;
+    initialData?: {
+        serviceType?: string;
+        serviceSubtypes?: string[];
+        description?: string;
+        priority?: string;
+        managementActionId?: number;
+    };
 }
 
 const SERVICE_TYPES = [
@@ -26,12 +33,40 @@ const PODA_SUBTYPES = [
     'Redução de copa'
 ];
 
-export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, treeCount }: ServiceOrderCreateModalProps) {
+export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, treeCount, initialData }: ServiceOrderCreateModalProps) {
     const [loading, setLoading] = useState(false);
-    const [serviceType, setServiceType] = useState<string>('');
-    const [subtypes, setSubtypes] = useState<string[]>([]);
-    const [description, setDescription] = useState('');
-    const [priority, setPriority] = useState<string>('Moderada');
+
+    // Initialize with props or defaults
+    const [serviceType, setServiceType] = useState<string>(initialData?.serviceType || '');
+    const [subtypes, setSubtypes] = useState<string[]>(initialData?.serviceSubtypes || []);
+    const [description, setDescription] = useState(initialData?.description || '');
+    const [priority, setPriority] = useState<string>(initialData?.priority || 'Moderada');
+
+    // Update state when initialData changes (e.g. reopening modal with different item)
+    // We use a key={...} strategy in parent usually, or useEffect here.
+    // Let's use useEffect to reset when isOpen becomes true? Or rely on parent re-rendering.
+    // Better: Parent should control instance or key, but useEffect is safer here.
+
+    // Actually simpler: initialize state lazily or strictly from props if open.
+    // But since this is a controlled modal often kept mounted, use useEffect to sync when opening.
+    // However, hooks order matters. Let's keep it simple: assume parent forces re-mount or we add a reset effect.
+    // For now, let's add a useEffect that updates state when `isOpen` becomes true, if we want to support reusing the modal.
+    // Or just updating when `initialData` changes.
+
+    // Changing state directly in render logic is bad.
+    // Let's use a key in parent to reset state, OR useEffect here.
+    // Let's stick to initial state for now, assuming parent might unmount it or we rely on re-init when props change.
+    // Actually, if we use the same modal instance, state won't reset.
+    // Let's add useEffect.
+
+    const [prevInitialData, setPrevInitialData] = useState(initialData);
+    if (initialData !== prevInitialData) {
+        setPrevInitialData(initialData);
+        setServiceType(initialData?.serviceType || '');
+        setSubtypes(initialData?.serviceSubtypes || []);
+        setDescription(initialData?.description || '');
+        setPriority(initialData?.priority || 'Moderada');
+    }
 
     if (!isOpen) return null;
 
@@ -55,7 +90,8 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
                 serviceType,
                 serviceSubtypes: subtypes,
                 description,
-                priority
+                priority,
+                managementActionId: initialData?.managementActionId // Pass ID back
             });
             onClose();
         } catch (error) {

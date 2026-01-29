@@ -239,9 +239,6 @@ export default function TreeDetailPage() {
                             </h1>
                             <p className="text-emerald-100 text-lg italic mb-4">{tree.species.nome_cientifico}</p>
                             <div className="flex flex-wrap gap-3">
-                                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
-                                    ID #{tree.id_arvore}
-                                </span>
                                 {tree.numero_etiqueta && (
                                     <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
                                         Etiqueta: {tree.numero_etiqueta}
@@ -255,11 +252,19 @@ export default function TreeDetailPage() {
                                     {healthStatus}
                                 </span>
                                 {riskRating > 0 && (
-                                    <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${riskRating >= 9 ? 'bg-red-500/20 border-red-300' :
-                                        riskRating >= 6 ? 'bg-orange-500/20 border-orange-300' :
-                                            'bg-yellow-500/20 border-yellow-300'
+                                    <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${riskRating >= 5 ? 'bg-red-500/20 border-red-300' :
+                                        riskRating === 4 ? 'bg-orange-500/20 border-orange-300' :
+                                            riskRating === 3 ? 'bg-yellow-500/20 border-yellow-300' :
+                                                riskRating === 2 ? 'bg-lime-500/20 border-lime-300' :
+                                                    'bg-green-500/20 border-green-300'
                                         }`}>
-                                        Risco: {riskRating}/12
+                                        Risco: {(() => {
+                                            if (riskRating >= 5) return 'Extremo';
+                                            if (riskRating === 4) return 'Alto';
+                                            if (riskRating === 3) return 'Moderado';
+                                            if (riskRating === 2) return 'Baixo';
+                                            return 'Muito Baixo';
+                                        })()}
                                     </span>
                                 )}
                             </div>
@@ -523,41 +528,49 @@ export default function TreeDetailPage() {
                                                 <div className="space-y-6">
                                                     {/* Row 1: Detailed Metrics */}
                                                     <div className="space-y-3">
-                                                        {/* Line 1: Probabilidade (Exclusive) */}
+                                                        {/* Line 1: Probabilidade de Falha */}
                                                         <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 flex flex-col justify-center min-w-0 w-full">
                                                             <span className="block text-[11px] text-purple-700 font-extrabold uppercase mb-1">
-                                                                Probabilidade de Falha e Impacto
+                                                                Probabilidade de Falha
                                                             </span>
                                                             <span className="text-lg font-bold text-gray-800">
-                                                                {tree.inspections[0].phytosanitary[0].risk_probability}
+                                                                {tree.inspections[0].phytosanitary[0].risk_probability?.replace('_', ' ') || '-'}
                                                             </span>
                                                         </div>
 
-                                                        {/* Line 2: Severidade e Alvo */}
+                                                        {/* Line 2: Probabilidade de Impacto e Consequências */}
                                                         <div className="grid grid-cols-2 gap-3">
-                                                            {/* 2. Severidade */}
+                                                            {/* 2. Probabilidade de Impacto (Mapped from severity_level) */}
                                                             <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col justify-center min-w-0">
-                                                                <span className="block text-[11px] text-orange-700 font-extrabold uppercase mb-1 truncate" title="Severidade">
-                                                                    Severidade
+                                                                <span className="block text-[11px] text-orange-700 font-extrabold uppercase mb-1 truncate" title="Probabilidade de Impacto">
+                                                                    Prob. de Impacto
                                                                 </span>
                                                                 <div className="flex items-baseline gap-1">
-                                                                    <span className="text-xl font-bold text-orange-900">
-                                                                        {tree.inspections[0].phytosanitary[0].severity_level || '-'}
+                                                                    <span className="text-lg font-bold text-orange-900">
+                                                                        {(() => {
+                                                                            const val = tree.inspections[0].phytosanitary[0].severity_level;
+                                                                            if (!val) return '-';
+                                                                            const map: Record<number, string> = { 1: 'Alta', 2: 'Média', 3: 'Baixa', 4: 'Muito Baixa' };
+                                                                            return map[val] || val;
+                                                                        })()}
                                                                     </span>
-                                                                    <span className="text-xs text-orange-600">/5</span>
                                                                 </div>
                                                             </div>
 
-                                                            {/* 3. Alvo */}
+                                                            {/* 3. Consequências (Mapped from target_value) */}
                                                             <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex flex-col justify-center min-w-0">
-                                                                <span className="block text-[11px] text-blue-700 font-extrabold uppercase mb-1 truncate" title="Alvo">
-                                                                    Alvo
+                                                                <span className="block text-[11px] text-blue-700 font-extrabold uppercase mb-1 truncate" title="Consequências">
+                                                                    Consequências
                                                                 </span>
                                                                 <div className="flex items-baseline gap-1">
-                                                                    <span className="text-xl font-bold text-blue-900">
-                                                                        {tree.inspections[0].phytosanitary[0].target_value || '-'}
+                                                                    <span className="text-lg font-bold text-blue-900">
+                                                                        {(() => {
+                                                                            const val = tree.inspections[0].phytosanitary[0].target_value;
+                                                                            if (!val) return '-';
+                                                                            const map: Record<number, string> = { 1: 'Severas', 2: 'Significativas', 3: 'Menores', 4: 'Insignificantes' };
+                                                                            return map[val] || val;
+                                                                        })()}
                                                                     </span>
-                                                                    <span className="text-xs text-blue-600">/4</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -572,10 +585,11 @@ export default function TreeDetailPage() {
                                                             <svg viewBox="0 0 200 120" className="w-full h-full">
                                                                 <defs>
                                                                     <linearGradient id="riskGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                                        <stop offset="0%" stopColor="#22c55e" />   {/* Green (3-5) */}
-                                                                        <stop offset="40%" stopColor="#eab308" />  {/* Yellow (6-8) */}
-                                                                        <stop offset="75%" stopColor="#f97316" />  {/* Orange (9-10) */}
-                                                                        <stop offset="100%" stopColor="#ef4444" /> {/* Red (11-12) */}
+                                                                        <stop offset="0%" stopColor="#22c55e" />   {/* Green (1) */}
+                                                                        <stop offset="25%" stopColor="#84cc16" />  {/* Lime (2) */}
+                                                                        <stop offset="50%" stopColor="#eab308" />  {/* Yellow (3) */}
+                                                                        <stop offset="75%" stopColor="#f97316" />  {/* Orange (4) */}
+                                                                        <stop offset="100%" stopColor="#ef4444" /> {/* Red (5) */}
                                                                     </linearGradient>
                                                                 </defs>
 
@@ -594,9 +608,9 @@ export default function TreeDetailPage() {
 
                                                                 {/* Needle */}
                                                                 {(() => {
-                                                                    const rating = tree.inspections[0].phytosanitary[0].risk_rating || 3;
-                                                                    const clampedRating = Math.max(3, Math.min(12, rating));
-                                                                    const angle = ((clampedRating - 3) / 9) * 180;
+                                                                    const rating = tree.inspections[0].phytosanitary[0].risk_rating || 1;
+                                                                    const clampedRating = Math.max(1, Math.min(5, rating));
+                                                                    const angle = ((clampedRating - 1) / 4) * 180;
                                                                     return (
                                                                         <g className="transition-transform duration-1000 ease-out origin-[100px_100px]" style={{ transform: `rotate(${angle}deg)` }}>
                                                                             <path d="M 100 100 L 30 100" stroke="#1f2937" strokeWidth="4" strokeLinecap="round" />
@@ -607,26 +621,38 @@ export default function TreeDetailPage() {
                                                             </svg>
 
                                                             {/* Value Text Overlay */}
-                                                            <div className="absolute bottom-1 text-center">
+                                                            <div className="absolute bottom-1 text-center w-full">
                                                                 <div className="flex items-baseline justify-center gap-1">
                                                                     <span className="text-4xl font-black text-gray-900 leading-none">
                                                                         {tree.inspections[0].phytosanitary[0].risk_rating || '-'}
                                                                     </span>
-                                                                    <span className="text-sm text-gray-400 font-bold">/12</span>
+                                                                    <span className="text-sm text-gray-400 font-bold">/5</span>
                                                                 </div>
-                                                                <div className={`text-sm font-black uppercase mt-2 px-4 py-1 rounded-full text-white shadow-sm ${(tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 11 ? 'bg-red-600' :
-                                                                    (tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 9 ? 'bg-orange-500' :
-                                                                        (tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 6 ? 'bg-yellow-500' :
-                                                                            'bg-green-500'
+                                                                <div className={`text-sm font-black uppercase mt-2 px-4 py-1 rounded-full text-white shadow-sm inline-block ${(tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 5 ? 'bg-red-600' :
+                                                                    (tree.inspections[0].phytosanitary[0].risk_rating || 0) == 4 ? 'bg-orange-500' :
+                                                                        (tree.inspections[0].phytosanitary[0].risk_rating || 0) == 3 ? 'bg-yellow-500' :
+                                                                            (tree.inspections[0].phytosanitary[0].risk_rating || 0) == 2 ? 'bg-lime-500' :
+                                                                                'bg-green-600'
                                                                     }`}>
                                                                     {(() => {
                                                                         const r = tree.inspections[0].phytosanitary[0].risk_rating || 0;
-                                                                        if (r >= 11) return 'Extremo';
-                                                                        if (r >= 9) return 'Alto';
-                                                                        if (r >= 6) return 'Moderado';
-                                                                        return 'Baixo';
+                                                                        if (r >= 5) return 'Extremo';
+                                                                        if (r == 4) return 'Alto';
+                                                                        if (r == 3) return 'Moderado';
+                                                                        if (r == 2) return 'Baixo';
+                                                                        return 'Muito Baixo';
                                                                     })()}
                                                                 </div>
+                                                                <p className="text-xs text-gray-500 mt-2 italic px-2">
+                                                                    {(() => {
+                                                                        const r = tree.inspections[0].phytosanitary[0].risk_rating || 0;
+                                                                        if (r >= 5) return "A falha é iminente e impactará o alvo.";
+                                                                        if (r == 4) return "Consequências significativas ou severas.";
+                                                                        if (r == 3) return "Monitorar.";
+                                                                        if (r == 2) return "Manter em observação.";
+                                                                        return "Nenhuma ação imediata necessária.";
+                                                                    })()}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </div>

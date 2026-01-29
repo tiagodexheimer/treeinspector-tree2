@@ -164,6 +164,13 @@ enum RiskProbability {
   Moderada
   Alta
   Extrema
+  // Android/TRAQ Integration
+  MUITO_PROVAVEL
+  PROVAVEL
+  POSSIVEL
+  IMPROVAVEL
+  IMINENTE
+  IMPROVAVEL_X
 }
 
 enum ServicePriority {

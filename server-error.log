@@ -234,3 +234,330 @@ Foreign key constraint violated: `Tree_speciesId_fkey (index)`
     at async requestHandlerImpl (C:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:484:13)
     at async Server.requestListener (C:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\start-server.js:226:13)
 
+[2026-01-29T13:35:44.582Z] PrismaClientValidationError: 
+Invalid `prisma.inspection.upsert()` invocation:
+
+{
+  where: {
+    uuid: "fb14b4c4-b7be-4310-87e4-7d4530d99753"
+  },
+  update: {
+    photos: {
+      deleteMany: {},
+      create: []
+    }
+  },
+  create: {
+    uuid: "fb14b4c4-b7be-4310-87e4-7d4530d99753",
+    data_inspecao: new Date("2026-01-29T13:35:09.298Z"),
+    treeId: 1108,
+    dendrometrics: {
+      create: [
+        {
+          dap1_cm: 15,
+          dap2_cm: undefined,
+          dap3_cm: undefined,
+          dap4_cm: undefined,
+          altura_total_m: 2,
+          altura_copa_m: undefined,
+          valid_from: new Date("2026-01-29T13:35:44.324Z"),
+          valid_to: null
+        }
+      ]
+    },
+    phytosanitary: {
+      create: [
+        {
+          estado_saude: "Bom",
+          severity_level: 4,
+          risk_probability: "IMPROVAVEL",
+          target_value: 4,
+          risk_rating: 1,
+          pests: {
+            connectOrCreate: []
+          },
+          valid_from: new Date("2026-01-29T13:35:44.324Z"),
+          valid_to: null
+        }
+      ]
+    },
+    managementActions: {
+      create: [
+        {
+          necessita_manejo: false,
+          manejo_tipo: undefined,
+          poda_tipos: [],
+          supressao_tipo: undefined,
+          justification: undefined,
+          valid_from: new Date("2026-01-29T13:35:44.324Z"),
+          valid_to: null
+        }
+      ]
+    },
+    photos: {
+      create: []
+    }
+  }
+}
+
+Invalid value for argument `risk_probability`. Expected RiskProbability.
+    at wn (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async POST.__TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__.prisma.$transaction.maxWait (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\[root-of-the-server]__eaa61fc0._.js:316:25)
+    at async Proxy._transactionWithCallback (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:130:8000)
+    at async POST (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\[root-of-the-server]__eaa61fc0._.js:126:9)
+    at async AppRouteRouteModule.do (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:37789)
+    at async AppRouteRouteModule.handle (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:45045)
+    at async responseGenerator (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14333:38)
+    at async AppRouteRouteModule.handleResponse (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:1:187851)
+    at async handleResponse (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14395:32)
+    at async handler (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14448:13)
+    at async DevServer.renderToResponseWithComponentsImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1413:9)
+    at async DevServer.renderPageComponent (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1465:24)
+    at async DevServer.renderToResponseImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1515:32)
+    at async DevServer.pipeImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1021:25)
+    at async NextNodeServer.handleCatchallRenderRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\next-server.js:394:17)
+    at async DevServer.handleRequestImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:912:17)
+    at async E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\dev\next-dev-server.js:382:20
+    at async Span.traceAsyncFn (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\dev\next-dev-server.js:378:24)
+    at async invokeRender (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:240:21)
+    at async handleRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:436:24)
+    at async requestHandlerImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:484:13)
+    at async Server.requestListener (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\start-server.js:226:13)
+
+[2026-01-29T14:08:49.334Z] PrismaClientValidationError: 
+Invalid `prisma.inspection.upsert()` invocation:
+
+{
+  where: {
+    uuid: "dd84e85a-64a3-42cc-9431-e9a68a9ad49d"
+  },
+  update: {
+    photos: {
+      deleteMany: {},
+      create: []
+    }
+  },
+  create: {
+    uuid: "dd84e85a-64a3-42cc-9431-e9a68a9ad49d",
+    data_inspecao: new Date("2026-01-29T14:08:38.553Z"),
+    treeId: 1108,
+    dendrometrics: {
+      create: [
+        {
+          dap1_cm: 19,
+          dap2_cm: undefined,
+          dap3_cm: undefined,
+          dap4_cm: undefined,
+          altura_total_m: 2,
+          altura_copa_m: undefined,
+          valid_from: new Date("2026-01-29T14:08:49.103Z"),
+          valid_to: null
+        }
+      ]
+    },
+    phytosanitary: {
+      create: [
+        {
+          estado_saude: "Bom",
+          severity_level: 1,
+          risk_probability: "IMINENTE",
+          target_value: 1,
+          risk_rating: 5,
+          pests: {
+            connectOrCreate: [
+              {
+                where: {
+                  nome_comum: "Erva-de-passarinho"
+                },
+                create: {
+                  nome_comum: "Erva-de-passarinho",
+                  tipo: "Praga"
+                }
+              },
+              {
+                where: {
+                  nome_comum: "Schefflera"
+                },
+                create: {
+                  nome_comum: "Schefflera",
+                  tipo: "Praga"
+                }
+              }
+            ]
+          },
+          valid_from: new Date("2026-01-29T14:08:49.103Z"),
+          valid_to: null
+        }
+      ]
+    },
+    managementActions: {
+      create: [
+        {
+          necessita_manejo: true,
+          manejo_tipo: "Poda",
+          poda_tipos: [
+            "Limpeza"
+          ],
+          supressao_tipo: undefined,
+          justification: "",
+          valid_from: new Date("2026-01-29T14:08:49.103Z"),
+          valid_to: null
+        }
+      ]
+    },
+    photos: {
+      create: []
+    }
+  }
+}
+
+Invalid value for argument `risk_probability`. Expected RiskProbability.
+    at wn (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async POST.__TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__.prisma.$transaction.maxWait (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\[root-of-the-server]__eaa61fc0._.js:316:25)
+    at async Proxy._transactionWithCallback (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:130:8000)
+    at async POST (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\[root-of-the-server]__eaa61fc0._.js:126:9)
+    at async AppRouteRouteModule.do (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:37789)
+    at async AppRouteRouteModule.handle (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:45045)
+    at async responseGenerator (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14333:38)
+    at async AppRouteRouteModule.handleResponse (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:1:187851)
+    at async handleResponse (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14395:32)
+    at async handler (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14448:13)
+    at async DevServer.renderToResponseWithComponentsImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1413:9)
+    at async DevServer.renderPageComponent (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1465:24)
+    at async DevServer.renderToResponseImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1515:32)
+    at async DevServer.pipeImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1021:25)
+    at async NextNodeServer.handleCatchallRenderRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\next-server.js:394:17)
+    at async DevServer.handleRequestImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:912:17)
+    at async E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\dev\next-dev-server.js:382:20
+    at async Span.traceAsyncFn (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\dev\next-dev-server.js:378:24)
+    at async invokeRender (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:240:21)
+    at async handleRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:436:24)
+    at async requestHandlerImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:484:13)
+    at async Server.requestListener (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\start-server.js:226:13)
+
+[2026-01-29T14:09:15.078Z] PrismaClientValidationError: 
+Invalid `prisma.inspection.upsert()` invocation:
+
+{
+  where: {
+    uuid: "dd84e85a-64a3-42cc-9431-e9a68a9ad49d"
+  },
+  update: {
+    photos: {
+      deleteMany: {},
+      create: []
+    }
+  },
+  create: {
+    uuid: "dd84e85a-64a3-42cc-9431-e9a68a9ad49d",
+    data_inspecao: new Date("2026-01-29T14:08:38.553Z"),
+    treeId: 1108,
+    dendrometrics: {
+      create: [
+        {
+          dap1_cm: 19,
+          dap2_cm: undefined,
+          dap3_cm: undefined,
+          dap4_cm: undefined,
+          altura_total_m: 2,
+          altura_copa_m: undefined,
+          valid_from: new Date("2026-01-29T14:09:14.921Z"),
+          valid_to: null
+        }
+      ]
+    },
+    phytosanitary: {
+      create: [
+        {
+          estado_saude: "Bom",
+          severity_level: 1,
+          risk_probability: "IMINENTE",
+          target_value: 1,
+          risk_rating: 5,
+          pests: {
+            connectOrCreate: [
+              {
+                where: {
+                  nome_comum: "Erva-de-passarinho"
+                },
+                create: {
+                  nome_comum: "Erva-de-passarinho",
+                  tipo: "Praga"
+                }
+              },
+              {
+                where: {
+                  nome_comum: "Schefflera"
+                },
+                create: {
+                  nome_comum: "Schefflera",
+                  tipo: "Praga"
+                }
+              }
+            ]
+          },
+          valid_from: new Date("2026-01-29T14:09:14.921Z"),
+          valid_to: null
+        }
+      ]
+    },
+    managementActions: {
+      create: [
+        {
+          necessita_manejo: true,
+          manejo_tipo: "Poda",
+          poda_tipos: [
+            "Limpeza"
+          ],
+          supressao_tipo: undefined,
+          justification: "",
+          valid_from: new Date("2026-01-29T14:09:14.921Z"),
+          valid_to: null
+        }
+      ]
+    },
+    photos: {
+      create: []
+    }
+  }
+}
+
+Invalid value for argument `risk_probability`. Expected RiskProbability.
+    at wn (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async POST.__TURBOPACK__imported__module__$5b$project$5d2f$app$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__.prisma.$transaction.maxWait (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\[root-of-the-server]__eaa61fc0._.js:316:25)
+    at async Proxy._transactionWithCallback (E:\Projetos\treeinspector-tree\web\node_modules\@prisma\client\runtime\library.js:130:8000)
+    at async POST (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\[root-of-the-server]__eaa61fc0._.js:126:9)
+    at async AppRouteRouteModule.do (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:37789)
+    at async AppRouteRouteModule.handle (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:45045)
+    at async responseGenerator (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14333:38)
+    at async AppRouteRouteModule.handleResponse (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:1:187851)
+    at async handleResponse (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14395:32)
+    at async handler (E:\Projetos\treeinspector-tree\web\.next\dev\server\chunks\node_modules_next_0abe41c2._.js:14448:13)
+    at async DevServer.renderToResponseWithComponentsImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1413:9)
+    at async DevServer.renderPageComponent (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1465:24)
+    at async DevServer.renderToResponseImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1515:32)
+    at async DevServer.pipeImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:1021:25)
+    at async NextNodeServer.handleCatchallRenderRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\next-server.js:394:17)
+    at async DevServer.handleRequestImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\base-server.js:912:17)
+    at async E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\dev\next-dev-server.js:382:20
+    at async Span.traceAsyncFn (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\dev\next-dev-server.js:378:24)
+    at async invokeRender (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:240:21)
+    at async handleRequest (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:436:24)
+    at async requestHandlerImpl (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\router-server.js:484:13)
+    at async Server.requestListener (E:\Projetos\treeinspector-tree\web\node_modules\next\dist\server\lib\start-server.js:226:13)
+

@@ -829,9 +829,22 @@ export default function TreeDetailPage() {
                                                                     {item.phytosanitary?.[0]?.estado_saude || 'Não avaliada'}
                                                                 </span>
                                                             </p>
-                                                            {item.phytosanitary?.[0]?.severity_level && (
+                                                            {item.phytosanitary?.[0]?.risk_rating !== undefined && (
                                                                 <p className="text-xs text-gray-600">
-                                                                    Severidade: <span className="font-medium">{['Leve', 'Leve', 'Média', 'Média', 'Alta'][item.phytosanitary[0].severity_level - 1]}</span>
+                                                                    Risco TRAQ: <span className={`font-medium ${item.phytosanitary[0].risk_rating >= 5 ? 'text-red-600' :
+                                                                            item.phytosanitary[0].risk_rating === 4 ? 'text-orange-600' :
+                                                                                item.phytosanitary[0].risk_rating === 3 ? 'text-yellow-600' :
+                                                                                    'text-emerald-600'
+                                                                        }`}>
+                                                                        {(() => {
+                                                                            const r = item.phytosanitary[0].risk_rating;
+                                                                            if (r >= 5) return 'Extremo';
+                                                                            if (r === 4) return 'Alto';
+                                                                            if (r === 3) return 'Moderado';
+                                                                            if (r === 2) return 'Baixo';
+                                                                            return 'Muito Baixo';
+                                                                        })()}
+                                                                    </span>
                                                                 </p>
                                                             )}
                                                             {item.phytosanitary?.[0]?.pests && (() => {

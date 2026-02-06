@@ -110,6 +110,9 @@ model Inspection {
   treeId          Int
   tree            Tree     @relation(fields: [treeId], references: [id_arvore])
   
+  // Flag indicating if the tree was observed as removed during inspection
+  tree_removed    Boolean  @default(false)
+  
   // Temporal Data
   dendrometrics   DendrometricData[]
   phytosanitary   PhytosanitaryData[]

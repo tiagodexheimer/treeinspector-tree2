@@ -16,17 +16,31 @@ async function checkAuth() {
     return session.user;
 }
 
-export async function createInspection(treeId: number, data: any) {
+// Update signature to accept optional data
+export async function createInspection(treeId: number, data: any, treeRemoved: boolean = false) {
     const user = await checkAuth();
 
     const inspection = await prisma.inspection.create({
         data: {
             treeId,
             createdById: user.id,
-            // ... other data mapping from form
-            // Note: This matches the user request to track 'createdById'
+            tree_removed: treeRemoved,
+            // Capture date if provided in data, else default
+            data_inspecao: data.data_inspecao ? new Date(data.data_inspecao) : new Date(),
+
+            // Map other related data if passed in structure (e.g. from a web form)
+            // For now, assuming basic creation or that 'data' contains the relations
+            // If data is used for detailed fields, we'd need to map dendrometrics/etc here too
+            // But aligned with request:
         }
     });
+
+    if (treeRemoved) {
+        await prisma.tree.update({
+            where: { id_arvore: treeId },
+            data: { status: 'Removida' }
+        });
+    }
 
     revalidatePath(`/trees/${treeId}`);
     return inspection;

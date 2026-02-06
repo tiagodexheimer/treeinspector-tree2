@@ -183,7 +183,6 @@ export async function POST(request: Request) {
                             },
                             phytosanitary: {
                                 create: inspection.phytosanitary ? [{
-                                    estado_saude: inspection.phytosanitary.estado_saude,
                                     // New fields with safety casting
                                     severity_level: inspection.phytosanitary.severity_level ? Number(inspection.phytosanitary.severity_level) : undefined,
                                     risk_probability: inspection.phytosanitary.risk_probability,
@@ -217,8 +216,18 @@ export async function POST(request: Request) {
                                 create: inspection.photos ? inspection.photos.map((p: any) => ({
                                     uri: p.uri
                                 })) : []
-                            }
+                            },
+                            tree_removed: inspection.tree_removed || false
                         };
+
+                        // 3. Logic: If Inspector marked tree as removed, update Tree status immediately
+                        if (inspection.tree_removed) {
+                            console.log(`[SYNC] Tree ${treeId} marked as removed by inspector.`);
+                            await tx.tree.update({
+                                where: { id_arvore: treeId },
+                                data: { status: 'Removida' }
+                            });
+                        }
 
                         // Upsert Inspection by UUID
                         await tx.inspection.upsert({

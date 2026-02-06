@@ -12,6 +12,8 @@ export const authConfig = {
       const isOnAdmin = nextUrl.pathname.startsWith("/admin");
       const isOnServiceOrders = nextUrl.pathname.startsWith("/service-orders");
 
+      console.log(`[Middleware] Path: ${nextUrl.pathname}, LoggedIn: ${isLoggedIn}, Role: ${role}`);
+
       if (isOnAdmin) {
         if (isLoggedIn) return role === "ADMIN";
         return false;
@@ -19,8 +21,11 @@ export const authConfig = {
 
       if (isOnServiceOrders) {
         if (isLoggedIn) {
-          return ["ADMIN", "GESTOR", "INSPETOR", "OPERACIONAL"].includes(role);
+          const hasRole = ["ADMIN", "GESTOR", "INSPETOR", "OPERACIONAL"].includes(role);
+          console.log(`[Middleware] Accessing Service Orders. Has Role? ${hasRole} (Role: ${role})`);
+          return hasRole;
         }
+        console.log(`[Middleware] Accessing Service Orders but NOT logged in.`);
         return false;
       }
 

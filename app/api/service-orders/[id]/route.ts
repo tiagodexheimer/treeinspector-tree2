@@ -89,33 +89,54 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             select: { executed_at: true }
         });
 
-        const updatedOrder = await prisma.serviceOrder.update({
-            where: { id },
-            data: {
-                serviceType,
-                serviceSubtypes,
-                description,
-                status,
-                priority: priority as any,
-                assigned_to,
-                adjustment_notes,
-                checklist,
-                // Only set executed_at if transitioning to Review and it's not already set
-                executed_at: (status === 'Aguardando Revisão' && !currentOrder?.executed_at)
-                    ? new Date()
-                    : undefined,
-                materials: materials ? {
-                    deleteMany: {},
-                    create: materials.map((m: any) => ({
-                        name: m.name,
-                        quantity: m.quantity,
-                        unit: m.unit
-                    }))
-                } : undefined
-            },
-            include: {
-                managementActions: true
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            // 1. Update the Service Order
+            const order = await tx.serviceOrder.update({
+                where: { id },
+                data: {
+                    serviceType,
+                    serviceSubtypes,
+                    description,
+                    status,
+                    priority: priority as any,
+                    assigned_to,
+                    adjustment_notes,
+                    checklist,
+                    // Only set executed_at if transitioning to Review and it's not already set
+                    executed_at: (status === 'Aguardando Revisão' && !currentOrder?.executed_at)
+                        ? new Date()
+                        : undefined,
+                    materials: materials ? {
+                        deleteMany: {},
+                        create: materials.map((m: any) => ({
+                            name: m.name,
+                            quantity: m.quantity,
+                            unit: m.unit
+                        }))
+                    } : undefined
+                },
+                include: {
+                    managementActions: true,
+                    trees: true
+                }
+            });
+
+            // 2. If Concluída + Remoção, update trees to 'Removida'
+            // We must use 'order.serviceType' because 'serviceType' from body might be undefined if not changing
+            const finalStatus = order.status;
+            const finalServiceType = order.serviceType;
+
+            if (finalStatus === 'Concluída' && finalServiceType === 'Remoção') {
+                const treeIds = order.trees.map(t => t.id_arvore);
+                if (treeIds.length > 0) {
+                    await tx.tree.updateMany({
+                        where: { id_arvore: { in: treeIds } },
+                        data: { status: 'Removida' }
+                    });
+                }
             }
+
+            return order;
         });
 
         // If the OS is concluded, we should mark associated management actions as done

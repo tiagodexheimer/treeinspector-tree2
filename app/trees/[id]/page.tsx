@@ -233,6 +233,17 @@ export default function TreeDetailPage() {
             <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="relative max-w-7xl mx-auto px-8 py-12">
+                    {(tree as any).status === 'Removida' && (
+                        <div className="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r shadow-md flex items-center gap-3 animate-pulse">
+                            <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                                <p className="font-bold text-lg">ÁRVORE REMOVIDA</p>
+                                <p className="text-sm">Esta árvore foi removida e consta apenas como registro histórico.</p>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex items-start justify-between mb-6">
                         <Link href="/trees" className="text-white/80 hover:text-white transition-colors flex items-center gap-2">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -832,9 +843,9 @@ export default function TreeDetailPage() {
                                                             {item.phytosanitary?.[0]?.risk_rating !== undefined && (
                                                                 <p className="text-xs text-gray-600">
                                                                     Risco TRAQ: <span className={`font-medium ${item.phytosanitary[0].risk_rating >= 5 ? 'text-red-600' :
-                                                                            item.phytosanitary[0].risk_rating === 4 ? 'text-orange-600' :
-                                                                                item.phytosanitary[0].risk_rating === 3 ? 'text-yellow-600' :
-                                                                                    'text-emerald-600'
+                                                                        item.phytosanitary[0].risk_rating === 4 ? 'text-orange-600' :
+                                                                            item.phytosanitary[0].risk_rating === 3 ? 'text-yellow-600' :
+                                                                                'text-emerald-600'
                                                                         }`}>
                                                                         {(() => {
                                                                             const r = item.phytosanitary[0].risk_rating;

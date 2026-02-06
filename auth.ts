@@ -8,17 +8,7 @@ import { z } from "zod";
 export const { auth, signIn, signOut, handlers } = NextAuth({
     ...authConfig,
     secret: process.env.AUTH_SECRET,
-    cookies: {
-        sessionToken: {
-            name: `next-auth.session-token`,
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: process.env.NODE_ENV === 'production'
-            }
-        }
-    },
+    // cookies removed to use default NextAuth behavior
     providers: [
         Credentials({
             async authorize(credentials) {

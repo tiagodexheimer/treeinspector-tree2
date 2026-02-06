@@ -75,6 +75,8 @@ model Tree {
   nome_popular    String?
   cover_photo     String? // URL/URI or base64 placeholder
   
+  status          String   @default("Ativa") // 'Ativa', 'Removida'
+  
   // Geospatial data (PostGIS POINT with WGS 84)
   localizacao     Unsupported("geometry(Point, 4326)")?
   

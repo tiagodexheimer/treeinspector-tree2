@@ -173,7 +173,15 @@ export default function TreesPage() {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {trees.map((tree) => (
                                     <tr key={tree.id_arvore} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tree.numero_etiqueta}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {tree.numero_etiqueta}
+                                            {/* @ts-ignore - status field not yet in interface but present in API */}
+                                            {(tree as any).status === 'Removida' && (
+                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                    Removida
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{tree.species?.nome_comum || '-'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {tree.rua ? `${tree.rua}, ${tree.numero}` : tree.endereco}

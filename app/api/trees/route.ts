@@ -77,6 +77,7 @@ export async function GET(request: Request) {
                     FROM "Tree" t
                     LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
                     WHERE ST_DWithin(t.localizacao, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${radius})
+                    AND t.status != 'Removida'
                     ORDER BY distance ASC
                     LIMIT 50
                 `;
@@ -122,8 +123,8 @@ export async function GET(request: Request) {
         const minLng = searchParams.get('minLng');
         const maxLng = searchParams.get('maxLng');
 
-        // Build WHERE clause dynamically
-        let whereClause = Prisma.sql`WHERE t.localizacao IS NOT NULL`;
+        // Build WHERE clause dynamically (Default: Exclude Removed trees from Map)
+        let whereClause = Prisma.sql`WHERE t.localizacao IS NOT NULL AND t.status != 'Removida'`;
 
         if (bairro) {
             whereClause = Prisma.sql`${whereClause} AND t.bairro ILIKE ${'%' + bairro + '%'}`;

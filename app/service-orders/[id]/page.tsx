@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import ServiceOrderEditModal from '../../components/ServiceOrderEditModal';
 import ServiceOrderAdjustmentModal from '../../components/ServiceOrderAdjustmentModal';
+import ServiceOrderExecutionModal from '../../components/ServiceOrderExecutionModal';
 import { CHECKLIST_LABELS } from '../../lib/constants';
 
 // Dynamically import Map to avoid SSR issues
@@ -27,6 +28,8 @@ export default function ServiceOrderDetailsPage() {
 
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+    const [isExecutionModalOpen, setIsExecutionModalOpen] = useState(false);
+    const [executionAction, setExecutionAction] = useState<'start' | 'finalize' | 'cancel' | null>(null);
 
     useEffect(() => {
         fetchOrder();
@@ -107,6 +110,11 @@ export default function ServiceOrderDetailsPage() {
             console.error(e);
             alert('Erro ao atualizar dados');
         }
+    }
+
+    function openExecutionModal(action: 'start' | 'finalize' | 'cancel') {
+        setExecutionAction(action);
+        setIsExecutionModalOpen(true);
     }
 
     if (loading) return <div className="p-8 text-center">Carregando detalhes...</div>;
@@ -411,20 +419,41 @@ export default function ServiceOrderDetailsPage() {
                                         )}
 
                                         {order.status !== 'Aguardando Revisão' && (
-                                            <button
-                                                onClick={() => updateStatus(order.status === 'Planejada' ? 'Em Execução' : 'Aguardando Revisão')}
-                                                className="w-full border-2 border-green-600 text-green-700 py-2 rounded hover:bg-green-50 transition font-medium"
-                                            >
-                                                {order.status === 'Planejada' ? 'Iniciar Execução' : 'Enviar para Revisão'}
-                                            </button>
+                                            <>
+                                                {order.status === 'Planejada' && (
+                                                    <button
+                                                        onClick={() => openExecutionModal('start')}
+                                                        className="w-full border-2 border-green-600 text-green-700 py-2 rounded hover:bg-green-50 transition font-medium flex items-center justify-center gap-2"
+                                                    >
+                                                        <span>▶️</span> Iniciar Execução
+                                                    </button>
+                                                )}
+
+                                                {order.status === 'Em Execução' && (
+                                                    <button
+                                                        onClick={() => openExecutionModal('finalize')}
+                                                        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition font-bold shadow-md flex items-center justify-center gap-2"
+                                                    >
+                                                        <span>✅</span> Finalizar Execução
+                                                    </button>
+                                                )}
+
+                                                {/* Fallback simple status update if needed, but prefer modal for flow */}
+                                                {/* <button
+                                                    onClick={() => updateStatus(order.status === 'Planejada' ? 'Em Execução' : 'Aguardando Revisão')}
+                                                    className="w-full border-2 border-gray-300 text-gray-500 py-1 rounded text-xs hover:bg-gray-50 transition"
+                                                >
+                                                    (Debug: Avançar Status Manualmente)
+                                                </button> */}
+                                            </>
                                         )}
 
                                         {canEditOrCancel && (
                                             <button
-                                                onClick={() => updateStatus('Cancelada')}
+                                                onClick={() => order.status === 'Em Execução' ? openExecutionModal('cancel') : updateStatus('Cancelada')}
                                                 className="w-full border border-red-200 text-red-600 py-2 rounded hover:bg-red-50 transition text-sm"
                                             >
-                                                Cancelar OS
+                                                {order.status === 'Em Execução' ? 'Interromper Serviço' : 'Cancelar OS'}
                                             </button>
                                         )}
                                     </>
@@ -459,6 +488,15 @@ export default function ServiceOrderDetailsPage() {
                 isOpen={isAdjustmentModalOpen}
                 onClose={() => setIsAdjustmentModalOpen(false)}
                 onSubmit={handleAdjustmentSubmit}
+            />
+
+            <ServiceOrderExecutionModal
+                isOpen={isExecutionModalOpen}
+                onClose={() => setIsExecutionModalOpen(false)}
+                action={executionAction}
+                serviceOrderId={order.id}
+                initialStartTime={order.start_time}
+                onSuccess={fetchOrder}
             />
         </div>
     );

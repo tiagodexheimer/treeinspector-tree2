@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { MapPin } from 'lucide-react';
@@ -36,8 +36,12 @@ export default function ServiceOrdersPage() {
     const role = (session?.user as any)?.role;
     const canCreate = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
 
+    const fetchedRef = useRef(false);
+
     useEffect(() => {
+        if (fetchedRef.current) return;
         fetchOrders();
+        fetchedRef.current = true;
     }, [activeTab]);
 
     async function fetchOrders() {

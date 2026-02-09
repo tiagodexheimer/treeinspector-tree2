@@ -21,9 +21,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
                     console.log(`[auth] 🔍 Tentando login: ${email}`);
 
                     try {
-                        console.log(`[auth] 🔄 Verificando ligação à Base de Dados...`);
                         await prisma.$connect();
-                        console.log(`[auth] 🔗 Ligação à DB OK.`);
 
                         // Cast para evitar erro de lint se types não estiverem sync
                         const userModel = (prisma as any).user;

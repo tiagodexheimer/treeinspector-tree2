@@ -150,39 +150,65 @@ export async function GET(request: Request) {
             };
         }
 
+        // 1. Fetch OS (1 RTT)
         const serviceOrders = await prisma.serviceOrder.findMany({
             where,
-            include: {
-                trees: {
-                    include: {
-                        species: true
-                    }
-                },
-                managementActions: true
-            },
             orderBy: { created_at: 'desc' }
         });
 
-        // Precisamos adicionar lat/lng manualmente para cada árvore em cada OS
-        const serviceOrdersWithCoords = await Promise.all(serviceOrders.map(async (so) => {
-            const treesWithCoords = await Promise.all(so.trees.map(async (tree: any) => {
-                const coords: any[] = await prisma.$queryRaw`
-                    SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
-                    FROM "Tree" WHERE id_arvore = ${tree.id_arvore}
-                `;
-                return {
-                    ...tree,
-                    lat: coords[0]?.lat || null,
-                    lng: coords[0]?.lng || null
-                };
-            }));
-            return {
-                ...so,
-                trees: treesWithCoords
-            };
+        if (serviceOrders.length === 0) return NextResponse.json([]);
+
+        const osIds = serviceOrders.map(so => so.id);
+
+        // 2. Fetch all Trees + Coords + Species in ONE query across all found OS (1 RTT)
+        const treesData: any[] = await prisma.$queryRaw`
+            SELECT 
+                t.id_arvore, t.numero_etiqueta, t.nome_popular, t.rua, t.numero, t.bairro, t.status,
+                ST_Y(t.localizacao::geometry) as lat, 
+                ST_X(t.localizacao::geometry) as lng,
+                s.nome_comum as "species_nome_comum",
+                so_t."A" as "osId"
+            FROM "Tree" t
+            JOIN "_ServiceOrderToTree" so_t ON t.id_arvore = so_t."B"
+            LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
+            WHERE so_t."A" = ANY(${osIds})
+        `;
+
+        // 3. Fetch all Management Actions in ONE query (1 RTT)
+        const maData: any[] = await prisma.$queryRaw`
+            SELECT 
+                ma.*,
+                so_ma."B" as "osId"
+            FROM "ManagementAction" ma
+            JOIN "_ManagementActionToServiceOrder" so_ma ON ma.id = so_ma."A"
+            WHERE so_ma."B" = ANY(${osIds})
+        `;
+
+        // 4. Merge results in JS
+        const treesByOS = treesData.reduce((acc, t) => {
+            const osId = t.osId;
+            if (!acc[osId]) acc[osId] = [];
+            acc[osId].push({
+                ...t,
+                species: t.species_nome_comum ? { nome_comum: t.species_nome_comum } : null
+            });
+            return acc;
+        }, {} as Record<number, any[]>);
+
+        const maByOS = maData.reduce((acc, ma) => {
+            const osId = ma.osId;
+            if (!acc[osId]) acc[osId] = [];
+            acc[osId].push(ma);
+            return acc;
+        }, {} as Record<number, any[]>);
+
+        const serviceOrdersWithAll = serviceOrders.map(so => ({
+            ...so,
+            trees: treesByOS[so.id] || [],
+            managementActions: maByOS[so.id] || []
         }));
 
-        return NextResponse.json(serviceOrdersWithCoords);
+        return NextResponse.json(serviceOrdersWithAll);
 
     } catch (error) {
         console.error('Error fetching service orders:', error);

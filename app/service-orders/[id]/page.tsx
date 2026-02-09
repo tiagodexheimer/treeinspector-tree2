@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -33,8 +33,12 @@ export default function ServiceOrderDetail() {
     const [isExecutionModalOpen, setIsExecutionModalOpen] = useState(false);
     const [executionAction, setExecutionAction] = useState<'start' | 'finalize' | 'cancel' | null>(null);
 
+    const fetchedRef = useRef(false);
+
     useEffect(() => {
+        if (fetchedRef.current) return;
         fetchOrder();
+        fetchedRef.current = true;
 
         const handleAfterPrint = () => {
             setMapImageUrl(null);

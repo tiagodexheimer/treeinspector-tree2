@@ -8,48 +8,55 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     try {
         const { id: idParam } = await context.params;
         const id = parseInt(idParam);
-        const order = await prisma.serviceOrder.findUnique({
-            where: { id },
-            include: {
-                trees: {
-                    select: {
-                        id_arvore: true,
-                        numero_etiqueta: true,
-                        rua: true,
-                        numero: true,
-                        bairro: true,
-                        endereco: true,
-                        cover_photo: true,
-                        species: true
-                    }
-                },
-                managementActions: true,
-                photos: true,
-                materials: true
-            }
-        });
+        console.time(`API:detail:${id}:turbo`);
+
+        // ONE ROUND TRIP TO RULE THEM ALL
+        // We use JSON aggregation to fetch all relations in a single DB call
+        const results = await prisma.$queryRaw`
+            WITH so AS (
+                SELECT * FROM "ServiceOrder" WHERE id = ${id} LIMIT 1
+            )
+            SELECT 
+                so.*,
+                COALESCE((
+                    SELECT JSON_AGG(t_data) FROM (
+                        SELECT 
+                            t.id_arvore, t.numero_etiqueta, t.rua, t.numero, t.bairro, t.endereco, t.cover_photo,
+                            ST_Y(t.localizacao::geometry) as lat, 
+                            ST_X(t.localizacao::geometry) as lng,
+                            (SELECT JSON_BUILD_OBJECT(
+                                'id_especie', s.id_especie, 
+                                'nome_comum', s.nome_comum, 
+                                'nome_cientifico', s.nome_cientifico
+                            ) FROM "Species" s WHERE s.id_especie = t."speciesId") as species
+                        FROM "Tree" t
+                        JOIN "_ServiceOrderToTree" so_t ON t.id_arvore = so_t."B"
+                        WHERE so_t."A" = so.id
+                    ) t_data
+                ), '[]'::json) as trees,
+                COALESCE((
+                    SELECT JSON_AGG(ma.*) FROM "ManagementAction" ma 
+                    JOIN "_ManagementActionToServiceOrder" ma_so ON ma.id = ma_so."A"
+                    WHERE ma_so."B" = so.id
+                ), '[]'::json) as "managementActions",
+                COALESCE((
+                    SELECT JSON_AGG(sop.*) FROM "ServiceOrderPhoto" sop WHERE sop."serviceOrderId" = so.id
+                ), '[]'::json) as photos,
+                COALESCE((
+                    SELECT JSON_AGG(som.*) FROM "ServiceOrderMaterial" som WHERE som."serviceOrderId" = so.id
+                ), '[]'::json) as materials
+            FROM so;
+        `;
+
+        console.timeEnd(`API:detail:${id}:turbo`);
+
+        const order = (results as any[])[0];
 
         if (!order) {
             return NextResponse.json({ error: 'Service Order not found' }, { status: 404 });
         }
 
-        // Add coordinates to each tree manually
-        const orderWithCoords = {
-            ...order,
-            trees: await Promise.all(((order as any).trees || []).map(async (tree: any) => {
-                const coords: any[] = await prisma.$queryRaw`
-                    SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
-                    FROM "Tree" WHERE id_arvore = ${tree.id_arvore}
-                `;
-                return {
-                    ...tree,
-                    lat: coords[0]?.lat || null,
-                    lng: coords[0]?.lng || null
-                };
-            }))
-        };
-
-        return NextResponse.json(orderWithCoords as any);
+        return NextResponse.json(order);
     } catch (error) {
         console.error('Error fetching service order:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

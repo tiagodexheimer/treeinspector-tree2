@@ -160,7 +160,7 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
 
                     {/* Description */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Observações / Detalhes</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Observações do Planejamento</label>
                         <textarea
                             className="w-full border border-gray-300 rounded-lg p-2 focus:ring-green-500 focus:border-green-500"
                             rows={3}

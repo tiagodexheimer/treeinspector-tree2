@@ -201,7 +201,7 @@ export default function ServiceOrderDetailsPage() {
                             </div>
 
                             <div className="mt-6">
-                                <label className="block text-sm text-gray-500 uppercase">Descrição do Planejamento</label>
+                                <label className="block text-sm text-gray-500 uppercase">Observações do Planejamento</label>
                                 <p className="mt-1 text-gray-700 whitespace-pre-wrap bg-gray-50 p-4 rounded border border-gray-100 italic">
                                     {order.observations || 'Nenhuma observação registrada durante o planejamento.'}
                                 </p>
@@ -253,14 +253,7 @@ export default function ServiceOrderDetailsPage() {
                                         )}
                                     </div>
 
-                                    {order.description && (
-                                        <div className="mb-6">
-                                            <label className="block text-sm font-bold text-blue-700 uppercase mb-1 text-[10px] tracking-wider">Relatório do Técnico</label>
-                                            <p className="text-gray-800 bg-white p-4 rounded-lg border border-blue-100 shadow-sm leading-relaxed">
-                                                {order.description}
-                                            </p>
-                                        </div>
-                                    )}
+
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                         {/* Checklist */}

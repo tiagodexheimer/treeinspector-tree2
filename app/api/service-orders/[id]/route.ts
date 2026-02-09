@@ -8,7 +8,6 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     try {
         const { id: idParam } = await context.params;
         const id = parseInt(idParam);
-        console.time(`API:detail:${id}:turbo`);
 
         // ONE ROUND TRIP TO RULE THEM ALL
         // We use JSON aggregation to fetch all relations in a single DB call
@@ -47,8 +46,6 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
                 ), '[]'::json) as materials
             FROM so;
         `;
-
-        console.timeEnd(`API:detail:${id}:turbo`);
 
         const order = (results as any[])[0];
 

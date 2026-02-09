@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -94,7 +94,11 @@ export default function TreeDetailPage() {
     const canCreateOS = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
     const canDelete = role === 'ADMIN';
 
+    const fetchCalled = useRef(false);
+
     useEffect(() => {
+        if (fetchCalled.current) return;
+        fetchCalled.current = true;
         fetchTree();
     }, []); // eslint-disable-line
 

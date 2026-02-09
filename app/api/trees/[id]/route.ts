@@ -10,67 +10,81 @@ export async function GET(
     const id = parseInt(idString);
 
     try {
-        const tree = await prisma.tree.findUnique({
-            where: { id_arvore: id },
-            include: {
-                species: true,
-                inspections: {
-                    orderBy: { data_inspecao: 'desc' },
-                    include: {
-                        dendrometrics: true,
-                        phytosanitary: {
-                            include: {
-                                pests: true
-                            }
-                        },
-                        managementActions: {
-                            include: {
-                                serviceOrders: true
-                            }
-                        },
-                        photos: true
-                    }
-                },
-                photos: true,
-                serviceOrders: true
-            }
-        });
+        // POWER QUERY: Fetch everything in ONE RTT using JSON aggregation
+        // We list Tree columns explicitly to avoid 'geometry' deserialization error in Prisma
+        const results = await prisma.$queryRaw`
+            WITH tree_base AS (
+                SELECT 
+                    id_arvore, uuid, numero_etiqueta, nome_popular, cover_photo, status, 
+                    rua, numero, bairro, endereco, "speciesId", created_at, updated_at,
+                    ST_Y(localizacao::geometry) as lat, 
+                    ST_X(localizacao::geometry) as lng,
+                    (SELECT JSON_BUILD_OBJECT(
+                        'id_especie', s.id_especie, 
+                        'nome_comum', s.nome_comum, 
+                        'nome_cientifico', s.nome_cientifico
+                    ) FROM "Species" s WHERE s.id_especie = t."speciesId") as species
+                FROM "Tree" t 
+                WHERE t.id_arvore = ${id} 
+                LIMIT 1
+            )
+            SELECT 
+                tb.*,
+                COALESCE((
+                    SELECT JSON_AGG(i_data ORDER BY i_data.data_inspecao DESC) FROM (
+                        SELECT 
+                            i.*,
+                            COALESCE((SELECT JSON_AGG(d.*) FROM "DendrometricData" d WHERE d."inspectionId" = i.id_inspecao), '[]'::json) as dendrometrics,
+                            COALESCE((
+                                SELECT JSON_AGG(p_data) FROM (
+                                    SELECT 
+                                        p.*,
+                                        COALESCE((
+                                            SELECT JSON_AGG(cat.*) 
+                                            FROM "PestCatalog" cat
+                                            JOIN "_PestCatalogToPhytosanitaryData" join_p ON cat.id = join_p."A"
+                                            WHERE join_p."B" = p.id
+                                        ), '[]'::json) as pests
+                                    FROM "PhytosanitaryData" p 
+                                    WHERE p."inspectionId" = i.id_inspecao
+                                ) p_data
+                            ), '[]'::json) as phytosanitary,
+                            COALESCE((
+                                SELECT JSON_AGG(ma_data) FROM (
+                                    SELECT 
+                                        ma.*,
+                                        COALESCE((
+                                            SELECT JSON_AGG(so.*)
+                                            FROM "ServiceOrder" so
+                                            JOIN "_ManagementActionToServiceOrder" join_so ON so.id = join_so."B"
+                                            WHERE join_so."A" = ma.id
+                                        ), '[]'::json) as "serviceOrders"
+                                    FROM "ManagementAction" ma
+                                    WHERE ma."inspectionId" = i.id_inspecao
+                                ) ma_data
+                            ), '[]'::json) as "managementActions",
+                            COALESCE((SELECT JSON_AGG(ph.*) FROM "InspectionPhoto" ph WHERE ph."inspectionId" = i.id_inspecao), '[]'::json) as photos
+                        FROM "Inspection" i
+                        WHERE i."treeId" = tb.id_arvore
+                    ) i_data
+                ), '[]'::json) as inspections,
+                COALESCE((SELECT JSON_AGG(pm.*) FROM "PhotoMetadata" pm WHERE pm.tree_id = tb.id_arvore), '[]'::json) as photos,
+                COALESCE((
+                    SELECT JSON_AGG(so.*) 
+                    FROM "ServiceOrder" so
+                    JOIN "_ServiceOrderToTree" so_t ON so.id = so_t."A"
+                    WHERE so_t."B" = tb.id_arvore
+                ), '[]'::json) as "serviceOrders"
+            FROM tree_base tb;
+        `;
+
+        const tree = (results as any[])[0];
 
         if (!tree) {
             return NextResponse.json({ error: 'Tree not found' }, { status: 404 });
         }
 
-        // Debug logging
-        console.log(`Tree ${id} fetched, inspections count:`, tree.inspections?.length);
-        if (tree.inspections?.[0]) {
-            console.log(`First inspection phyto data:`, tree.inspections[0].phytosanitary);
-            if (tree.inspections[0].phytosanitary?.[0]) {
-                console.log(`First phyto pests:`, tree.inspections[0].phytosanitary[0].pests);
-            }
-        }
-
-        // Extrair coordenadas via PostGIS (com tratamento de erro)
-        let lat: number | null = null;
-        let lng: number | null = null;
-
-        try {
-            const coords: any[] = await prisma.$queryRaw`
-                SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
-                FROM "Tree" WHERE id_arvore = ${id} AND localizacao IS NOT NULL
-            `;
-            lat = coords[0]?.lat || null;
-            lng = coords[0]?.lng || null;
-        } catch (coordError) {
-            console.warn(`Could not extract coordinates for tree ${id}:`, coordError);
-        }
-
-        const treeWithCoords = {
-            ...tree,
-            lat,
-            lng
-        };
-
-        return NextResponse.json(treeWithCoords);
+        return NextResponse.json(tree);
     } catch (error) {
         console.error('Error fetching tree:', error);
         return NextResponse.json({ error: 'Failed to fetch tree' }, { status: 500 });

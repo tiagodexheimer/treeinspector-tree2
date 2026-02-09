@@ -23,6 +23,7 @@ export default function ServiceOrderDetail() {
     const { data: session } = useSession();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
 
     const role = (session?.user as any)?.role;
     const canEditOrCancel = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role) || (role === 'OPERACIONAL' && order?.status === 'Aguardando Ajustes');
@@ -34,7 +35,72 @@ export default function ServiceOrderDetail() {
 
     useEffect(() => {
         fetchOrder();
+
+        const handleAfterPrint = () => {
+            setMapImageUrl(null);
+        };
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
     }, []);
+
+    function generateStaticMapUrl(trees: any[]): string | null {
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+        if (!apiKey || !trees || trees.length === 0) return null;
+
+        // Calculate center based on all trees
+        const lats = trees.map((t: any) => t.lat);
+        const lngs = trees.map((t: any) => t.lng);
+        const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+        const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+
+        // Build markers string - limit to first 20 trees due to URL length
+        const treesToShow = trees.slice(0, 20);
+        const markers = treesToShow.map((t: any, idx) => {
+            // Label must be A-Z or 0-9
+            const label = t.numero_etiqueta ?
+                String(t.numero_etiqueta).replace(/[^A-Z0-9]/ig, '').substring(0, 1).toUpperCase() :
+                String(idx + 1).substring(0, 1);
+
+            return `markers=color:red|label:${label}|${t.lat},${t.lng}`;
+        }).join('&');
+
+        return `https://maps.googleapis.com/maps/api/staticmap?` +
+            `center=${centerLat},${centerLng}&` +
+            `zoom=16&` +
+            `size=1000x400&` +
+            `scale=2&` +
+            `maptype=roadmap&` +
+            `${markers}&` +
+            `key=${apiKey}`;
+    }
+
+    function handlePrint() {
+        if (order?.trees?.length > 0) {
+            const staticMapUrl = generateStaticMapUrl(order.trees);
+            if (staticMapUrl) {
+                const img = new Image();
+                img.onload = () => {
+                    setMapImageUrl(staticMapUrl);
+
+                    // Small delay to ensure React has rendered the image
+                    setTimeout(() => {
+                        window.print();
+                        // For browsers that don't support afterprint or where window.print() is blocking
+                        // this provides an immediate fallback reset
+                        setTimeout(() => setMapImageUrl(null), 1000);
+                    }, 500);
+                };
+                img.onerror = () => {
+                    console.error("Failed to load static map image");
+                    window.print();
+                };
+                img.src = staticMapUrl;
+                return;
+            }
+        }
+
+        window.print();
+    }
 
     async function fetchOrder() {
         try {
@@ -130,7 +196,7 @@ export default function ServiceOrderDetail() {
                     /* Page configuration */
                     @page {
                         size: A4;
-                        margin: 15mm;
+                        margin: 10mm;
                     }
 
                     /* Reset body and html */
@@ -142,10 +208,11 @@ export default function ServiceOrderDetail() {
                         color: black !important;
                         margin: 0 !important;
                         padding: 0 !important;
+                        font-size: 11pt;
                     }
 
                     /* Hide UI elements */
-                    nav, header, footer, button {
+                    nav, header, footer, button, .no-print {
                         display: none !important;
                     }
 
@@ -175,62 +242,69 @@ export default function ServiceOrderDetail() {
                     .max-w-7xl {
                         max-width: 100% !important;
                         margin: 0 !important;
-                        padding: 0 15mm !important;
+                        padding: 0 5mm !important;
                     }
 
-                    /* Grid to single column */
+                    /* Keep some grid columns for efficiency */
                     .grid {
-                        display: block !important;
-                        grid-template-columns: 1fr !important;
+                        display: grid !important;
+                        gap: 12px !important;
+                    }
+                    
+                    .md\\:grid-cols-2 {
+                        grid-template-columns: 1fr 1fr !important;
+                    }
+
+                    .lg\\:grid-cols-3 {
+                        grid-template-columns: 1fr 1fr 1fr !important;
                     }
 
                     .lg\\:col-span-2 {
-                        grid-column: auto !important;
+                        grid-column: span 2 !important;
                     }
 
                     /* Map container */
-                    .leaflet-container {
-                        height: 400px !important;
-                        width: 100% !important;
-                        position: relative !important;
-                        overflow: visible !important;
-                        break-inside: avoid !important;
-                        page-break-inside: avoid !important;
-                    }
-
-                    /* Ensure Leaflet tiles are visible */
-                    .leaflet-container .leaflet-pane,
-                    .leaflet-container .leaflet-tile-pane,
-                    .leaflet-container .leaflet-overlay-pane {
-                        overflow: visible !important;
-                    }
-
-                    /* Map parent container */
                     .h-96 {
-                        height: 400px !important;
-                        overflow: visible !important;
+                        height: 320px !important;
+                        margin-bottom: 15px !important;
+                        break-inside: avoid !important;
                     }
 
-                    /* Prevent awkward breaks */
-                    .bg-white, .rounded-lg, .space-y-6 > div {
+                    /* Prevent awkward breaks on small blocks */
+                    .bg-white.rounded-lg.shadow {
+                        box-shadow: none !important;
+                        border: 1px solid #eee !important;
+                        padding: 8px !important;
+                        margin-bottom: 8px !important;
                         break-inside: avoid !important;
                         page-break-inside: avoid !important;
-                        margin-bottom: 10px !important;
                     }
 
                     /* Spacing adjustments */
                     .space-y-6 > * + * {
-                        margin-top: 10px !important;
+                        margin-top: 5px !important;
                     }
 
                     .gap-8 {
-                        gap: 10px !important;
+                        gap: 12px !important;
                     }
 
-                    /* Force page break before field execution form */
+                    /* Typography */
+                    h1 { font-size: 16pt !important; }
+                    h2 { font-size: 13pt !important; margin-bottom: 4px !important; }
+                    h3 { font-size: 11pt !important; }
+                    p, div { font-size: 9pt !important; }
+
+                    /* Page breaks */
                     .page-break-before {
-                        page-break-before: always !important;
-                        break-before: page !important;
+                        break-before: page;
+                        margin-top: 15px !important;
+                    }
+                    
+                    /* Optimization: Avoid breaking inside the form if possible */
+                    .break-inside-avoid {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
                     }
 
                     /* Remove negative margins */
@@ -241,18 +315,47 @@ export default function ServiceOrderDetail() {
                     /* Header section */
                     .py-8 {
                         padding-top: 0 !important;
-                        padding-bottom: 15px !important;
+                        padding-bottom: 5px !important;
+                        background: none !important;
+                        color: black !important;
+                    }
+                    
+                    .py-8 .text-white {
+                        color: black !important;
                     }
 
                     /* Add title on first page */
                     .py-8::before {
                         content: 'ORDEM DE SERVIÇO';
                         display: block;
-                        font-size: 20pt;
+                        font-size: 15pt;
                         font-weight: bold;
-                        margin-bottom: 10px;
-                        padding-bottom: 10px;
+                        margin-bottom: 5px;
+                        padding-bottom: 5px;
                         border-bottom: 2px solid black;
+                        text-align: center;
+                    }
+
+                    /* Checklist Columns */
+                    .checklist-grid {
+                        display: grid !important;
+                        grid-template-columns: 1fr 1fr !important;
+                        gap: 8px !important;
+                    }
+
+                    /* Tree Table optimization */
+                    table {
+                        width: 100% !important;
+                        font-size: 8pt !important;
+                    }
+                    
+                    th, td {
+                        padding: 3px 5px !important;
+                        border: 0.5px solid #eee !important;
+                    }
+
+                    .h-96 {
+                        height: 300px !important;
                     }
                 }
             `}</style>
@@ -283,7 +386,7 @@ export default function ServiceOrderDetail() {
                         </div>
                         <div className="flex items-center gap-4">
                             <button
-                                onClick={() => window.print()}
+                                onClick={handlePrint}
                                 className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-bold backdrop-blur-sm transition flex items-center gap-2"
                                 title="Imprimir ou salvar como PDF"
                             >
@@ -312,9 +415,17 @@ export default function ServiceOrderDetail() {
                                 </div>
                             )}
 
-                            {/* Map Section - Hidden in print */}
-                            <div className="bg-white rounded-lg shadow overflow-hidden h-96 print:hidden">
-                                <ServiceOrderMap trees={order.trees} />
+                            {/* Map Section */}
+                            <div className="bg-white rounded-lg shadow overflow-hidden h-96">
+                                {mapImageUrl ? (
+                                    <img
+                                        src={mapImageUrl}
+                                        alt="Mapa capturado"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <ServiceOrderMap trees={order.trees} />
+                                )}
                             </div>
 
                             <div className="bg-white rounded-lg shadow p-6">
@@ -620,7 +731,7 @@ export default function ServiceOrderDetail() {
                 </main>
 
                 {/* FIELD EXECUTION FORM - Only visible when printing */}
-                <div className="hidden print:block max-w-7xl mx-auto px-8 py-6 mt-8 page-break-before">
+                <div className="hidden print:block max-w-7xl mx-auto px-8 py-6 mt-4 break-inside-avoid">
                     <div className="border-4 border-gray-800 p-6 bg-white">
                         <h2 className="text-2xl font-bold text-center mb-6 pb-4 border-b-2 border-gray-800 uppercase">
                             Formulário de Execução em Campo
@@ -664,7 +775,7 @@ export default function ServiceOrderDetail() {
                             Marque os itens conforme forem verificados/realizados durante a execução:
                         </p>
 
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {Object.entries(
                                 EXECUTION_CHECKLIST_ITEMS.reduce((acc, item) => {
                                     if (!acc[item.category]) acc[item.category] = [];
@@ -672,17 +783,17 @@ export default function ServiceOrderDetail() {
                                     return acc;
                                 }, {} as Record<string, typeof EXECUTION_CHECKLIST_ITEMS>)
                             ).map(([category, items]) => (
-                                <div key={category} className="mb-4">
-                                    <h4 className="font-bold text-base mb-3 bg-gray-200 p-2 border-l-4 border-gray-800">
+                                <div key={category} className="mb-2 break-inside-avoid">
+                                    <h4 className="font-bold text-sm mb-2 bg-gray-200 p-1 border-l-4 border-gray-800">
                                         {category}
                                     </h4>
-                                    <div className="space-y-2 ml-4">
+                                    <div className="checklist-grid ml-2">
                                         {items.map(item => (
-                                            <div key={item.id} className="flex items-start gap-3 py-1">
-                                                <span className="text-xl font-bold flex-shrink-0">☐</span>
-                                                <span className="text-sm leading-tight">
+                                            <div key={item.id} className="flex items-center gap-2 py-0.5">
+                                                <span className="text-lg font-bold flex-shrink-0">☐</span>
+                                                <span className="text-[9pt] leading-tight">
                                                     {item.label}
-                                                    {item.isMandatory && <strong className="text-red-700"> (OBRIGATÓRIO)</strong>}
+                                                    {item.isMandatory && <strong className="text-red-700"> *</strong>}
                                                 </span>
                                             </div>
                                         ))}

@@ -39,9 +39,7 @@ export default function ServiceOrdersPage() {
     const fetchedRef = useRef(false);
 
     useEffect(() => {
-        if (fetchedRef.current) return;
         fetchOrders();
-        fetchedRef.current = true;
     }, [activeTab]);
 
     async function fetchOrders() {

@@ -107,11 +107,11 @@ export async function GET(request: Request) {
 
         if (status === 'active') {
             where.status = {
-                notIn: ['Concluída', 'Cancelada']
+                notIn: ['Aguardando Revisão', 'Concluída', 'Cancelada']
             };
         } else if (status === 'finished') {
             where.status = {
-                in: ['Concluída', 'Cancelada']
+                in: ['Aguardando Revisão', 'Concluída', 'Cancelada']
             };
         } else if (status) {
             where.status = status;

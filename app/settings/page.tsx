@@ -49,6 +49,17 @@ export default function SettingsPage() {
                 </svg>
             ),
             color: 'from-red-500 to-orange-600'
+        },
+        {
+            title: 'Gerenciar Materiais',
+            description: 'Configure o catálogo de insumos e materiais para consumo nas Ordens de Serviço.',
+            href: '/settings/materials',
+            icon: (
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+            ),
+            color: 'from-blue-500 to-indigo-600'
         }
     ];
 

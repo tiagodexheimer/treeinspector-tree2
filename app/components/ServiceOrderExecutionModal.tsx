@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { EXECUTION_CHECKLIST_ITEMS } from '../lib/checklistConstants';
 
 interface ServiceOrderExecutionModalProps {
@@ -31,11 +31,60 @@ export default function ServiceOrderExecutionModal({
     const [description, setDescription] = useState('');
     const [finalizePhotos, setFinalizePhotos] = useState<File[]>([]);
     const [finalizePhotoUrls, setFinalizePhotoUrls] = useState<{ uri: string, category: string }[]>([]);
-    const [materials, setMaterials] = useState<{ name: string; quantity: string; unit: string }[]>([]);
-    const [newMaterial, setNewMaterial] = useState({ name: '', quantity: '', unit: 'un' });
+    const [materials, setMaterials] = useState<{ name: string; quantity: string; unit: string; unit_cost?: string }[]>([]);
+    const [teamSize, setTeamSize] = useState('1');
+    const [newMaterial, setNewMaterial] = useState({ name: '', quantity: '', unit: 'un', unit_cost: '' });
     const [durationHours, setDurationHours] = useState('0');
     const [durationMinutes, setDurationMinutes] = useState('0');
     const [startDateTime, setStartDateTime] = useState('');
+    const [laborCost, setLaborCost] = useState(1.0);
+
+    const [allMaterialMaster, setAllMaterialMaster] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (isOpen && action === 'finalize') {
+            fetch('/api/materials?active=true')
+                .then(res => res.json())
+                .then(data => {
+                    setAllMaterialMaster(data || []);
+                    // Auto-load materials if list is empty
+                    if (materials.length === 0) {
+                        const autoLoaded = data
+                            .filter((m: any) => m.auto_load)
+                            .map((m: any) => ({
+                                name: m.name,
+                                quantity: '',
+                                unit: m.unit,
+                                unit_cost: m.unit_cost.toString()
+                            }));
+                        setMaterials(autoLoaded);
+                    }
+                })
+                .catch(err => console.error('Failed to fetch materials', err));
+
+            fetch('/api/settings')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.labor_cost) {
+                        setLaborCost(parseFloat(data.labor_cost));
+                    }
+                })
+                .catch(err => console.error('Failed to fetch settings', err));
+        }
+    }, [isOpen, action]);
+
+    // Cleanup states on close
+    useEffect(() => {
+        if (!isOpen) {
+            setChecklist({});
+            setStartPhotoUrls([]);
+            setDescription('');
+            setFinalizePhotoUrls([]);
+            setMaterials([]);
+            setTeamSize('1');
+            setNewMaterial({ name: '', quantity: '', unit: 'un', unit_cost: '' });
+        }
+    }, [isOpen]);
 
     // Effect to set initial start time when modal opens
     if (isOpen && action === 'finalize' && !startDateTime && initialStartTime) {
@@ -143,7 +192,8 @@ export default function ServiceOrderExecutionModal({
         try {
             const formattedMaterials = materials.map(m => ({
                 ...m,
-                quantity: parseFloat(m.quantity)
+                quantity: parseFloat(m.quantity),
+                unit_cost: m.unit_cost ? parseFloat(m.unit_cost) : undefined
             }));
 
             const res = await fetch(`/api/service-orders/${serviceOrderId}/finalize`, {
@@ -157,6 +207,7 @@ export default function ServiceOrderExecutionModal({
                         hours: parseInt(durationHours) || 0,
                         minutes: parseInt(durationMinutes) || 0
                     },
+                    teamSize: parseInt(teamSize) || 1,
                     customStartTime: startDateTime ? new Date(startDateTime).toISOString() : null
                 })
             });
@@ -208,9 +259,9 @@ export default function ServiceOrderExecutionModal({
     };
 
     const addMaterial = () => {
-        if (newMaterial.name && newMaterial.quantity) {
-            setMaterials([...materials, newMaterial]);
-            setNewMaterial({ name: '', quantity: '', unit: 'un' });
+        if (newMaterial.name) {
+            setMaterials([...materials, { ...newMaterial, quantity: '' }]);
+            setNewMaterial({ name: '', quantity: '', unit: 'un', unit_cost: '' });
         }
     };
 
@@ -335,49 +386,109 @@ export default function ServiceOrderExecutionModal({
                                 </div>
                             </div>
 
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 text-blue-900 font-bold">Equipe de Execução</label>
+                                <div className="flex items-center gap-3 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] text-blue-700 uppercase font-black mb-1">Tamanho da Equipe (Pessoas)</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={teamSize}
+                                            onChange={(e) => setTeamSize(e.target.value)}
+                                            className="w-32 p-2 border border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 font-bold text-center"
+                                        />
+                                    </div>
+                                    <div className="text-xs text-blue-800 italic">
+                                        Utilizado para calcular o custo estimado de mão de obra: <br />
+                                        <strong>{teamSize} pessoas × {(parseInt(durationHours) || 0)}h {(parseInt(durationMinutes) || 0)}m × R$ {laborCost.toFixed(2)}/h = R$ {((parseInt(teamSize) || 1) * ((parseInt(durationHours) || 0) + (parseInt(durationMinutes) || 0) / 60) * laborCost).toFixed(2)}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Consumo de Materiais</label>
-                                <div className="flex gap-2 mb-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Material"
-                                        className="flex-1 p-2 border rounded text-sm"
-                                        value={newMaterial.name}
-                                        onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder="Qtd"
-                                        className="w-20 p-2 border rounded text-sm"
-                                        value={newMaterial.quantity}
-                                        onChange={(e) => setNewMaterial({ ...newMaterial, quantity: e.target.value })}
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="Un"
-                                        className="w-16 p-2 border rounded text-sm"
-                                        value={newMaterial.unit}
-                                        onChange={(e) => setNewMaterial({ ...newMaterial, unit: e.target.value })}
-                                    />
-                                    <button
-                                        onClick={addMaterial}
-                                        type="button"
-                                        className="bg-gray-100 px-3 py-2 rounded hover:bg-gray-200"
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                                {materials.length > 0 && (
-                                    <div className="bg-gray-50 p-2 rounded text-sm space-y-1">
-                                        {materials.map((m, idx) => (
-                                            <div key={idx} className="flex justify-between">
-                                                <span>{m.name}</span>
-                                                <span className="font-mono text-gray-600">{m.quantity} {m.unit}</span>
-                                            </div>
-                                        ))}
+                                <div className="bg-blue-50/30 p-4 rounded-lg border border-blue-100 shadow-inner">
+                                    <label className="block text-sm font-bold text-blue-900 mb-3">Consumo de Materiais</label>
+
+                                    <div className="flex gap-2 mb-4">
+                                        <select
+                                            className="flex-1 p-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500"
+                                            value={newMaterial.name}
+                                            onChange={(e) => {
+                                                const mat = allMaterialMaster.find(m => m.name === e.target.value);
+                                                if (mat) {
+                                                    setNewMaterial({ ...newMaterial, name: mat.name, unit: mat.unit, unit_cost: mat.unit_cost.toString() });
+                                                } else {
+                                                    setNewMaterial({ ...newMaterial, name: '', unit: 'un', unit_cost: '' });
+                                                }
+                                            }}
+                                        >
+                                            <option value="">Selecionar Material para adicionar...</option>
+                                            {allMaterialMaster
+                                                .filter(m => !materials.some(am => am.name === m.name))
+                                                .map(m => (
+                                                    <option key={m.id} value={m.name}>{m.name} ({m.unit})</option>
+                                                ))
+                                            }
+                                        </select>
+                                        <button
+                                            onClick={addMaterial}
+                                            disabled={!newMaterial.name}
+                                            type="button"
+                                            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-bold"
+                                        >
+                                            + Adicionar
+                                        </button>
                                     </div>
-                                )}
+
+                                    {materials.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {materials.map((m, idx) => (
+                                                <div key={idx} className="flex items-center justify-between gap-4 bg-white p-3 rounded-lg border border-blue-200 shadow-sm animate-in fade-in slide-in-from-top-1">
+                                                    <div className="flex-1">
+                                                        <span className="text-sm font-bold text-gray-700">{m.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex flex-col">
+                                                            <label className="text-[8px] text-gray-400 uppercase text-center">Unidade</label>
+                                                            <div className="w-16 p-1 border border-transparent text-center text-[10px] font-bold text-gray-400 uppercase">
+                                                                {m.unit}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <label className="text-[8px] text-gray-400 uppercase text-center">Quantidade</label>
+                                                            <input
+                                                                type="number"
+                                                                placeholder="Qtd"
+                                                                className="w-16 p-1 border rounded text-center text-xs focus:ring-1 focus:ring-blue-500 outline-none font-bold"
+                                                                value={m.quantity}
+                                                                onChange={(e) => {
+                                                                    const newMats = [...materials];
+                                                                    newMats[idx].quantity = e.target.value;
+                                                                    setMaterials(newMats);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setMaterials(materials.filter((_, i) => i !== idx))}
+                                                            className="text-red-400 hover:text-red-600 p-1"
+                                                            title="Remover"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-4 text-gray-400 text-xs italic">
+                                            Nenhum material selecionado.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div>

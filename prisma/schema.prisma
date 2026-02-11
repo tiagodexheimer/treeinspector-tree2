@@ -281,6 +281,7 @@ model ServiceOrder {
   // Service Classification
   serviceType     String?     // 'Poda', 'Remoção', 'Substituição', 'Transplante'
   serviceSubtypes String[]    // Specific types like 'Levantamento de copa'
+  team_size       Int @default(1)
 
   // Timestamps
   created_at      DateTime @default(now())
@@ -313,6 +314,18 @@ model ServiceOrderMaterial {
   name            String
   quantity        Decimal
   unit            String?  // 'kg', 'un', 'm', etc.
+  unit_cost       Decimal  @default(0)
+}
+
+model MaterialMaster {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  unit            String
+  unit_cost       Decimal  @default(0)
+  auto_load       Boolean  @default(false)
+  active          Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 }
 
 // ==================== MEDIA STORAGE ====================
@@ -350,4 +363,14 @@ model InspectionPhoto {
   inspection    Inspection @relation(fields: [inspectionId], references: [id_inspecao])
   uri           String
   created_at    DateTime @default(now())
+}
+
+// ==================== SYSTEM SETTINGS ====================
+
+model SystemSettings {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+  
+  updated_at DateTime @updatedAt
 }

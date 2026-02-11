@@ -10,9 +10,9 @@ export async function POST(
     const { id: idString } = await params;
     const id = parseInt(idString);
     const body = await request.json();
-    const { description, photos, materials, duration, customStartTime } = body;
+    const { description, photos, materials, duration, customStartTime, teamSize } = body;
     // photos: [{ uri: string, category: 'Antes' | 'Durante' | 'Depois' }]
-    // materials: [{ name: string, quantity: number, unit: string }]
+    // materials: [{ name: string, quantity: number, unit: string, unit_cost?: number }]
 
     try {
         const os = await prisma.serviceOrder.findUnique({
@@ -23,6 +23,14 @@ export async function POST(
         if (!os) {
             return NextResponse.json({ error: 'Service Order not found' }, { status: 404 });
         }
+
+        // Fetch all active materials to get their default costs
+        const masterMaterials = await prisma.materialMaster.findMany({
+            where: { active: true }
+        });
+
+        // Create a map for quick lookup
+        const costMap = new Map(masterMaterials.map(m => [m.name, m.unit_cost]));
 
         // Logic for timestamps
         let finalExecutedAt = new Date();
@@ -46,6 +54,7 @@ export async function POST(
             data: {
                 status: 'Aguardando Revisão',
                 executed_at: finalExecutedAt,
+                team_size: teamSize ? parseInt(teamSize) : undefined,
                 ...(finalStartTime ? { start_time: finalStartTime } : {}),
                 description: description,
                 photos: photos && Array.isArray(photos) ? {
@@ -58,7 +67,8 @@ export async function POST(
                     create: materials.map((mat: any) => ({
                         name: mat.name,
                         quantity: mat.quantity,
-                        unit: mat.unit
+                        unit: mat.unit,
+                        unit_cost: mat.unit_cost !== undefined ? mat.unit_cost : (costMap.get(mat.name) || 0)
                     }))
                 } : undefined
             },

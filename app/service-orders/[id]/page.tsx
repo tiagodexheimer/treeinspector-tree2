@@ -24,6 +24,7 @@ export default function ServiceOrderDetail() {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [mapImageUrl, setMapImageUrl] = useState<string | null>(null);
+    const [laborCost, setLaborCost] = useState(1.0);
 
     const role = (session?.user as any)?.role;
     const canEditOrCancel = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role) || (role === 'OPERACIONAL' && order?.status === 'Aguardando Ajustes');
@@ -38,6 +39,7 @@ export default function ServiceOrderDetail() {
     useEffect(() => {
         if (fetchedRef.current) return;
         fetchOrder();
+        fetchSettings();
         fetchedRef.current = true;
 
         const handleAfterPrint = () => {
@@ -104,6 +106,18 @@ export default function ServiceOrderDetail() {
         }
 
         window.print();
+    }
+
+    async function fetchSettings() {
+        try {
+            const res = await fetch('/api/settings');
+            const data = await res.json();
+            if (data.labor_cost) {
+                setLaborCost(parseFloat(data.labor_cost));
+            }
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     async function fetchOrder() {
@@ -571,15 +585,78 @@ export default function ServiceOrderDetail() {
 
                                             {/* Materiais */}
                                             {order.materials && order.materials.length > 0 && (
-                                                <div>
-                                                    <label className="block text-sm font-bold text-blue-700 uppercase mb-2 text-[10px] tracking-wider">Materiais Consumidos</label>
-                                                    <div className="space-y-2">
-                                                        {order.materials.map((mat: any) => (
-                                                            <div key={mat.id} className="flex justify-between items-center bg-white px-3 py-2 rounded border border-blue-100 text-sm">
-                                                                <span className="text-gray-700">{mat.name}</span>
-                                                                <span className="font-bold text-blue-700">{mat.quantity} {mat.unit}</span>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-blue-700 uppercase mb-2 text-[10px] tracking-wider">Materiais Consumidos</label>
+                                                        <div className="space-y-2">
+                                                            {order.materials.map((mat: any) => (
+                                                                <div key={mat.id} className="flex justify-between items-center bg-white px-3 py-2 rounded border border-blue-100 text-sm">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-gray-700 font-medium">{mat.name}</span>
+                                                                        <span className="text-[10px] text-gray-400">R$ {parseFloat(mat.unit_cost).toFixed(2)} / {mat.unit}</span>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <span className="font-bold text-blue-700">{mat.quantity} {mat.unit}</span>
+                                                                        <div className="text-[10px] font-bold text-gray-500">R$ {(mat.quantity * mat.unit_cost).toFixed(2)}</div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Resumo de Custos */}
+                                                    <div className="bg-white p-4 rounded-xl border-2 border-blue-100 shadow-sm space-y-3">
+                                                        <h4 className="text-xs font-black text-blue-900 uppercase tracking-widest border-b pb-2">Resumo Financeiro da Execução</h4>
+
+                                                        {/* Custo da Equipe */}
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-gray-600">Custo da Equipe (Homem-Hora)</span>
+                                                                <span className="text-[10px] text-gray-400">
+                                                                    {order.team_size || 1} pessoas × {(() => {
+                                                                        const start = new Date(order.start_time).getTime();
+                                                                        const end = new Date(order.executed_at).getTime();
+                                                                        const hours = (end - start) / (1000 * 60 * 60);
+                                                                        return hours.toFixed(2);
+                                                                    })()}h
+                                                                </span>
                                                             </div>
-                                                        ))}
+                                                            <span className="font-bold text-gray-800">
+                                                                {(() => {
+                                                                    const start = new Date(order.start_time).getTime();
+                                                                    const end = new Date(order.executed_at).getTime();
+                                                                    const hours = (end - start) / (1000 * 60 * 60);
+                                                                    const teamSize = order.team_size || 1;
+                                                                    return (hours * teamSize * laborCost).toFixed(2);
+                                                                })()}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Custo de Materiais */}
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <span className="text-gray-600">Total em Materiais</span>
+                                                            <span className="font-bold text-gray-800">
+                                                                R$ {order.materials.reduce((acc: number, m: any) => acc + (m.quantity * m.unit_cost), 0).toFixed(2)}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Custo Total */}
+                                                        <div className="pt-2 border-t flex justify-between items-center">
+                                                            <span className="font-black text-blue-900 uppercase text-xs">Custo Total Estimado</span>
+                                                            <div className="text-right">
+                                                                <span className="text-xl font-black text-blue-700">
+                                                                    R$ {(() => {
+                                                                        const start = new Date(order.start_time).getTime();
+                                                                        const end = new Date(order.executed_at).getTime();
+                                                                        const hours = (end - start) / (1000 * 60 * 60);
+                                                                        const teamSize = order.team_size || 1;
+                                                                        const teamCost = (hours * teamSize * laborCost);
+                                                                        const matCost = order.materials.reduce((acc: number, m: any) => acc + (m.quantity * m.unit_cost), 0);
+                                                                        return (teamCost + matCost).toFixed(2);
+                                                                    })()}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}

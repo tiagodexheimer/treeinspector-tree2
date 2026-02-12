@@ -68,6 +68,7 @@ export default function StatisticsPage() {
     const [metricsData, setMetricsData] = useState<ManagementMetrics[]>([]);
     const [metricsSummary, setMetricsSummary] = useState<ManagementSummary>({ totalTrees: 0, totalCost: 0 });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [statMode, setStatMode] = useState<StatMode>('management');
     const [gridType, setGridType] = useState<GridType>('health');
     const [selectedBairro, setSelectedBairro] = useState<string>('');
@@ -102,9 +103,14 @@ export default function StatisticsPage() {
     useEffect(() => {
         async function fetchBaseStats() {
             if (stats.length === 0) {
-                const res = await fetch('/api/statistics/neighborhoods');
-                const data = await res.json();
-                setStats(data);
+                try {
+                    const res = await fetch('/api/statistics/neighborhoods');
+                    if (!res.ok) throw new Error(`Erro ao carregar bairros (${res.status})`);
+                    const data = await res.json();
+                    setStats(data);
+                } catch (err: any) {
+                    console.error('Failed to fetch neighborhoods:', err);
+                }
             }
         }
         fetchBaseStats();
@@ -113,10 +119,12 @@ export default function StatisticsPage() {
     useEffect(() => {
         async function fetchStats() {
             setLoading(true);
+            setError(null);
             try {
                 if (statMode === 'grid') {
                     if (gridStats.length === 0) {
                         const res = await fetch('/api/statistics/grid');
+                        if (!res.ok) throw new Error(`Erro ao carregar micro-regiões (${res.status})`);
                         const data = await res.json();
                         setGridStats(data);
                     }
@@ -125,6 +133,7 @@ export default function StatisticsPage() {
                     if (selectedBairro) url.searchParams.set('bairro', selectedBairro);
 
                     const res = await fetch(url.toString());
+                    if (!res.ok) throw new Error(`Erro ao carregar espécies (${res.status})`);
                     const data = await res.json();
                     setSpeciesStats(data);
                 } else if (statMode === 'metrics') {
@@ -133,13 +142,18 @@ export default function StatisticsPage() {
                     if (selectedMonth) url.searchParams.set('month', selectedMonth.toString());
 
                     const res = await fetch(url.toString());
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.error || `Erro ao carregar métricas (${res.status})`);
+                    }
                     const data = await res.json();
-                    setMetricsData(data.data);
-                    setMetricsSummary(data.summary);
+                    setMetricsData(data.data || []);
+                    setMetricsSummary(data.summary || { totalTrees: 0, totalCost: 0 });
                 }
                 // Neighborhood stats (for health/management modes) are handled by fetchBaseStats
-            } catch (error) {
-                console.error('Failed to fetch stats:', error);
+            } catch (err: any) {
+                console.error('Failed to fetch stats:', err);
+                setError(err.message || 'Erro desconhecido ao carregar dados.');
             } finally {
                 setLoading(false);
             }
@@ -224,6 +238,17 @@ export default function StatisticsPage() {
             </div>
 
             <div className="flex-1 relative overflow-hidden flex flex-col">
+                {/* Error Banner */}
+                {error && (
+                    <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-3 z-30">
+                        <div className="flex items-center gap-3">
+                            <span className="text-red-500 text-xl">⚠️</span>
+                            <p className="text-sm font-medium text-red-800">{error}</p>
+                        </div>
+                        <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 text-lg font-bold">&times;</button>
+                    </div>
+                )}
+
                 {/* Loader Overlay for Data Fetching */}
                 {(loading && statMode !== 'species' && statMode !== 'metrics') && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white bg-opacity-75">

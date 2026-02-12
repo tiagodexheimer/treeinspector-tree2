@@ -6,7 +6,10 @@ export async function GET(request: Request) {
     const bairro = searchParams.get('bairro');
 
     try {
-        const whereClause = bairro ? { bairro: { equals: bairro, mode: 'insensitive' as const } } : {};
+        const whereClause: any = { speciesId: { not: null } };
+        if (bairro) {
+            whereClause.bairro = { equals: bairro, mode: 'insensitive' as const };
+        }
 
         const speciesStats = await prisma.tree.groupBy({
             by: ['speciesId'],

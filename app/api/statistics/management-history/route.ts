@@ -7,8 +7,23 @@ export async function GET(request: Request) {
     const monthStr = searchParams.get('month');
 
     try {
-        const year = yearStr ? parseInt(yearStr) : new Date().getFullYear();
-        const month = monthStr ? parseInt(monthStr) : null;
+        // Validate year parameter
+        const year = yearStr ? parseInt(yearStr, 10) : new Date().getFullYear();
+        if (isNaN(year) || year < 2000 || year > 2100) {
+            return NextResponse.json(
+                { error: 'Parâmetro "year" inválido. Informe um ano entre 2000 e 2100.' },
+                { status: 400 }
+            );
+        }
+
+        // Validate month parameter
+        const month = monthStr ? parseInt(monthStr, 10) : null;
+        if (month !== null && (isNaN(month) || month < 1 || month > 12)) {
+            return NextResponse.json(
+                { error: 'Parâmetro "month" inválido. Informe um mês entre 1 e 12.' },
+                { status: 400 }
+            );
+        }
 
         // Fetch labor cost rate from settings
         const laborCostSetting = await prisma.systemSettings.findUnique({
@@ -71,35 +86,41 @@ export async function GET(request: Request) {
 
             monthlyData[m].treeCount += so.trees.length;
 
-            // 1. Material Cost
+            // 1. Material Cost — protect against NaN with fallback to 0
             const materialCost = so.materials.reduce((sum, mat) => {
-                return sum + (Number(mat.quantity) * Number(mat.unit_cost));
+                const qty = Number(mat.quantity);
+                const cost = Number(mat.unit_cost);
+                const lineTotal = (!isNaN(qty) && !isNaN(cost)) ? qty * cost : 0;
+                return sum + lineTotal;
             }, 0);
 
-            // 2. Labor Cost
+            // 2. Labor Cost — protect against negative duration
             let laborCost = 0;
             if (so.start_time && so.executed_at) {
                 const durationMs = so.executed_at.getTime() - so.start_time.getTime();
-                const durationHours = durationMs / (1000 * 60 * 60);
+                const durationHours = Math.max(0, durationMs / (1000 * 60 * 60)); // clamp to 0
                 laborCost = (so.team_size || 1) * durationHours * laborCostRate;
             }
 
-            monthlyData[m].totalCost += (materialCost + laborCost);
+            // Round to 2 decimal places to avoid floating point artifacts
+            monthlyData[m].totalCost += Math.round((materialCost + laborCost) * 100) / 100;
         });
 
-        // Return the full historical series for the year.
         return NextResponse.json({
             year,
             month,
             data: monthlyData,
             summary: {
                 totalTrees: monthlyData.reduce((sum, d) => sum + d.treeCount, 0),
-                totalCost: monthlyData.reduce((sum, d) => sum + d.totalCost, 0)
+                totalCost: Math.round(monthlyData.reduce((sum, d) => sum + d.totalCost, 0) * 100) / 100
             }
         });
 
     } catch (error) {
         console.error('Error fetching management history:', error);
-        return NextResponse.json({ error: 'Failed to fetch management history' }, { status: 500 });
+        return NextResponse.json(
+            { error: 'Erro interno ao buscar histórico de manejo. Tente novamente.' },
+            { status: 500 }
+        );
     }
 }

@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const bairro = searchParams.get('bairro');
 
     try {
-        const whereClause: any = { speciesId: { not: null } };
+        const whereClause: any = {};
         if (bairro) {
             whereClause.bairro = { equals: bairro, mode: 'insensitive' as const };
         }

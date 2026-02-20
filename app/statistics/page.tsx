@@ -15,6 +15,7 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 });
 
 import SpeciesDashboard from './SpeciesDashboard';
+import ManagementMetricsDashboard from './ManagementMetricsDashboard';
 
 // Update Interface
 interface NeighborhoodStat {
@@ -45,18 +46,52 @@ interface SpeciesStat {
     count: number;
 }
 
-type StatMode = 'management' | 'health' | 'grid' | 'species';
+interface ManagementMetrics {
+    month: number;
+    monthName: string;
+    treeCount: number;
+    totalCost: number;
+}
+
+interface ManagementSummary {
+    totalTrees: number;
+    totalCost: number;
+}
+
+type StatMode = 'management' | 'health' | 'grid' | 'species' | 'metrics';
 type GridType = 'health' | 'management';
 
 export default function StatisticsPage() {
     const [stats, setStats] = useState<NeighborhoodStat[]>([]);
     const [gridStats, setGridStats] = useState<GridStat[]>([]);
     const [speciesStats, setSpeciesStats] = useState<SpeciesStat[]>([]);
+    const [metricsData, setMetricsData] = useState<ManagementMetrics[]>([]);
+    const [metricsSummary, setMetricsSummary] = useState<ManagementSummary>({ totalTrees: 0, totalCost: 0 });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [statMode, setStatMode] = useState<StatMode>('management');
     const [gridType, setGridType] = useState<GridType>('health');
     const [selectedBairro, setSelectedBairro] = useState<string>('');
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
     const router = useRouter();
+
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear, currentYear - 1, currentYear - 2];
+    const months = [
+        { value: 1, label: 'Janeiro' },
+        { value: 2, label: 'Fevereiro' },
+        { value: 3, label: 'Março' },
+        { value: 4, label: 'Abril' },
+        { value: 5, label: 'Maio' },
+        { value: 6, label: 'Junho' },
+        { value: 7, label: 'Julho' },
+        { value: 8, label: 'Agosto' },
+        { value: 9, label: 'Setembro' },
+        { value: 10, label: 'Outubro' },
+        { value: 11, label: 'Novembro' },
+        { value: 12, label: 'Dezembro' }
+    ];
 
     // Get list of neighborhoods and handle initial redirect if needed
     const neighborhoods = useMemo(() => {
@@ -68,9 +103,14 @@ export default function StatisticsPage() {
     useEffect(() => {
         async function fetchBaseStats() {
             if (stats.length === 0) {
-                const res = await fetch('/api/statistics/neighborhoods');
-                const data = await res.json();
-                setStats(data);
+                try {
+                    const res = await fetch('/api/statistics/neighborhoods');
+                    if (!res.ok) throw new Error(`Erro ao carregar bairros (${res.status})`);
+                    const data = await res.json();
+                    setStats(data);
+                } catch (err: any) {
+                    console.error('Failed to fetch neighborhoods:', err);
+                }
             }
         }
         fetchBaseStats();
@@ -79,10 +119,12 @@ export default function StatisticsPage() {
     useEffect(() => {
         async function fetchStats() {
             setLoading(true);
+            setError(null);
             try {
                 if (statMode === 'grid') {
                     if (gridStats.length === 0) {
                         const res = await fetch('/api/statistics/grid');
+                        if (!res.ok) throw new Error(`Erro ao carregar micro-regiões (${res.status})`);
                         const data = await res.json();
                         setGridStats(data);
                     }
@@ -91,25 +133,40 @@ export default function StatisticsPage() {
                     if (selectedBairro) url.searchParams.set('bairro', selectedBairro);
 
                     const res = await fetch(url.toString());
+                    if (!res.ok) throw new Error(`Erro ao carregar espécies (${res.status})`);
                     const data = await res.json();
                     setSpeciesStats(data);
+                } else if (statMode === 'metrics') {
+                    const url = new URL('/api/statistics/management-history', window.location.origin);
+                    url.searchParams.set('year', selectedYear.toString());
+                    if (selectedMonth) url.searchParams.set('month', selectedMonth.toString());
+
+                    const res = await fetch(url.toString());
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.error || `Erro ao carregar métricas (${res.status})`);
+                    }
+                    const data = await res.json();
+                    setMetricsData(data.data || []);
+                    setMetricsSummary(data.summary || { totalTrees: 0, totalCost: 0 });
                 }
                 // Neighborhood stats (for health/management modes) are handled by fetchBaseStats
-            } catch (error) {
-                console.error('Failed to fetch stats:', error);
+            } catch (err: any) {
+                console.error('Failed to fetch stats:', err);
+                setError(err.message || 'Erro desconhecido ao carregar dados.');
             } finally {
                 setLoading(false);
             }
         }
         fetchStats();
-    }, [statMode, gridStats.length, selectedBairro]);
+    }, [statMode, gridStats.length, selectedBairro, selectedYear, selectedMonth]);
 
     return (
         <div className="flex flex-col h-screen bg-gray-100">
             {/* Header */}
             <div className="bg-white shadow p-4 flex justify-between items-center z-10">
                 <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-bold text-gray-800">Mapa de Estatísticas</h1>
+                    <h1 className="text-xl font-bold text-gray-800">Estatísticas</h1>
 
                     {/* Mode Toggle */}
                     <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -117,6 +174,7 @@ export default function StatisticsPage() {
                         <button onClick={() => setStatMode('health')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'health' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Qualidade (Bairro)</button>
                         <button onClick={() => setStatMode('grid')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'grid' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Micro-Regiões</button>
                         <button onClick={() => setStatMode('species')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'species' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Espécies</button>
+                        <button onClick={() => setStatMode('metrics')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'metrics' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Métricas</button>
                     </div>
 
                     {/* Sub-toggle for Grid */}
@@ -144,13 +202,55 @@ export default function StatisticsPage() {
                             </select>
                         </div>
                     )}
+
+                    {/* Year/Month Filter for Metrics */}
+                    {statMode === 'metrics' && (
+                        <div className="flex items-center gap-4 ml-4 animate-fade-in">
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Ano:</label>
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                    className="p-1.5 text-sm border-2 border-blue-100 rounded-lg bg-blue-50 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-blue-900"
+                                >
+                                    {years.map(y => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-gray-500 uppercase">Mês:</label>
+                                <select
+                                    value={selectedMonth || ''}
+                                    onChange={(e) => setSelectedMonth(e.target.value ? parseInt(e.target.value) : null)}
+                                    className="p-1.5 text-sm border-2 border-blue-100 rounded-lg bg-blue-50 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-blue-900"
+                                >
+                                    <option value="">Todos os Meses</option>
+                                    {months.map(m => (
+                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <button onClick={() => router.back()} className="text-blue-600 hover:underline">Voltar</button>
             </div>
 
             <div className="flex-1 relative overflow-hidden flex flex-col">
+                {/* Error Banner */}
+                {error && (
+                    <div className="mx-4 mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-3 z-30">
+                        <div className="flex items-center gap-3">
+                            <span className="text-red-500 text-xl">⚠️</span>
+                            <p className="text-sm font-medium text-red-800">{error}</p>
+                        </div>
+                        <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 text-lg font-bold">&times;</button>
+                    </div>
+                )}
+
                 {/* Loader Overlay for Data Fetching */}
-                {(loading && statMode !== 'species') && (
+                {(loading && statMode !== 'species' && statMode !== 'metrics') && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white bg-opacity-75">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
                     </div>
@@ -161,6 +261,14 @@ export default function StatisticsPage() {
                         data={speciesStats}
                         loading={loading}
                         selectedBairro={selectedBairro}
+                    />
+                ) : statMode === 'metrics' ? (
+                    <ManagementMetricsDashboard
+                        data={metricsData}
+                        summary={metricsSummary}
+                        loading={loading}
+                        year={selectedYear}
+                        month={selectedMonth}
                     />
                 ) : (
                     <MapComponent

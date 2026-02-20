@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
     try {
+        const session = await auth();
+        if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+        const role = (session.user as any).role;
+        if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+        }
+
         const body = await request.json();
-        const { treeIds, description, status, assigned_to, serviceType, serviceSubtypes } = body;
+        const { treeIds, description, status, assignedToId, serviceType, serviceSubtypes, priority, managementActionId } = body;
         // treeIds should be an array of numbers
 
         if (!treeIds || !Array.isArray(treeIds) || treeIds.length === 0) {
@@ -34,22 +43,30 @@ export async function POST(request: Request) {
 
         // Collect management actions that need handling
         const managementIds: number[] = [];
-        trees.forEach(t => {
-            const insp = t.inspections[0];
-            if (insp && insp.managementActions && insp.managementActions.length > 0) {
-                // Assuming we want to include the LATEST management action required
-                const action = insp.managementActions[0];
-                if (action.necessita_manejo) {
-                    managementIds.push(action.id);
+
+        // If explicit ID provided, use it
+        if (managementActionId) {
+            managementIds.push(managementActionId);
+        } else {
+            // Auto-detect otherwise
+            trees.forEach(t => {
+                const insp = t.inspections[0];
+                if (insp && insp.managementActions && insp.managementActions.length > 0) {
+                    // Assuming we want to include the LATEST management action required
+                    const action = insp.managementActions[0];
+                    if (action.necessita_manejo) {
+                        managementIds.push(action.id);
+                    }
                 }
-            }
-        });
+            });
+        }
 
         const newOS = await prisma.serviceOrder.create({
             data: {
                 status: status || 'Planejada',
-                assigned_to: assigned_to,
-                description: description, // Initial description?? Or observations?
+                createdById: session.user.id,
+                assignedToId: assignedToId,
+                description: description,
                 observations: description, // Use description as observations for now ?
                 trees: {
                     connect: treeIds.map((id: any) => ({ id_arvore: id }))
@@ -58,7 +75,8 @@ export async function POST(request: Request) {
                     connect: managementIds.map(id => ({ id }))
                 },
                 serviceType,
-                serviceSubtypes: serviceSubtypes || []
+                serviceSubtypes: serviceSubtypes || [],
+                priority: priority || 'Moderada'
             },
             include: {
                 trees: true,
@@ -76,6 +94,9 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
     try {
+        const session = await auth();
+        const role = (session?.user as any)?.role;
+
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status'); // 'active', 'finished', or specific status
         const lat = searchParams.get('lat');
@@ -86,14 +107,22 @@ export async function GET(request: Request) {
 
         if (status === 'active') {
             where.status = {
-                notIn: ['Concluída', 'Cancelada']
+                notIn: ['Aguardando Revisão', 'Concluída', 'Cancelada']
             };
         } else if (status === 'finished') {
             where.status = {
-                in: ['Concluída', 'Cancelada']
+                in: ['Aguardando Revisão', 'Concluída', 'Cancelada']
             };
         } else if (status) {
             where.status = status;
+        }
+
+        // RBAC Filter: Operacional only sees assigned to them or unassigned
+        if (role === 'OPERACIONAL') {
+            where.OR = [
+                { assignedToId: session?.user?.id },
+                { assignedToId: null }
+            ];
         }
 
         // If Lat/Lng provided, logic is complex because OS has multiple Trees.
@@ -121,39 +150,65 @@ export async function GET(request: Request) {
             };
         }
 
+        // 1. Fetch OS (1 RTT)
         const serviceOrders = await prisma.serviceOrder.findMany({
             where,
-            include: {
-                trees: {
-                    include: {
-                        species: true
-                    }
-                },
-                managementActions: true
-            },
             orderBy: { created_at: 'desc' }
         });
 
-        // Precisamos adicionar lat/lng manualmente para cada árvore em cada OS
-        const serviceOrdersWithCoords = await Promise.all(serviceOrders.map(async (so) => {
-            const treesWithCoords = await Promise.all(so.trees.map(async (tree: any) => {
-                const coords: any[] = await prisma.$queryRaw`
-                    SELECT ST_Y(localizacao::geometry) as lat, ST_X(localizacao::geometry) as lng 
-                    FROM "Tree" WHERE id_arvore = ${tree.id_arvore}
-                `;
-                return {
-                    ...tree,
-                    lat: coords[0]?.lat || null,
-                    lng: coords[0]?.lng || null
-                };
-            }));
-            return {
-                ...so,
-                trees: treesWithCoords
-            };
+        if (serviceOrders.length === 0) return NextResponse.json([]);
+
+        const osIds = serviceOrders.map(so => so.id);
+
+        // 2. Fetch all Trees + Coords + Species in ONE query across all found OS (1 RTT)
+        const treesData: any[] = await prisma.$queryRaw`
+            SELECT 
+                t.id_arvore, t.numero_etiqueta, t.nome_popular, t.rua, t.numero, t.bairro, t.status,
+                ST_Y(t.localizacao::geometry) as lat, 
+                ST_X(t.localizacao::geometry) as lng,
+                s.nome_comum as "species_nome_comum",
+                so_t."A" as "osId"
+            FROM "Tree" t
+            JOIN "_ServiceOrderToTree" so_t ON t.id_arvore = so_t."B"
+            LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
+            WHERE so_t."A" = ANY(${osIds})
+        `;
+
+        // 3. Fetch all Management Actions in ONE query (1 RTT)
+        const maData: any[] = await prisma.$queryRaw`
+            SELECT 
+                ma.*,
+                so_ma."B" as "osId"
+            FROM "ManagementAction" ma
+            JOIN "_ManagementActionToServiceOrder" so_ma ON ma.id = so_ma."A"
+            WHERE so_ma."B" = ANY(${osIds})
+        `;
+
+        // 4. Merge results in JS
+        const treesByOS = treesData.reduce((acc, t) => {
+            const osId = t.osId;
+            if (!acc[osId]) acc[osId] = [];
+            acc[osId].push({
+                ...t,
+                species: t.species_nome_comum ? { nome_comum: t.species_nome_comum } : null
+            });
+            return acc;
+        }, {} as Record<number, any[]>);
+
+        const maByOS = maData.reduce((acc, ma) => {
+            const osId = ma.osId;
+            if (!acc[osId]) acc[osId] = [];
+            acc[osId].push(ma);
+            return acc;
+        }, {} as Record<number, any[]>);
+
+        const serviceOrdersWithAll = serviceOrders.map(so => ({
+            ...so,
+            trees: treesByOS[so.id] || [],
+            managementActions: maByOS[so.id] || []
         }));
 
-        return NextResponse.json(serviceOrdersWithCoords);
+        return NextResponse.json(serviceOrdersWithAll);
 
     } catch (error) {
         console.error('Error fetching service orders:', error);

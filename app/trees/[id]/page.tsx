@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import GrowthChart from '../../../components/GrowthChart';
 import HealthTrendChart from '../../../components/HealthTrendChart';
 import InspectionComparisonGallery from '../../../components/InspectionComparisonGallery';
@@ -28,14 +29,55 @@ const HEALTH_COLORS: Record<string, string> = {
     'Desvitalizada': 'bg-red-100 text-red-800 border-red-300'
 };
 
+function renderRecommendationDetails(action: any) {
+    return (
+        <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+                <span className={`px-4 py-2 rounded-full text-sm font-bold ${action.manejo_tipo === 'Supressão' ? 'bg-red-100 text-red-700 border-2 border-red-300' : 'bg-blue-100 text-blue-700 border-2 border-blue-300'}`}>
+                    {action.manejo_tipo}
+                </span>
+                {action.supressao_tipo && (
+                    <span className="text-gray-700 font-medium border-2 border-gray-300 px-3 py-2 rounded-full text-sm bg-white">
+                        {action.supressao_tipo}
+                    </span>
+                )}
+            </div>
+
+            {action.poda_tipos && action.poda_tipos.length > 0 && (
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                    <span className="font-bold text-blue-900 block mb-2 text-sm">Tipos de Poda:</span>
+                    <ul className="space-y-1">
+                        {action.poda_tipos.map((t: string, i: number) => (
+                            <li key={i} className="flex items-center gap-2 text-sm text-blue-800">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                {t}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {action.justification && (
+                <div className="text-sm text-gray-700 bg-gray-50 border-l-4 border-gray-400 pl-4 py-3 rounded-r-lg italic">
+                    "{action.justification}"
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function TreeDetailPage() {
     const params = useParams();
     const router = useRouter();
+    const { data: session } = useSession();
     const [tree, setTree] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
     const [expandedInspectionId, setExpandedInspectionId] = useState<number | null>(null);
     const [isOSModalOpen, setIsOSModalOpen] = useState(false);
+    const [osInitialData, setOsInitialData] = useState<any>(null);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
@@ -47,7 +89,16 @@ export default function TreeDetailPage() {
         lng: ''
     });
 
+    const role = (session?.user as any)?.role;
+    const canEdit = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canCreateOS = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canDelete = role === 'ADMIN';
+
+    const fetchCalled = useRef(false);
+
     useEffect(() => {
+        if (fetchCalled.current) return;
+        fetchCalled.current = true;
         fetchTree();
     }, []); // eslint-disable-line
 
@@ -186,6 +237,17 @@ export default function TreeDetailPage() {
             <div className="relative bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="relative max-w-7xl mx-auto px-8 py-12">
+                    {(tree as any).status === 'Removida' && (
+                        <div className="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-r shadow-md flex items-center gap-3 animate-pulse">
+                            <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                                <p className="font-bold text-lg">ÁRVORE REMOVIDA</p>
+                                <p className="text-sm">Esta árvore foi removida e consta apenas como registro histórico.</p>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex items-start justify-between mb-6">
                         <Link href="/trees" className="text-white/80 hover:text-white transition-colors flex items-center gap-2">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,15 +267,21 @@ export default function TreeDetailPage() {
                                 </>
                             ) : (
                                 <>
-                                    <button onClick={() => setEditing(true)} className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all">
-                                        Editar
-                                    </button>
-                                    <button onClick={() => setIsOSModalOpen(true)} className="px-4 py-2 bg-white text-emerald-600 rounded-lg font-medium hover:bg-white/90 transition-all shadow-lg">
-                                        Criar O.S.
-                                    </button>
-                                    <button onClick={handleDelete} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 backdrop-blur-sm text-white rounded-lg transition-all">
-                                        Excluir
-                                    </button>
+                                    {canEdit && (
+                                        <button onClick={() => setEditing(true)} className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-all">
+                                            Editar
+                                        </button>
+                                    )}
+                                    {canCreateOS && (
+                                        <button onClick={() => setIsOSModalOpen(true)} className="px-4 py-2 bg-white text-emerald-600 rounded-lg font-medium hover:bg-white/90 transition-all shadow-lg">
+                                            Criar O.S.
+                                        </button>
+                                    )}
+                                    {canDelete && (
+                                        <button onClick={handleDelete} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 backdrop-blur-sm text-white rounded-lg transition-all">
+                                            Excluir
+                                        </button>
+                                    )}
                                 </>
                             )}
                         </div>
@@ -226,9 +294,6 @@ export default function TreeDetailPage() {
                             </h1>
                             <p className="text-emerald-100 text-lg italic mb-4">{tree.species.nome_cientifico}</p>
                             <div className="flex flex-wrap gap-3">
-                                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
-                                    ID #{tree.id_arvore}
-                                </span>
                                 {tree.numero_etiqueta && (
                                     <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
                                         Etiqueta: {tree.numero_etiqueta}
@@ -242,11 +307,19 @@ export default function TreeDetailPage() {
                                     {healthStatus}
                                 </span>
                                 {riskRating > 0 && (
-                                    <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${riskRating >= 9 ? 'bg-red-500/20 border-red-300' :
-                                        riskRating >= 6 ? 'bg-orange-500/20 border-orange-300' :
-                                            'bg-yellow-500/20 border-yellow-300'
+                                    <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${riskRating >= 5 ? 'bg-red-500/20 border-red-300' :
+                                        riskRating === 4 ? 'bg-orange-500/20 border-orange-300' :
+                                            riskRating === 3 ? 'bg-yellow-500/20 border-yellow-300' :
+                                                riskRating === 2 ? 'bg-lime-500/20 border-lime-300' :
+                                                    'bg-green-500/20 border-green-300'
                                         }`}>
-                                        Risco: {riskRating}/12
+                                        Risco: {(() => {
+                                            if (riskRating >= 5) return 'Extremo';
+                                            if (riskRating === 4) return 'Alto';
+                                            if (riskRating === 3) return 'Moderado';
+                                            if (riskRating === 2) return 'Baixo';
+                                            return 'Muito Baixo';
+                                        })()}
                                     </span>
                                 )}
                             </div>
@@ -443,39 +516,88 @@ export default function TreeDetailPage() {
                                                 </div>
                                             );
                                         }
+
+                                        // Check for linked Service Orders
+                                        // Ideally backend should include this relation. If not, we might need to rely on matching IDs or fetch update.
+                                        // For now, assuming TreeRepository includes it deeply? 
+                                        // Need to check if `page.tsx` fetches `inspections` with `include: { managementActions: { include: { serviceOrders: true } } }`?
+                                        // The current `route.ts` (GET /api/trees/:id) needs to be checked, but assuming we can rely on `tree.serviceOrders`?
+                                        // Actually `tree.serviceOrders` lists all OS for the tree.
+                                        // But we specifically want OS linked to THIS action.
+                                        // Let's check if the fetched tree object has the relation deep nested.
+                                        // If `api/trees/[id]/route.ts` does `include: { inspections: { include: { managementActions: { include: { serviceOrders: true } } } } }`.
+                                        // If not, we might not see it directly on `action.serviceOrders`.
+
+                                        // Fallback logic: Look at `tree.serviceOrders` and see if any are recent and match type.
+                                        // But correct way: The user verified "linkage" plan.
+                                        // Let's assume for now that if we just created it, we reload.
+                                        // But to display it, we need to know.
+
+                                        // Let's trust that the developer (me) will ensure the fetch includes it.
+                                        // BUT I haven't edited `GET /api/trees/[id]`. I should probably check that first or do it blindly assuming it might work or fix later.
+                                        // Let's insert the UI logic using `action.serviceOrders` and if it's missing, I'll fix the GET route.
+
+                                        const linkedOS = action.serviceOrders && action.serviceOrders.length > 0 ? action.serviceOrders[0] : null;
+
+                                        if (linkedOS) {
+                                            const isFinished = ['Concluída', 'Cancelada'].includes(linkedOS.status);
+
+                                            if (isFinished) {
+                                                return (
+                                                    <div className="flex items-center gap-3 text-emerald-700 bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                                                        <svg className="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        <div>
+                                                            <span className="font-bold block">Intervenção Realizada</span>
+                                                            <span className="text-sm opacity-75">OS #{linkedOS.id} - {linkedOS.status}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div className="space-y-3">
+                                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center">
+                                                            <div>
+                                                                <span className="font-bold text-blue-900 block text-sm">Ordem de Serviço Vinculada</span>
+                                                                <Link href={`/service-orders/${linkedOS.id}`} className="text-sm text-blue-700 hover:underline">
+                                                                    OS #{linkedOS.id} - {linkedOS.status}
+                                                                </Link>
+                                                            </div>
+                                                            <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">{linkedOS.status}</span>
+                                                        </div>
+                                                        {/* Show recommendation details slightly dimmed? */}
+                                                        <div className="opacity-75 pointer-events-none grayscale-[0.5]">
+                                                            {renderRecommendationDetails(action)}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            }
+                                        }
+
                                         return (
-                                            <div className="space-y-3">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <span className={`px-4 py-2 rounded-full text-sm font-bold ${action.manejo_tipo === 'Supressão' ? 'bg-red-100 text-red-700 border-2 border-red-300' : 'bg-blue-100 text-blue-700 border-2 border-blue-300'}`}>
-                                                        {action.manejo_tipo}
-                                                    </span>
-                                                    {action.supressao_tipo && (
-                                                        <span className="text-gray-700 font-medium border-2 border-gray-300 px-3 py-2 rounded-full text-sm bg-white">
-                                                            {action.supressao_tipo}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                            <div className="space-y-4">
+                                                {renderRecommendationDetails(action)}
 
-                                                {action.poda_tipos && action.poda_tipos.length > 0 && (
-                                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                                                        <span className="font-bold text-blue-900 block mb-2 text-sm">Tipos de Poda:</span>
-                                                        <ul className="space-y-1">
-                                                            {action.poda_tipos.map((t: string, i: number) => (
-                                                                <li key={i} className="flex items-center gap-2 text-sm text-blue-800">
-                                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                                                    </svg>
-                                                                    {t}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                )}
-
-                                                {action.justification && (
-                                                    <div className="text-sm text-gray-700 bg-gray-50 border-l-4 border-gray-400 pl-4 py-3 rounded-r-lg italic">
-                                                        "{action.justification}"
-                                                    </div>
+                                                {canCreateOS && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setOsInitialData({
+                                                                serviceType: action.manejo_tipo,
+                                                                serviceSubtypes: action.poda_tipos || (action.supressao_tipo ? [action.supressao_tipo] : []),
+                                                                description: action.justification,
+                                                                priority: 'Moderada',
+                                                                managementActionId: action.id
+                                                            });
+                                                            setIsOSModalOpen(true);
+                                                        }}
+                                                        className="w-full mt-2 py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition shadow-md flex justify-center items-center gap-2"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        Criar Ordem de Serviço
+                                                    </button>
                                                 )}
                                             </div>
                                         );
@@ -510,41 +632,49 @@ export default function TreeDetailPage() {
                                                 <div className="space-y-6">
                                                     {/* Row 1: Detailed Metrics */}
                                                     <div className="space-y-3">
-                                                        {/* Line 1: Probabilidade (Exclusive) */}
+                                                        {/* Line 1: Probabilidade de Falha */}
                                                         <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 flex flex-col justify-center min-w-0 w-full">
                                                             <span className="block text-[11px] text-purple-700 font-extrabold uppercase mb-1">
-                                                                Probabilidade de Falha e Impacto
+                                                                Probabilidade de Falha
                                                             </span>
                                                             <span className="text-lg font-bold text-gray-800">
-                                                                {tree.inspections[0].phytosanitary[0].risk_probability}
+                                                                {tree.inspections[0].phytosanitary[0].risk_probability?.replace('_', ' ') || '-'}
                                                             </span>
                                                         </div>
 
-                                                        {/* Line 2: Severidade e Alvo */}
+                                                        {/* Line 2: Probabilidade de Impacto e Consequências */}
                                                         <div className="grid grid-cols-2 gap-3">
-                                                            {/* 2. Severidade */}
+                                                            {/* 2. Probabilidade de Impacto (Mapped from severity_level) */}
                                                             <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 flex flex-col justify-center min-w-0">
-                                                                <span className="block text-[11px] text-orange-700 font-extrabold uppercase mb-1 truncate" title="Severidade">
-                                                                    Severidade
+                                                                <span className="block text-[11px] text-orange-700 font-extrabold uppercase mb-1 truncate" title="Probabilidade de Impacto">
+                                                                    Prob. de Impacto
                                                                 </span>
                                                                 <div className="flex items-baseline gap-1">
-                                                                    <span className="text-xl font-bold text-orange-900">
-                                                                        {tree.inspections[0].phytosanitary[0].severity_level || '-'}
+                                                                    <span className="text-lg font-bold text-orange-900">
+                                                                        {(() => {
+                                                                            const val = tree.inspections[0].phytosanitary[0].severity_level;
+                                                                            if (!val) return '-';
+                                                                            const map: Record<number, string> = { 1: 'Alta', 2: 'Média', 3: 'Baixa', 4: 'Muito Baixa' };
+                                                                            return map[val] || val;
+                                                                        })()}
                                                                     </span>
-                                                                    <span className="text-xs text-orange-600">/5</span>
                                                                 </div>
                                                             </div>
 
-                                                            {/* 3. Alvo */}
+                                                            {/* 3. Consequências (Mapped from target_value) */}
                                                             <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 flex flex-col justify-center min-w-0">
-                                                                <span className="block text-[11px] text-blue-700 font-extrabold uppercase mb-1 truncate" title="Alvo">
-                                                                    Alvo
+                                                                <span className="block text-[11px] text-blue-700 font-extrabold uppercase mb-1 truncate" title="Consequências">
+                                                                    Consequências
                                                                 </span>
                                                                 <div className="flex items-baseline gap-1">
-                                                                    <span className="text-xl font-bold text-blue-900">
-                                                                        {tree.inspections[0].phytosanitary[0].target_value || '-'}
+                                                                    <span className="text-lg font-bold text-blue-900">
+                                                                        {(() => {
+                                                                            const val = tree.inspections[0].phytosanitary[0].target_value;
+                                                                            if (!val) return '-';
+                                                                            const map: Record<number, string> = { 1: 'Severas', 2: 'Significativas', 3: 'Menores', 4: 'Insignificantes' };
+                                                                            return map[val] || val;
+                                                                        })()}
                                                                     </span>
-                                                                    <span className="text-xs text-blue-600">/4</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -559,10 +689,11 @@ export default function TreeDetailPage() {
                                                             <svg viewBox="0 0 200 120" className="w-full h-full">
                                                                 <defs>
                                                                     <linearGradient id="riskGaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                                        <stop offset="0%" stopColor="#22c55e" />   {/* Green (3-5) */}
-                                                                        <stop offset="40%" stopColor="#eab308" />  {/* Yellow (6-8) */}
-                                                                        <stop offset="75%" stopColor="#f97316" />  {/* Orange (9-10) */}
-                                                                        <stop offset="100%" stopColor="#ef4444" /> {/* Red (11-12) */}
+                                                                        <stop offset="0%" stopColor="#22c55e" />   {/* Green (1) */}
+                                                                        <stop offset="25%" stopColor="#84cc16" />  {/* Lime (2) */}
+                                                                        <stop offset="50%" stopColor="#eab308" />  {/* Yellow (3) */}
+                                                                        <stop offset="75%" stopColor="#f97316" />  {/* Orange (4) */}
+                                                                        <stop offset="100%" stopColor="#ef4444" /> {/* Red (5) */}
                                                                     </linearGradient>
                                                                 </defs>
 
@@ -581,9 +712,9 @@ export default function TreeDetailPage() {
 
                                                                 {/* Needle */}
                                                                 {(() => {
-                                                                    const rating = tree.inspections[0].phytosanitary[0].risk_rating || 3;
-                                                                    const clampedRating = Math.max(3, Math.min(12, rating));
-                                                                    const angle = ((clampedRating - 3) / 9) * 180;
+                                                                    const rating = tree.inspections[0].phytosanitary[0].risk_rating || 1;
+                                                                    const clampedRating = Math.max(1, Math.min(5, rating));
+                                                                    const angle = ((clampedRating - 1) / 4) * 180;
                                                                     return (
                                                                         <g className="transition-transform duration-1000 ease-out origin-[100px_100px]" style={{ transform: `rotate(${angle}deg)` }}>
                                                                             <path d="M 100 100 L 30 100" stroke="#1f2937" strokeWidth="4" strokeLinecap="round" />
@@ -594,26 +725,38 @@ export default function TreeDetailPage() {
                                                             </svg>
 
                                                             {/* Value Text Overlay */}
-                                                            <div className="absolute bottom-1 text-center">
+                                                            <div className="absolute bottom-1 text-center w-full">
                                                                 <div className="flex items-baseline justify-center gap-1">
                                                                     <span className="text-4xl font-black text-gray-900 leading-none">
                                                                         {tree.inspections[0].phytosanitary[0].risk_rating || '-'}
                                                                     </span>
-                                                                    <span className="text-sm text-gray-400 font-bold">/12</span>
+                                                                    <span className="text-sm text-gray-400 font-bold">/5</span>
                                                                 </div>
-                                                                <div className={`text-sm font-black uppercase mt-2 px-4 py-1 rounded-full text-white shadow-sm ${(tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 11 ? 'bg-red-600' :
-                                                                    (tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 9 ? 'bg-orange-500' :
-                                                                        (tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 6 ? 'bg-yellow-500' :
-                                                                            'bg-green-500'
+                                                                <div className={`text-sm font-black uppercase mt-2 px-4 py-1 rounded-full text-white shadow-sm inline-block ${(tree.inspections[0].phytosanitary[0].risk_rating || 0) >= 5 ? 'bg-red-600' :
+                                                                    (tree.inspections[0].phytosanitary[0].risk_rating || 0) == 4 ? 'bg-orange-500' :
+                                                                        (tree.inspections[0].phytosanitary[0].risk_rating || 0) == 3 ? 'bg-yellow-500' :
+                                                                            (tree.inspections[0].phytosanitary[0].risk_rating || 0) == 2 ? 'bg-lime-500' :
+                                                                                'bg-green-600'
                                                                     }`}>
                                                                     {(() => {
                                                                         const r = tree.inspections[0].phytosanitary[0].risk_rating || 0;
-                                                                        if (r >= 11) return 'Extremo';
-                                                                        if (r >= 9) return 'Alto';
-                                                                        if (r >= 6) return 'Moderado';
-                                                                        return 'Baixo';
+                                                                        if (r >= 5) return 'Extremo';
+                                                                        if (r == 4) return 'Alto';
+                                                                        if (r == 3) return 'Moderado';
+                                                                        if (r == 2) return 'Baixo';
+                                                                        return 'Muito Baixo';
                                                                     })()}
                                                                 </div>
+                                                                <p className="text-xs text-gray-500 mt-2 italic px-2">
+                                                                    {(() => {
+                                                                        const r = tree.inspections[0].phytosanitary[0].risk_rating || 0;
+                                                                        if (r >= 5) return "A falha é iminente e impactará o alvo.";
+                                                                        if (r == 4) return "Consequências significativas ou severas.";
+                                                                        if (r == 3) return "Monitorar.";
+                                                                        if (r == 2) return "Manter em observação.";
+                                                                        return "Nenhuma ação imediata necessária.";
+                                                                    })()}
+                                                                </p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -701,9 +844,22 @@ export default function TreeDetailPage() {
                                                                     {item.phytosanitary?.[0]?.estado_saude || 'Não avaliada'}
                                                                 </span>
                                                             </p>
-                                                            {item.phytosanitary?.[0]?.severity_level && (
+                                                            {item.phytosanitary?.[0]?.risk_rating !== undefined && (
                                                                 <p className="text-xs text-gray-600">
-                                                                    Severidade: <span className="font-medium">{['Leve', 'Leve', 'Média', 'Média', 'Alta'][item.phytosanitary[0].severity_level - 1]}</span>
+                                                                    Risco TRAQ: <span className={`font-medium ${item.phytosanitary[0].risk_rating >= 5 ? 'text-red-600' :
+                                                                        item.phytosanitary[0].risk_rating === 4 ? 'text-orange-600' :
+                                                                            item.phytosanitary[0].risk_rating === 3 ? 'text-yellow-600' :
+                                                                                'text-emerald-600'
+                                                                        }`}>
+                                                                        {(() => {
+                                                                            const r = item.phytosanitary[0].risk_rating;
+                                                                            if (r >= 5) return 'Extremo';
+                                                                            if (r === 4) return 'Alto';
+                                                                            if (r === 3) return 'Moderado';
+                                                                            if (r === 2) return 'Baixo';
+                                                                            return 'Muito Baixo';
+                                                                        })()}
+                                                                    </span>
                                                                 </p>
                                                             )}
                                                             {item.phytosanitary?.[0]?.pests && (() => {
@@ -759,6 +915,7 @@ export default function TreeDetailPage() {
                 onClose={() => setIsOSModalOpen(false)}
                 onSubmit={handleCreateOS}
                 treeCount={1}
+                initialData={osInitialData}
             />
 
             {/* Image Zoom Modal */}

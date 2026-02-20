@@ -17,6 +17,13 @@ enum TreeSize {
   Grande   // Acima de 12m
 }
 
+enum Role {
+  ADMIN
+  GESTOR
+  INSPETOR
+  OPERACIONAL
+}
+
 model Species {
   id_especie      Int      @id @default(autoincrement())
   nome_comum      String
@@ -42,6 +49,23 @@ model Species {
   updated_at      DateTime @updatedAt
 }
 
+model User {
+  id              String   @id @default(cuid())
+  name            String?
+  email           String   @unique
+  password        String   // Hash
+  role            Role     @default(OPERACIONAL)
+  active          Boolean  @default(true)
+  
+  // Relationships
+  inspectionsCreated   Inspection[]   @relation("InspectionCreator")
+  serviceOrdersCreated ServiceOrder[] @relation("ServiceOrderCreator")
+  serviceOrdersAssigned ServiceOrder[] @relation("ServiceOrderAssignee")
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
 // ==================== TREES & LOCATION ====================
 
 model Tree {
@@ -50,6 +74,8 @@ model Tree {
   numero_etiqueta String?
   nome_popular    String?
   cover_photo     String? // URL/URI or base64 placeholder
+  
+  status          String   @default("Ativa") // 'Ativa', 'Removida'
   
   // Geospatial data (PostGIS POINT with WGS 84)
   localizacao     Unsupported("geometry(Point, 4326)")?
@@ -84,6 +110,9 @@ model Inspection {
   treeId          Int
   tree            Tree     @relation(fields: [treeId], references: [id_arvore])
   
+  // Flag indicating if the tree was observed as removed during inspection
+  tree_removed    Boolean  @default(false)
+  
   // Temporal Data
   dendrometrics   DendrometricData[]
   phytosanitary   PhytosanitaryData[]
@@ -91,6 +120,10 @@ model Inspection {
   
   photos        InspectionPhoto[]
   
+  // Auth & RBAC
+  createdById     String?
+  createdBy       User?     @relation("InspectionCreator", fields: [createdById], references: [id])
+
   created_at      DateTime @default(now())
 
   @@index([treeId])
@@ -136,6 +169,26 @@ enum RiskProbability {
   Moderada
   Alta
   Extrema
+  // Android/TRAQ Integration
+  MUITO_PROVAVEL
+  PROVAVEL
+  POSSIVEL
+  IMPROVAVEL
+  IMINENTE
+  IMPROVAVEL_X
+}
+
+enum ServicePriority {
+  Baixa
+  Moderada
+  Alta
+  Emergencial
+}
+
+enum PhotoCategory {
+  Antes
+  Durante
+  Depois
 }
 
 model PhytosanitaryData {
@@ -207,24 +260,40 @@ model ServiceOrder {
   managementActions ManagementAction[]
   
   // Status tracking
-  status          String   // 'Planejada', 'Em Execução', 'Concluída', 'Cancelada'
+  status          String   // 'Planejada', 'Em Execução', 'Aguardando Revisão', 'Concluída', 'Cancelada'
+  priority        ServicePriority @default(Moderada)
   assigned_to     String?  // Team/Inspector ID or name
   
   // Notes
   observations    String?
   
+  // Execution data
+  start_time      DateTime?
+  cancel_reason   String?
+  adjustment_notes String?   // Notes from Geostor/Admin requesting changes
+  checklist       Json?     // Example: { "epi": true, "sinalizacao": true, "seguranca": true }
+  
   // Completion data
   description     String?
   photos          ServiceOrderPhoto[]
+  materials       ServiceOrderMaterial[]
   
   // Service Classification
   serviceType     String?     // 'Poda', 'Remoção', 'Substituição', 'Transplante'
   serviceSubtypes String[]    // Specific types like 'Levantamento de copa'
+  team_size       Int @default(1)
 
   // Timestamps
   created_at      DateTime @default(now())
   executed_at     DateTime?
   
+  // Auth & RBAC
+  createdById     String?
+  createdBy       User?     @relation("ServiceOrderCreator", fields: [createdById], references: [id])
+  
+  assignedToId    String?
+  assignedTo      User?     @relation("ServiceOrderAssignee", fields: [assignedToId], references: [id])
+
   @@index([status])
   @@index([assigned_to])
 }
@@ -234,7 +303,29 @@ model ServiceOrderPhoto {
   serviceOrderId  Int
   serviceOrder    ServiceOrder @relation(fields: [serviceOrderId], references: [id])
   uri             String
+  category        PhotoCategory @default(Depois)
   created_at      DateTime @default(now())
+}
+
+model ServiceOrderMaterial {
+  id              Int      @id @default(autoincrement())
+  serviceOrderId  Int
+  serviceOrder    ServiceOrder @relation(fields: [serviceOrderId], references: [id])
+  name            String
+  quantity        Decimal
+  unit            String?  // 'kg', 'un', 'm', etc.
+  unit_cost       Decimal  @default(0)
+}
+
+model MaterialMaster {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  unit            String
+  unit_cost       Decimal  @default(0)
+  auto_load       Boolean  @default(false)
+  active          Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 }
 
 // ==================== MEDIA STORAGE ====================
@@ -272,4 +363,14 @@ model InspectionPhoto {
   inspection    Inspection @relation(fields: [inspectionId], references: [id_inspecao])
   uri           String
   created_at    DateTime @default(now())
+}
+
+// ==================== SYSTEM SETTINGS ====================
+
+model SystemSettings {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+  
+  updated_at DateTime @updatedAt
 }

@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
+import { useRouter } from 'next/navigation';
+import Pagination from '../../../components/Pagination';
 
 interface Pest {
     id: number;
@@ -11,19 +14,43 @@ interface Pest {
 }
 
 export default function PestsPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [pests, setPests] = useState<Pest[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [editing, setEditing] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [formData, setFormData] = useState({ nome_comum: '', nome_cientifico: '', tipo: '' });
 
     useEffect(() => {
-        fetchPests();
-    }, []);
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+                router.push('/');
+            }
+        }
+    }, [status, session, router]);
 
-    async function fetchPests() {
-        const res = await fetch('/api/pests');
-        const data = await res.json();
-        setPests(data);
+    const role = (session?.user as any)?.role;
+    const canEdit = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canDelete = role === 'ADMIN';
+
+    useEffect(() => {
+        fetchPests(page);
+    }, [page]);
+
+    async function fetchPests(currentPage: number) {
+        try {
+            const res = await fetch(`/api/pests?page=${currentPage}&limit=10`);
+            const data = await res.json();
+            setPests(data.data || []);
+            setTotalPages(data.pagination?.pages || 1);
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     async function handleSave(id?: number) {
@@ -45,13 +72,22 @@ export default function PestsPage() {
         setEditing(null);
         setShowAddForm(false);
         setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' });
-        fetchPests();
+        setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' });
+        fetchPests(page);
     }
 
     async function handleDelete(id: number) {
         if (!confirm('Deletar esta praga?')) return;
         await fetch(`/api/pests/${id}`, { method: 'DELETE' });
-        fetchPests();
+        fetchPests(page);
+    }
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-700"></div>
+            </div>
+        );
     }
 
     return (
@@ -70,12 +106,14 @@ export default function PestsPage() {
             </div>
 
             <div className="max-w-5xl mx-auto px-8 py-8">
-                <button
-                    onClick={() => { setShowAddForm(!showAddForm); setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' }); }}
-                    className="mb-6 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-                >
-                    {showAddForm ? 'Cancelar' : '+ Adicionar Praga'}
-                </button>
+                {canEdit && (
+                    <button
+                        onClick={() => { setShowAddForm(!showAddForm); setFormData({ nome_comum: '', nome_cientifico: '', tipo: '' }); }}
+                        className="mb-6 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    >
+                        {showAddForm ? 'Cancelar' : '+ Adicionar Praga'}
+                    </button>
+                )}
 
                 {showAddForm && (
                     <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-red-200">
@@ -90,7 +128,7 @@ export default function PestsPage() {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Comum</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Científico</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Tipo</th>
-                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>
+                                {canEdit && <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -117,20 +155,24 @@ export default function PestsPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <button
-                                                onClick={() => { setEditing(pest.id); setFormData({ nome_comum: pest.nome_comum, nome_cientifico: pest.nome_cientifico || '', tipo: pest.tipo || '' }); }}
-                                                className="text-red-600 hover:text-red-700 font-medium"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(pest.id)}
-                                                className="text-gray-600 hover:text-gray-700 font-medium"
-                                            >
-                                                Deletar
-                                            </button>
-                                        </td>
+                                        {canEdit && (
+                                            <td className="px-6 py-4 text-right space-x-2">
+                                                <button
+                                                    onClick={() => { setEditing(pest.id); setFormData({ nome_comum: pest.nome_comum, nome_cientifico: pest.nome_cientifico || '', tipo: pest.tipo || '' }); }}
+                                                    className="text-red-600 hover:text-red-700 font-medium"
+                                                >
+                                                    Editar
+                                                </button>
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(pest.id)}
+                                                        className="text-gray-600 hover:text-gray-700 font-medium"
+                                                    >
+                                                        Deletar
+                                                    </button>
+                                                )}
+                                            </td>
+                                        )}
                                     </tr>
                                 )
                             ))}
@@ -138,6 +180,13 @@ export default function PestsPage() {
                     </table>
                     {pests.length === 0 && <div className="text-center py-8 text-gray-500">Nenhuma praga cadastrada</div>}
                 </div>
+
+                {/* Pagination Controls */}
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                />
             </div>
         </div>
     );

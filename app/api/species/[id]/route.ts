@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
+import { auth } from '@/auth';
 
 export async function PATCH(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+    const role = (session.user as any).role;
+    if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+    }
+
     try {
         const { id } = await params;
         const body = await request.json();
@@ -37,6 +46,14 @@ export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+    const role = (session.user as any).role;
+    if (role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Não autorizado. Apenas administradores podem deletar.' }, { status: 403 });
+    }
+
     try {
         const { id } = await params;
 

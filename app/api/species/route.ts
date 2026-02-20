@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../lib/prisma';
+import { auth } from '@/auth';
 
 export async function GET(request: Request) {
     try {
@@ -7,13 +8,23 @@ export async function GET(request: Request) {
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '50');
         const q = searchParams.get('q');
+        const letter = searchParams.get('letter');
+        const getInitials = searchParams.get('initials') === 'true';
+
+        if (getInitials) {
+            const initials = await prisma.$queryRaw<any[]>`
+                SELECT DISTINCT SUBSTRING(UPPER(unaccent(nome_comum)), 1, 1) as letter 
+                FROM "Species" 
+                ORDER BY letter
+            `;
+            return NextResponse.json(initials.map((i: any) => i.letter));
+        }
 
         let species;
         let total;
 
         if (q) {
-            // Use unaccent for accent-insensitive search in PostgreSQL
-            // We use raw query to access specialized unaccent function
+            // Existing search logic
             const searchTerm = `%${q}%`;
 
             species = await prisma.$queryRaw<any[]>`
@@ -33,7 +44,25 @@ export async function GET(request: Request) {
                    OR unaccent(family) ILIKE unaccent(${searchTerm})
             `;
             total = Number(totalResult[0].count);
+        } else if (letter) {
+            // Letter filtering logic
+            const letterTerm = `${letter}%`;
+
+            species = await prisma.$queryRaw<any[]>`
+                SELECT * FROM "Species"
+                WHERE unaccent(nome_comum) ILIKE unaccent(${letterTerm})
+                ORDER BY nome_comum ASC
+                LIMIT ${limit}
+                OFFSET ${(page - 1) * limit}
+            `;
+
+            const totalResult = await prisma.$queryRaw<any[]>`
+                SELECT COUNT(*) as count FROM "Species"
+                WHERE unaccent(nome_comum) ILIKE unaccent(${letterTerm})
+            `;
+            total = Number(totalResult[0].count);
         } else {
+            // Default list
             [species, total] = await Promise.all([
                 prisma.species.findMany({
                     skip: (page - 1) * limit,
@@ -60,6 +89,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+    const session = await auth();
+    if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+
+    const role = (session.user as any).role;
+    if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 403 });
+    }
+
     try {
         const body = await request.json();
 

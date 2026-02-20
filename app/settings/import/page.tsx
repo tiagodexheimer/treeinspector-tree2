@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
+import { useRouter } from 'next/navigation';
 
 export default function ImportPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
     const [importing, setImporting] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -11,6 +15,17 @@ export default function ImportPage() {
     const [current, setCurrent] = useState(0);
     const [errors, setErrors] = useState<string[]>([]);
     const [success, setSuccess] = useState(false);
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (role !== 'ADMIN') {
+                router.push('/');
+            }
+        }
+    }, [status, session, router]);
 
     async function handleImport() {
         if (!file) return;
@@ -85,6 +100,14 @@ export default function ImportPage() {
             alert(error.message || 'Erro ao importar arquivo');
             setImporting(false);
         }
+    }
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+            </div>
+        );
     }
 
     return (

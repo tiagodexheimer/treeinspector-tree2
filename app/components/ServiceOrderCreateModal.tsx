@@ -5,6 +5,13 @@ interface ServiceOrderCreateModalProps {
     onClose: () => void;
     onSubmit: (data: any) => Promise<void>;
     treeCount: number;
+    initialData?: {
+        serviceType?: string;
+        serviceSubtypes?: string[];
+        description?: string;
+        priority?: string;
+        managementActionId?: number;
+    };
 }
 
 const SERVICE_TYPES = [
@@ -26,11 +33,40 @@ const PODA_SUBTYPES = [
     'Redução de copa'
 ];
 
-export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, treeCount }: ServiceOrderCreateModalProps) {
+export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, treeCount, initialData }: ServiceOrderCreateModalProps) {
     const [loading, setLoading] = useState(false);
-    const [serviceType, setServiceType] = useState<string>('');
-    const [subtypes, setSubtypes] = useState<string[]>([]);
-    const [description, setDescription] = useState('');
+
+    // Initialize with props or defaults
+    const [serviceType, setServiceType] = useState<string>(initialData?.serviceType || '');
+    const [subtypes, setSubtypes] = useState<string[]>(initialData?.serviceSubtypes || []);
+    const [description, setDescription] = useState(initialData?.description || '');
+    const [priority, setPriority] = useState<string>(initialData?.priority || 'Moderada');
+
+    // Update state when initialData changes (e.g. reopening modal with different item)
+    // We use a key={...} strategy in parent usually, or useEffect here.
+    // Let's use useEffect to reset when isOpen becomes true? Or rely on parent re-rendering.
+    // Better: Parent should control instance or key, but useEffect is safer here.
+
+    // Actually simpler: initialize state lazily or strictly from props if open.
+    // But since this is a controlled modal often kept mounted, use useEffect to sync when opening.
+    // However, hooks order matters. Let's keep it simple: assume parent forces re-mount or we add a reset effect.
+    // For now, let's add a useEffect that updates state when `isOpen` becomes true, if we want to support reusing the modal.
+    // Or just updating when `initialData` changes.
+
+    // Changing state directly in render logic is bad.
+    // Let's use a key in parent to reset state, OR useEffect here.
+    // Let's stick to initial state for now, assuming parent might unmount it or we rely on re-init when props change.
+    // Actually, if we use the same modal instance, state won't reset.
+    // Let's add useEffect.
+
+    const [prevInitialData, setPrevInitialData] = useState(initialData);
+    if (initialData !== prevInitialData) {
+        setPrevInitialData(initialData);
+        setServiceType(initialData?.serviceType || '');
+        setSubtypes(initialData?.serviceSubtypes || []);
+        setDescription(initialData?.description || '');
+        setPriority(initialData?.priority || 'Moderada');
+    }
 
     if (!isOpen) return null;
 
@@ -53,7 +89,9 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
             await onSubmit({
                 serviceType,
                 serviceSubtypes: subtypes,
-                description
+                description,
+                priority,
+                managementActionId: initialData?.managementActionId // Pass ID back
             });
             onClose();
         } catch (error) {
@@ -122,7 +160,7 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
 
                     {/* Description */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Observações / Detalhes</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Observações do Planejamento</label>
                         <textarea
                             className="w-full border border-gray-300 rounded-lg p-2 focus:ring-green-500 focus:border-green-500"
                             rows={3}
@@ -130,6 +168,29 @@ export default function ServiceOrderCreateModal({ isOpen, onClose, onSubmit, tre
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
+                    </div>
+
+                    {/* Priority */}
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Prioridade</label>
+                        <div className="flex flex-wrap gap-2">
+                            {['Baixa', 'Moderada', 'Alta', 'Emergencial'].map(p => (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => setPriority(p)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${priority === p
+                                        ? p === 'Emergencial' ? 'bg-red-600 text-white border-red-700 ring-2 ring-red-200'
+                                            : p === 'Alta' ? 'bg-orange-500 text-white border-orange-600 ring-2 ring-orange-100'
+                                                : p === 'Moderada' ? 'bg-blue-500 text-white border-blue-600 ring-2 ring-blue-100'
+                                                    : 'bg-gray-600 text-white border-gray-700 ring-2 ring-gray-100'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                                        }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

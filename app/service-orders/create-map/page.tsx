@@ -1,7 +1,9 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Navigation from '../../components/Navigation';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 // Dymanic import to simple client-side rendering
 const ServiceOrderCreationMap = dynamic(
@@ -18,10 +20,30 @@ const ServiceOrderCreationMap = dynamic(
 );
 
 export default function CreateServiceOrderMapPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+                router.push('/service-orders');
+            }
+        }
+    }, [status, session, router]);
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navigation />
-
             <div className="flex-1 relative">
                 <div className="absolute top-4 left-4 z-[1000]">
                     <div className="bg-white p-4 rounded-lg shadow-lg max-w-sm">

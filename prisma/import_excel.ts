@@ -106,9 +106,10 @@ async function main() {
                 rua: row['Rua'] ? String(row['Rua']) : null,
                 numero: row['n'] ? String(row['n']) : null,
                 bairro: row['Bairro'] ? String(row['Bairro']) : null,
-                lat: latStr ? parseFloat(latStr) : null,
-                lng: lngStr ? parseFloat(lngStr) : null
             };
+
+            const lat = latStr ? parseFloat(latStr) : null;
+            const lng = lngStr ? parseFloat(lngStr) : null;
 
             // Using transaction for the single tree operation ensures consistency
             await prisma.$transaction(async (tx) => {
@@ -128,6 +129,13 @@ async function main() {
                         where: { id_arvore: tree.id_arvore },
                         data: treeData
                     });
+                }
+
+                if (lat !== null && lng !== null) {
+                    await tx.$executeRawUnsafe(
+                        `UPDATE "Tree" SET localizacao = ST_SetSRID(ST_MakePoint($1, $2), 4326) WHERE id_arvore = $3`,
+                        lng, lat, tree.id_arvore
+                    );
                 }
 
                 // Check existing inspections

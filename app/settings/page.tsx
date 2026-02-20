@@ -1,9 +1,33 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession } from "next-auth/react";
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function SettingsPage() {
-    const settingsCards = [
+    const { data: session, status } = useSession();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        }
+    }, [status, router]);
+
+    const userProfileCard = {
+        title: 'Meu Perfil',
+        description: 'Altere seu nome, e-mail e senha de acesso.',
+        href: '/settings/profile',
+        icon: (
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+        ),
+        color: 'from-emerald-400 to-emerald-600'
+    };
+
+    const managementCards = [
         {
             title: 'Gerenciar Espécies',
             description: 'Adicione, edite ou remova espécies. Configure porte, origem (nativa/exótica) e características.',
@@ -27,6 +51,20 @@ export default function SettingsPage() {
             color: 'from-red-500 to-orange-600'
         },
         {
+            title: 'Gerenciar Materiais',
+            description: 'Configure o catálogo de insumos e materiais para consumo nas Ordens de Serviço.',
+            href: '/settings/materials',
+            icon: (
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+            ),
+            color: 'from-blue-500 to-indigo-600'
+        }
+    ];
+
+    const adminCards = [
+        {
             title: 'Importar Dados',
             description: 'Importe planilhas Excel com levantamentos. Acompanhe o progresso em tempo real.',
             href: '/settings/import',
@@ -36,7 +74,36 @@ export default function SettingsPage() {
                 </svg>
             ),
             color: 'from-blue-500 to-indigo-600'
+        },
+        {
+            title: 'Gestão de Usuários',
+            description: 'Gerencie os usuários do sistema, altere permissões e adicione novos membros.',
+            href: '/admin/users',
+            icon: (
+                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            ),
+            color: 'from-purple-500 to-indigo-600'
         }
+    ];
+
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            </div>
+        );
+    }
+
+    const role = (session?.user as any)?.role;
+    const canManageTechnical = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const isAdmin = role === 'ADMIN';
+
+    const allCards = [
+        userProfileCard,
+        ...(canManageTechnical ? managementCards : []),
+        ...(isAdmin ? adminCards : [])
     ];
 
     return (
@@ -52,7 +119,7 @@ export default function SettingsPage() {
                     </Link>
                     <h1 className="text-4xl font-bold mb-2">Configurações do Projeto</h1>
                     <p className="text-emerald-100 text-lg">
-                        Gerencie espécies, pragas e importe dados externos
+                        Gerencie perfil, espécies, pragas, usuários e importe dados
                     </p>
                 </div>
             </div>
@@ -60,7 +127,7 @@ export default function SettingsPage() {
             {/* Settings Cards */}
             <div className="max-w-7xl mx-auto px-8 py-12">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {settingsCards.map((card) => (
+                    {allCards.map((card) => (
                         <Link
                             key={card.href}
                             href={card.href}

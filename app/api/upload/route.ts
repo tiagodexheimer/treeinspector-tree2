@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     // This works for both local development (if token provided) and production
     const blob = await put(file.name, file, {
       access: 'public',
+      addRandomSuffix: true,
     });
 
     return NextResponse.json({ url: blob.url });

@@ -116,13 +116,7 @@ export async function GET() {
             }
         }
 
-        // DEBUG: Log distribution of raw health values
-        const healthDistribution: Record<string, number> = {};
-        trees.forEach((t: any) => {
-            const h = t.estado_saude || 'NULL';
-            healthDistribution[h] = (healthDistribution[h] || 0) + 1;
-        });
-        console.log('DEBUG: Grid Health Distribution:', healthDistribution);
+
 
         // Format result
         const result = Array.from(grid.values()).map(cell => {

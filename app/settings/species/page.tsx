@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 interface Species {
     id_especie: number;
@@ -15,12 +17,32 @@ interface Species {
     description: string | null;
 }
 
+import Pagination from '../../../components/Pagination';
+import AlphabetFilter from '../../../components/AlphabetFilter';
+
 export default function SpeciesPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
     const [species, setSpecies] = useState<Species[]>([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState('');
+    const [letter, setLetter] = useState('');
+    const [availableLetters, setAvailableLetters] = useState<string[]>([]);
     const [editing, setEditing] = useState<number | null>(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (status === 'unauthenticated') {
+            router.push('/login');
+        } else if (status === 'authenticated') {
+            const role = (session?.user as any)?.role;
+            if (!['ADMIN', 'GESTOR', 'INSPETOR'].includes(role)) {
+                router.push('/');
+            }
+        }
+    }, [status, session, router]);
 
     const [formData, setFormData] = useState({
         nome_comum: '',
@@ -33,15 +55,45 @@ export default function SpeciesPage() {
         description: ''
     });
 
-    useEffect(() => {
-        fetchSpecies();
-    }, [search]);
+    const role = (session?.user as any)?.role;
+    const canEdit = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
+    const canDelete = role === 'ADMIN';
 
-    async function fetchSpecies() {
+    useEffect(() => {
+        setPage(1); // Reset page on filter change
+        fetchSpecies(1);
+    }, [search, letter]);
+
+    useEffect(() => {
+        fetchInitials();
+    }, []);
+
+    async function fetchInitials() {
         try {
-            const res = await fetch(`/api/species?q=${search}`);
+            const res = await fetch('/api/species?initials=true');
+            const data = await res.json();
+            setAvailableLetters(data || []);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    useEffect(() => {
+        fetchSpecies(page);
+    }, [page]);
+
+    async function fetchSpecies(currentPage: number) {
+        try {
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', currentPage.toString());
+            queryParams.append('limit', '30');
+            if (search) queryParams.append('q', search);
+            if (letter) queryParams.append('letter', letter);
+
+            const res = await fetch(`/api/species?${queryParams.toString()}`);
             const data = await res.json();
             setSpecies(data.data || []);
+            setTotalPages(data.pagination?.pages || 1);
         } catch (error) {
             console.error(error);
         } finally {
@@ -69,7 +121,7 @@ export default function SpeciesPage() {
             setEditing(null);
             setShowAddForm(false);
             resetForm();
-            fetchSpecies();
+            fetchSpecies(page);
         } catch (error) {
             console.error(error);
             alert('Erro ao salvar espécie');
@@ -86,7 +138,7 @@ export default function SpeciesPage() {
                 alert(error.error || 'Erro ao deletar');
                 return;
             }
-            fetchSpecies();
+            fetchSpecies(page);
         } catch (error) {
             console.error(error);
         }
@@ -119,6 +171,14 @@ export default function SpeciesPage() {
         });
     }
 
+    if (status === 'loading') {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
             {/* Header */}
@@ -136,6 +196,15 @@ export default function SpeciesPage() {
             </div>
 
             <div className="max-w-7xl mx-auto px-8 py-8">
+                <AlphabetFilter
+                    selectedLetter={letter}
+                    onLetterSelect={(l) => {
+                        setLetter(l);
+                        setSearch(''); // Clear search when filtering by letter
+                    }}
+                    availableLetters={availableLetters}
+                />
+
                 {/* Search & Add */}
                 <div className="flex gap-4 mb-6">
                     <input
@@ -143,14 +212,19 @@ export default function SpeciesPage() {
                         placeholder="Buscar espécie..."
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setLetter(''); // Clear letter filter when searching
+                        }}
                     />
-                    <button
-                        onClick={() => { setShowAddForm(!showAddForm); resetForm(); }}
-                        className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-                    >
-                        {showAddForm ? 'Cancelar' : '+ Adicionar Espécie'}
-                    </button>
+                    {canEdit && (
+                        <button
+                            onClick={() => { setShowAddForm(!showAddForm); resetForm(); }}
+                            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                        >
+                            {showAddForm ? 'Cancelar' : '+ Adicionar Espécie'}
+                        </button>
+                    )}
                 </div>
 
                 {/* Add Form */}
@@ -170,7 +244,7 @@ export default function SpeciesPage() {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Nome Científico</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Origem</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Porte</th>
-                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>
+                                {canEdit && <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Ações</th>}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -210,20 +284,24 @@ export default function SpeciesPage() {
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-right space-x-2">
-                                            <button
-                                                onClick={() => startEdit(sp)}
-                                                className="text-emerald-600 hover:text-emerald-700 font-medium"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(sp.id_especie)}
-                                                className="text-red-600 hover:text-red-700 font-medium"
-                                            >
-                                                Deletar
-                                            </button>
-                                        </td>
+                                        {canEdit && (
+                                            <td className="px-6 py-4 text-right space-x-2">
+                                                <button
+                                                    onClick={() => startEdit(sp)}
+                                                    className="text-emerald-600 hover:text-emerald-700 font-medium"
+                                                >
+                                                    Editar
+                                                </button>
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDelete(sp.id_especie)}
+                                                        className="text-red-600 hover:text-red-700 font-medium"
+                                                    >
+                                                        Deletar
+                                                    </button>
+                                                )}
+                                            </td>
+                                        )}
                                     </tr>
                                 )
                             ))}
@@ -232,6 +310,13 @@ export default function SpeciesPage() {
                     {loading && <div className="text-center py-8 text-gray-500">Carregando...</div>}
                     {!loading && species.length === 0 && <div className="text-center py-8 text-gray-500">Nenhuma espécie encontrada</div>}
                 </div>
+
+                {/* Pagination Controls */}
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                />
             </div>
         </div>
     );

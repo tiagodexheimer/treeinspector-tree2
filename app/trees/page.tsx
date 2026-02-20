@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface Tree {
     id_arvore: number;
@@ -14,6 +15,7 @@ interface Tree {
 }
 
 export default function TreesPage() {
+    const { data: session } = useSession();
     const [trees, setTrees] = useState<Tree[]>([]);
     const [loading, setLoading] = useState(true);
     const [bairro, setBairro] = useState('');
@@ -25,6 +27,9 @@ export default function TreesPage() {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalRecords, setTotalRecords] = useState(0);
+
+    const role = (session?.user as any)?.role;
+    const canCreate = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
 
     useEffect(() => {
         fetchTrees();
@@ -73,14 +78,22 @@ export default function TreesPage() {
         fetchTrees(true); // Reset to page 1 on filter
     }
 
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleFilter();
+        }
+    }
+
     return (
         <div className="p-8 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-900">Listagem de Árvores</h1>
                 <div className="flex gap-4">
-                    <Link href="/trees/new" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium">
-                        + Nova Árvore
-                    </Link>
+                    {canCreate && (
+                        <Link href="/trees/new" className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium">
+                            + Nova Árvore
+                        </Link>
+                    )}
                     <Link href="/" className="text-green-600 hover:text-green-800 font-medium flex items-center">
                         Ver Mapa
                     </Link>
@@ -97,6 +110,7 @@ export default function TreesPage() {
                             placeholder="Nº etiqueta"
                             value={etiqueta}
                             onChange={(e) => setEtiqueta(e.target.value)}
+                            onKeyDown={handleKeyDown}
                         />
                     </div>
                     <div>
@@ -107,6 +121,7 @@ export default function TreesPage() {
                             placeholder="Nome comum ou científico"
                             value={species}
                             onChange={(e) => setSpecies(e.target.value)}
+                            onKeyDown={handleKeyDown}
                         />
                     </div>
                     <div>
@@ -117,6 +132,7 @@ export default function TreesPage() {
                             placeholder="Filtrar por bairro"
                             value={bairro}
                             onChange={(e) => setBairro(e.target.value)}
+                            onKeyDown={handleKeyDown}
                         />
                     </div>
                     <div>
@@ -127,6 +143,7 @@ export default function TreesPage() {
                             placeholder="Rua ou endereço"
                             value={endereco}
                             onChange={(e) => setEndereco(e.target.value)}
+                            onKeyDown={handleKeyDown}
                         />
                     </div>
                 </div>
@@ -146,7 +163,6 @@ export default function TreesPage() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Etiqueta</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Espécie</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Endereço</th>
@@ -157,8 +173,15 @@ export default function TreesPage() {
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {trees.map((tree) => (
                                     <tr key={tree.id_arvore} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{tree.id_arvore}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tree.numero_etiqueta}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {tree.numero_etiqueta}
+                                            {/* @ts-ignore - status field not yet in interface but present in API */}
+                                            {(tree as any).status === 'Removida' && (
+                                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                                    Removida
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{tree.species?.nome_comum || '-'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {tree.rua ? `${tree.rua}, ${tree.numero}` : tree.endereco}

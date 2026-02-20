@@ -120,6 +120,7 @@ function Markers() {
   const [zoom, setZoom] = useState(10);
   const [trees, setTrees] = useState<MapTree[]>([]);
   const [showHeatmap, setShowHeatmap] = useState(false); // NEW STATE
+  const [selectedCluster, setSelectedCluster] = useState<{ id: number; leaves: any[] } | null>(null);
 
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -212,7 +213,7 @@ function Markers() {
 
   const superclusterOptions = useMemo(() => ({
     radius: 75,
-    maxZoom: 17,
+    maxZoom: 21,
     map: (props: any) => {
       const s = (props.status || '').toLowerCase();
       return {
@@ -261,6 +262,8 @@ function Markers() {
       }));
   }, [trees, showHeatmap]);
 
+  const maxMapZoom = 20;
+
   return (
     <>
       <div className="leaflet-top leaflet-right" style={{ pointerEvents: 'auto', marginTop: '10px', marginRight: '10px' }}>
@@ -284,6 +287,7 @@ function Markers() {
 
           if (isCluster) {
             const majorityColor = getMajorityHealthColorFromCounts(cluster.properties);
+            const isSelected = selectedCluster && selectedCluster.id === cluster.id;
 
             return (
               <Marker
@@ -292,13 +296,54 @@ function Markers() {
                 icon={getClusterIcon(point_count, majorityColor)}
                 eventHandlers={{
                   click: () => {
-                    const expansionZoom = Math.min(supercluster.getClusterExpansionZoom(cluster.id), 22);
-                    map.setView([latitude, longitude], expansionZoom, { animate: true });
+                    const expansionZoom = supercluster.getClusterExpansionZoom(cluster.id);
+                    const currentZoom = map.getZoom();
+
+                    if (expansionZoom > maxMapZoom) {
+                      // Cannot expand further because it exceeds map max zoom, show list
+                      const leaves = supercluster.getLeaves(cluster.id, Infinity);
+                      setSelectedCluster({ id: cluster.id, leaves });
+                    } else if (expansionZoom === currentZoom) {
+                      // Edge case: expansion zoom equals current zoom (e.g. at max zoom of cluster engine)
+                      const leaves = supercluster.getLeaves(cluster.id, Infinity);
+                      setSelectedCluster({ id: cluster.id, leaves });
+                    } else {
+                      setSelectedCluster(null);
+                      map.setView([latitude, longitude], expansionZoom, { animate: true });
+                    }
                   }
                 }}
-              />
+              >
+                {isSelected && (
+                  <Popup eventHandlers={{ remove: () => setSelectedCluster(null) }}>
+                    <div className="max-h-60 overflow-y-auto">
+                      <h3 className="font-bold text-lg mb-2 sticky top-0 bg-white pb-2 border-b">
+                        {selectedCluster.leaves.length} Árvores neste local
+                      </h3>
+                      <div className="flex flex-col gap-4">
+                        {selectedCluster.leaves.map((leaf: any) => (
+                          <div key={leaf.properties.treeId} className="border-b pb-2 last:border-0 last:pb-0">
+                            <strong>Etiqueta:</strong> {leaf.properties.etiqueta} <br />
+                            <strong>Espécie:</strong> {leaf.properties.species || 'Desconhecida'} <br />
+                            <strong>Saúde:</strong> {leaf.properties.status} <br />
+                            <div className="mt-2">
+                              <Link
+                                href={`/trees/${leaf.properties.treeId}`}
+                                className="inline-block px-4 py-2 bg-green-600 !text-white text-sm font-bold rounded shadow-md hover:bg-green-700 transition w-full text-center"
+                              >
+                                Ver Detalhes
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </Popup>
+                )}
+              </Marker>
             );
           }
+
 
           return (
             <Marker
@@ -313,7 +358,7 @@ function Markers() {
                 <div className="mt-2 flex gap-2">
                   <Link
                     href={`/trees/${cluster.properties.treeId}`}
-                    className="inline-block px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                    className="inline-block px-4 py-2 bg-green-600 !text-white text-sm font-bold rounded shadow-md hover:bg-green-700 transition"
                   >
                     Ver Detalhes
                   </Link>
@@ -334,13 +379,13 @@ export default function Map() {
       zoom={18}
       scrollWheelZoom={true}
       style={{ height: '100%', width: '100%', zIndex: 0 }}
-      maxZoom={22}
+      maxZoom={20}
     >
       <TileLayer
         attribution='&copy; OpenStreetMap'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         maxNativeZoom={19}
-        maxZoom={22}
+        maxZoom={20}
       />
 
       <Markers />

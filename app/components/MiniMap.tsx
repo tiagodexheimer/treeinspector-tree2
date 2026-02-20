@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import 'leaflet-defaulticon-compatibility';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface MiniMapProps {
     lat: number;
@@ -34,7 +34,12 @@ const getTreeIcon = (isCurrent: boolean) => {
 export default function MiniMap({ lat, lng, currentTreeId }: MiniMapProps) {
     const [nearbyTrees, setNearbyTrees] = useState<any[]>([]);
 
+    const fetchCalled = useRef(false);
+
     useEffect(() => {
+        if (fetchCalled.current) return;
+        fetchCalled.current = true;
+
         async function fetchNearby() {
             try {
                 // Fetch nearby trees within 500m

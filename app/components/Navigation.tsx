@@ -1,10 +1,17 @@
-'use client';
+"use client";
 
+import { useSession, signOut } from "next-auth/react";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LogOut, User as UserIcon, Settings, BarChart3, Map as MapIcon, TreeDeciduous, ClipboardList, ShieldAlert, BookOpen } from "lucide-react";
 
 export default function Navigation() {
     const pathname = usePathname();
+    const { data: session, status } = useSession();
+
+    if (pathname === '/login') return null;
+
+    const role = (session?.user as any)?.role;
 
     return (
         <nav className="bg-white border-b border-gray-200">
@@ -12,7 +19,10 @@ export default function Navigation() {
                 <div className="flex justify-between h-16">
                     <div className="flex">
                         <div className="flex-shrink-0 flex items-center">
-                            <span className="font-bold text-xl text-green-600">TreeInspector</span>
+                            <span className="font-bold text-xl text-green-600 flex items-center gap-2">
+                                <TreeDeciduous className="w-6 h-6" />
+                                TreeInspector
+                            </span>
                         </div>
                         <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                             <Link
@@ -22,17 +32,23 @@ export default function Navigation() {
                                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                                     }`}
                             >
+                                <MapIcon className="w-4 h-4 mr-1" />
                                 Mapa
                             </Link>
-                            <Link
-                                href="/trees"
-                                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/trees'
-                                    ? 'border-green-500 text-gray-900'
-                                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    }`}
-                            >
-                                Árvores
-                            </Link>
+
+                            {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
+                                <Link
+                                    href="/trees"
+                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/trees'
+                                        ? 'border-green-500 text-gray-900'
+                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <TreeDeciduous className="w-4 h-4 mr-1" />
+                                    Árvores
+                                </Link>
+                            )}
+
                             <Link
                                 href="/statistics"
                                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/statistics'
@@ -40,31 +56,73 @@ export default function Navigation() {
                                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                                     }`}
                             >
+                                <BarChart3 className="w-4 h-4 mr-1" />
                                 Estatísticas
                             </Link>
+
+                            {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
+                                <Link
+                                    href="/service-orders"
+                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/service-orders'
+                                        ? 'border-green-500 text-gray-900'
+                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <ClipboardList className="w-4 h-4 mr-1" />
+                                    Ordens de Serviço
+                                </Link>
+                            )}
+
+                            {['ADMIN', 'GESTOR', 'INSPETOR', 'OPERACIONAL'].includes(role) && (
+                                <Link
+                                    href="/settings"
+                                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname?.startsWith('/settings')
+                                        ? 'border-green-500 text-gray-900'
+                                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                                        }`}
+                                >
+                                    <Settings className="w-4 h-4 mr-1" />
+                                    Configurações
+                                </Link>
+                            )}
+
                             <Link
-                                href="/service-orders"
-                                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/service-orders'
+                                href="/manuals"
+                                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === '/manuals' || pathname?.startsWith('/manuals/')
                                     ? 'border-green-500 text-gray-900'
                                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                                     }`}
                             >
-                                Ordens de Serviço
+                                <BookOpen className="w-4 h-4 mr-1" />
+                                Base de Conhecimento
                             </Link>
-                            <Link
-                                href="/settings"
-                                className={`inline-flex items-center gap-1 px-1 pt-1 border-b-2 text-sm font-medium ${pathname?.startsWith('/settings')
-                                    ? 'border-green-500 text-gray-900'
-                                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                    }`}
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
-                                Configurações
-                            </Link>
+
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        {status === "authenticated" ? (
+                            <div className="flex items-center gap-4">
+                                <div className="flex flex-col items-end">
+                                    <span className="text-sm font-medium text-gray-900">{session.user?.name || session.user?.email}</span>
+                                    <span className="text-xs text-gray-500 font-semibold">{role}</span>
+                                </div>
+                                <button
+                                    onClick={() => signOut({ callbackUrl: '/login' })}
+                                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                                    title="Sair"
+                                >
+                                    <LogOut className="w-5 h-5" />
+                                </button>
+                            </div>
+                        ) : (
+                            <Link
+                                href="/login"
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            >
+                                Entrar
+                            </Link>
+                        )}
                     </div>
                 </div>
             </div>

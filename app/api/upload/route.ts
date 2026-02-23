@@ -10,9 +10,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    // Upload to Vercel Blob
-    // This works for both local development (if token provided) and production
-    const blob = await put(file.name, file, {
+    // Get metadata from headers for folder organization
+    const treeTag = request.headers.get('x-tree-tag');
+    const osId = request.headers.get('x-os-id');
+
+    let path = 'uploads/';
+    if (treeTag) {
+      path = `trees/${treeTag}/`;
+    } else if (osId) {
+      path = `os/${osId}/`;
+    }
+
+    // Upload to Vercel Blob with path prefix
+    const blob = await put(`${path}${file.name}`, file, {
       access: 'public',
       addRandomSuffix: true,
     });

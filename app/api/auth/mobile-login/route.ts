@@ -47,9 +47,9 @@ export async function POST(request: Request) {
             console.log(`[mobile-login] 🍪 Propagando ${allCookies.length} cookies para o App: ${allCookies.map(c => c.name).join(', ')}`);
 
             allCookies.forEach(cookie => {
+                console.log(`[mobile-login]   -> Setting cookie: ${cookie.name}, Value hash: ${cookie.value.substring(0, 10)}...`);
                 response.cookies.set(cookie.name, cookie.value, {
                     ...cookie,
-                    // Garantir que secure seja false em desenvolvimento se não for https
                     secure: process.env.NODE_ENV === 'production'
                 } as any);
             });

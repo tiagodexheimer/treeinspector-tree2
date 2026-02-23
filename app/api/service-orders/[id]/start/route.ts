@@ -9,8 +9,11 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await auth();
-    const cookies = request.headers.get('cookie');
-    console.log(`[start-os] 🔍 Session: ${session ? 'OK' : 'NULL'}, Cookies: ${cookies ? 'present' : 'none'}`);
+    const cookieHeader = request.headers.get('cookie') || '';
+    const cookiesList = cookieHeader.split(';').map(c => c.trim().split('=')[0]);
+
+    console.log(`[start-os] 🔍 Session: ${session ? 'OK' : 'NULL'}`);
+    console.log(`[start-os] 🍪 Cookies Names Received: ${cookiesList.join(', ') || 'none'}`);
 
     if (!session?.user) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
 

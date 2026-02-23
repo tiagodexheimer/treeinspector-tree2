@@ -19,49 +19,16 @@ export async function GET(request: Request) {
             searchParams.get('q') ||
             searchParams.get('species') ||
             searchParams.get('bairro') ||
+            searchParams.get('etiqueta') ||
             searchParams.get('radius');
 
         if (hasFilters) {
-            // Recria o 'where' básico baseado nos params
-            const bairro = searchParams.get('bairro');
-            const endereco = searchParams.get('endereco');
-            const etiqueta = searchParams.get('etiqueta');
-            const species = searchParams.get('species');
-            const q = searchParams.get('q');
-
-            const where: any = {
-                ...(q && {
-                    OR: [
-                        { numero_etiqueta: { contains: q, mode: 'insensitive' } },
-                        { rua: { contains: q, mode: 'insensitive' } },
-                        { endereco: { contains: q, mode: 'insensitive' } }
-                    ]
-                }),
-                ...(bairro && { bairro: { contains: bairro, mode: 'insensitive' } }),
-                ...(endereco && {
-                    OR: [
-                        { endereco: { contains: endereco, mode: 'insensitive' } },
-                        { rua: { contains: endereco, mode: 'insensitive' } }
-                    ]
-                }),
-                ...(etiqueta && { numero_etiqueta: { contains: etiqueta, mode: 'insensitive' } }),
-                ...(species && {
-                    species: {
-                        OR: [
-                            { nome_comum: { contains: species, mode: 'insensitive' } },
-                            { nome_cientifico: { contains: species, mode: 'insensitive' } }
-                        ]
-                    }
-                })
-            };
-
             // CASO A: Mobile (Geolocalização via PostGIS)
             if (searchParams.get('lat') && searchParams.get('radius')) {
                 const lat = parseFloat(searchParams.get('lat')!);
                 const lng = parseFloat(searchParams.get('lng')!);
                 const radius = parseFloat(searchParams.get('radius')!);
 
-                // Usando raw query para busca por raio no PostGIS
                 const trees: any[] = await prisma.$queryRaw`
                     SELECT 
                         t.id_arvore as id, 
@@ -85,15 +52,85 @@ export async function GET(request: Request) {
                 return NextResponse.json(trees);
             }
 
-            // CASO B: Lista Administrativa (Paginada)
+            // CASO B: Busca por etiqueta no app mobile
+            // Retorna campos compatíveis com RemoteTreeDto (id, etiqueta, species_common, address, lat, lng, photo_url)
+            if (searchParams.get('etiqueta')) {
+                const etiqueta = searchParams.get('etiqueta')!;
+                const page = parseInt(searchParams.get('page') || '1');
+                const limit = parseInt(searchParams.get('limit') || '20');
+                const offset = (page - 1) * limit;
+
+                const trees: any[] = await prisma.$queryRaw`
+                    SELECT
+                        t.id_arvore as id,
+                        t.numero_etiqueta as etiqueta,
+                        s.nome_comum as species_common,
+                        s.nome_cientifico as species_scientific,
+                        COALESCE(
+                            CASE
+                                WHEN t.rua IS NOT NULL THEN t.rua || CASE WHEN t.numero IS NOT NULL THEN ', ' || t.numero ELSE '' END
+                                ELSE t.endereco
+                            END,
+                            ''
+                        ) as address,
+                        ST_Y(t.localizacao::geometry) as lat,
+                        ST_X(t.localizacao::geometry) as lng,
+                        (SELECT blob_url FROM "PhotoMetadata" pm WHERE pm.tree_id = t.id_arvore ORDER BY captured_at DESC LIMIT 1) as photo_url,
+                        NULL::float as distance
+                    FROM "Tree" t
+                    LEFT JOIN "Species" s ON t."speciesId" = s.id_especie
+                    WHERE t.numero_etiqueta ILIKE ${'%' + etiqueta + '%'}
+                    AND t.status != 'Removida'
+                    ORDER BY t.numero_etiqueta ASC
+                    LIMIT ${limit} OFFSET ${offset}
+                `;
+
+                const total = await prisma.tree.count({
+                    where: { numero_etiqueta: { contains: etiqueta, mode: 'insensitive' } }
+                });
+
+                return NextResponse.json({
+                    data: trees,
+                    pagination: { total, pages: Math.ceil(total / limit), page, limit }
+                });
+            }
+
+            // CASO C: Lista Administrativa (Paginada)
+            const bairro = searchParams.get('bairro');
+            const endereco = searchParams.get('endereco');
+            const species = searchParams.get('species');
+            const q = searchParams.get('q');
+
+            const where: any = {
+                ...(q && {
+                    OR: [
+                        { numero_etiqueta: { contains: q, mode: 'insensitive' } },
+                        { rua: { contains: q, mode: 'insensitive' } },
+                        { endereco: { contains: q, mode: 'insensitive' } }
+                    ]
+                }),
+                ...(bairro && { bairro: { contains: bairro, mode: 'insensitive' } }),
+                ...(endereco && {
+                    OR: [
+                        { endereco: { contains: endereco, mode: 'insensitive' } },
+                        { rua: { contains: endereco, mode: 'insensitive' } }
+                    ]
+                }),
+                ...(species && {
+                    species: {
+                        OR: [
+                            { nome_comum: { contains: species, mode: 'insensitive' } },
+                            { nome_cientifico: { contains: species, mode: 'insensitive' } }
+                        ]
+                    }
+                })
+            };
+
             const page = parseInt(searchParams.get('page') || '1');
             const limit = parseInt(searchParams.get('limit') || '20');
             const skip = (page - 1) * limit;
 
             const total = await prisma.tree.count({ where });
-            // Precisamos extrair lat/lng via query raw se quisermos exibi-los na lista, 
-            // mas a lista administrativa muitas vezes não mostra lat/lng diretamente.
-            // Se precisar, teremos que usar queryRaw aqui também.
             const trees = await prisma.tree.findMany({
                 where,
                 orderBy: { id_arvore: 'desc' },
@@ -109,7 +146,7 @@ export async function GET(request: Request) {
         }
 
         // ==========================================
-        // 2. MODO MAPA GERAL (PostGIS 추출)
+        // 2. MODO MAPA GERAL (PostGIS)
         // ==========================================
 
         const bairro = searchParams.get('bairro');

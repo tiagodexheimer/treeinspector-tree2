@@ -214,7 +214,8 @@ export async function POST(request: Request) {
                             },
                             photos: {
                                 create: inspection.photos ? inspection.photos.map((p: any) => ({
-                                    uri: p.uri
+                                    uri: p.uri,
+                                    is_cover: p.is_cover || false
                                 })) : []
                             },
                             tree_removed: inspection.tree_removed || false
@@ -237,7 +238,8 @@ export async function POST(request: Request) {
                                 photos: inspection.photos ? {
                                     deleteMany: {}, // Simple way for MVP: replace all photos with incoming set
                                     create: inspection.photos.filter((p: any) => p.uri && !p.uri.startsWith('content://')).map((p: any) => ({
-                                        uri: p.uri
+                                        uri: p.uri,
+                                        is_cover: p.is_cover || false
                                     }))
                                 } : undefined
                             },

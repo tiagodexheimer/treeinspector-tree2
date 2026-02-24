@@ -2,6 +2,7 @@
 module.exports = {
     preset: 'ts-jest',
     testEnvironment: 'node',
+    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
     roots: ['<rootDir>/__tests__'],
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',

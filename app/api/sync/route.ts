@@ -184,6 +184,8 @@ export async function POST(request: Request) {
                             phytosanitary: {
                                 create: inspection.phytosanitary ? [{
                                     // New fields with safety casting
+                                    estado_saude: inspection.phytosanitary.estado_saude,
+                                    danos_tipo: inspection.phytosanitary.danos_tipo,
                                     severity_level: inspection.phytosanitary.severity_level ? Number(inspection.phytosanitary.severity_level) : undefined,
                                     risk_probability: inspection.phytosanitary.risk_probability,
                                     target_value: inspection.phytosanitary.target_value ? Number(inspection.phytosanitary.target_value) : undefined,
@@ -214,7 +216,8 @@ export async function POST(request: Request) {
                             },
                             photos: {
                                 create: inspection.photos ? inspection.photos.map((p: any) => ({
-                                    uri: p.uri
+                                    uri: p.uri,
+                                    is_cover: p.is_cover || false
                                 })) : []
                             },
                             tree_removed: inspection.tree_removed || false
@@ -233,11 +236,27 @@ export async function POST(request: Request) {
                         await tx.inspection.upsert({
                             where: { uuid: inspection.uuid },
                             update: {
+                                data_inspecao: inspectionData.data_inspecao,
+                                tree_removed: inspectionData.tree_removed,
+                                // Update nested data
+                                dendrometrics: inspection.dendrometric ? {
+                                    deleteMany: {},
+                                    create: inspectionData.dendrometrics.create
+                                } : undefined,
+                                phytosanitary: inspection.phytosanitary ? {
+                                    deleteMany: {},
+                                    create: inspectionData.phytosanitary.create
+                                } : undefined,
+                                managementActions: inspection.management ? {
+                                    deleteMany: {},
+                                    create: inspectionData.managementActions.create
+                                } : undefined,
                                 // Update photos if provided
                                 photos: inspection.photos ? {
                                     deleteMany: {}, // Simple way for MVP: replace all photos with incoming set
                                     create: inspection.photos.filter((p: any) => p.uri && !p.uri.startsWith('content://')).map((p: any) => ({
-                                        uri: p.uri
+                                        uri: p.uri,
+                                        is_cover: p.is_cover || false
                                     }))
                                 } : undefined
                             },

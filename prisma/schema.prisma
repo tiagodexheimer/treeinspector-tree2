@@ -362,6 +362,7 @@ model InspectionPhoto {
   inspectionId  Int
   inspection    Inspection @relation(fields: [inspectionId], references: [id_inspecao])
   uri           String
+  is_cover      Boolean  @default(false)
   created_at    DateTime @default(now())
 }
 

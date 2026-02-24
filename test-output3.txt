@@ -1,0 +1,574 @@
+FAIL __tests__/components/Pagination.test.tsx
+  Pagination Component
+    √ does not render when totalPages is 1 or less (16 ms)
+    × renders correct page information (28 ms)
+    × renders all page numbers when totalPages <= 5 (7 ms)
+    × renders ellipses when totalPages > 5 (6 ms)
+    × highlights the current page (6 ms)
+    √ disables previous button on first page (57 ms)
+    √ disables next button on last page (13 ms)
+    √ calls onPageChange with expected values when clicking next/prev (49 ms)
+    √ calls onPageChange when a specific page number is clicked (52 ms)
+
+  ● Pagination Component › renders correct page information
+
+    TestingLibraryElementError: Found multiple elements with the text: 2
+
+    Here are the matching elements:
+
+    Ignored nodes: comments, script, style
+    [36m<span[39m
+      [33mclass[39m=[32m"font-bold text-gray-900"[39m
+    [36m>[39m
+      [0m2[0m
+    [36m</span>[39m
+
+    Ignored nodes: comments, script, style
+    [36m<button[39m
+      [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+    [36m>[39m
+      [0m2[0m
+    [36m</button>[39m
+
+    (If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center justify-between mt-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-gray-500 hidden sm:block"[39m
+          [36m>[39m
+            [0mPágina [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m2[0m
+            [36m</span>[39m
+            [0m de [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m5[0m
+            [36m</span>[39m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-1 mx-auto sm:mx-0"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Anterior"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-left w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m15 18-6-6 6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-1"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m1[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+              [36m>[39m
+                [0m2[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m3[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m4[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m5[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Próxima"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-right w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 17 |[39m         [90m// Custom text matcher to find "Página 2 de 5"[39m
+     [90m 18 |[39m         expect(screen[33m.[39mgetByText([35m/Página/[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+    [31m[1m>[22m[39m[90m 19 |[39m         expect(screen[33m.[39mgetByText([32m'2'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m    |[39m                       [31m[1m^[22m[39m
+     [90m 20 |[39m         expect(screen[33m.[39mgetByText([32m'5'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 21 |[39m     })[33m;[39m
+     [90m 22 |[39m[0m
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getElementError (node_modules/@testing-library/dom/dist/query-helpers.js:20:35)
+      at getMultipleElementsFoundError (node_modules/@testing-library/dom/dist/query-helpers.js:23:10)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.<anonymous> (__tests__/components/Pagination.test.tsx:19:23)
+
+  ● Pagination Component › renders all page numbers when totalPages <= 5
+
+    TestingLibraryElementError: Found multiple elements with the text: 1
+
+    Here are the matching elements:
+
+    Ignored nodes: comments, script, style
+    [36m<span[39m
+      [33mclass[39m=[32m"font-bold text-gray-900"[39m
+    [36m>[39m
+      [0m1[0m
+    [36m</span>[39m
+
+    Ignored nodes: comments, script, style
+    [36m<button[39m
+      [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+    [36m>[39m
+      [0m1[0m
+    [36m</button>[39m
+
+    (If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center justify-between mt-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-gray-500 hidden sm:block"[39m
+          [36m>[39m
+            [0mPágina [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m1[0m
+            [36m</span>[39m
+            [0m de [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m4[0m
+            [36m</span>[39m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-1 mx-auto sm:mx-0"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Anterior"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+              [33mdisabled[39m=[32m""[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-left w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m15 18-6-6 6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-1"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+              [36m>[39m
+                [0m1[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m2[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m3[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m4[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Próxima"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-right w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 25 |[39m
+     [90m 26 |[39m         [36mfor[39m ([36mlet[39m i [33m=[39m [35m1[39m[33m;[39m i [33m<=[39m [35m4[39m[33m;[39m i[33m++[39m) {
+    [31m[1m>[22m[39m[90m 27 |[39m             expect(screen[33m.[39mgetByText([33mString[39m(i)))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m    |[39m                           [31m[1m^[22m[39m
+     [90m 28 |[39m         }
+     [90m 29 |[39m     })[33m;[39m
+     [90m 30 |[39m[0m
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getElementError (node_modules/@testing-library/dom/dist/query-helpers.js:20:35)
+      at getMultipleElementsFoundError (node_modules/@testing-library/dom/dist/query-helpers.js:23:10)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.<anonymous> (__tests__/components/Pagination.test.tsx:27:27)
+
+  ● Pagination Component › renders ellipses when totalPages > 5
+
+    TestingLibraryElementError: Found multiple elements with the text: 1
+
+    Here are the matching elements:
+
+    Ignored nodes: comments, script, style
+    [36m<span[39m
+      [33mclass[39m=[32m"font-bold text-gray-900"[39m
+    [36m>[39m
+      [0m1[0m
+    [36m</span>[39m
+
+    Ignored nodes: comments, script, style
+    [36m<button[39m
+      [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+    [36m>[39m
+      [0m1[0m
+    [36m</button>[39m
+
+    (If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center justify-between mt-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-gray-500 hidden sm:block"[39m
+          [36m>[39m
+            [0mPágina [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m1[0m
+            [36m</span>[39m
+            [0m de [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m10[0m
+            [36m</span>[39m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-1 mx-auto sm:mx-0"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Anterior"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+              [33mdisabled[39m=[32m""[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-left w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m15 18-6-6 6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-1"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+              [36m>[39m
+                [0m1[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m2[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m3[0m
+              [36m</button>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center text-gray-400"[39m
+              [36m>[39m
+                [0m...[0m
+              [36m</span>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m10[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Próxima"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-right w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 33 |[39m
+     [90m 34 |[39m         [90m// Should show 1, 2, 3, ..., 10[39m
+    [31m[1m>[22m[39m[90m 35 |[39m         expect(screen[33m.[39mgetByText([32m'1'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m    |[39m                       [31m[1m^[22m[39m
+     [90m 36 |[39m         expect(screen[33m.[39mgetByText([32m'2'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 37 |[39m         expect(screen[33m.[39mgetByText([32m'3'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m
+     [90m 38 |[39m         expect(screen[33m.[39mgetByText([32m'...'[39m))[33m.[39mtoBeInTheDocument()[33m;[39m[0m
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getElementError (node_modules/@testing-library/dom/dist/query-helpers.js:20:35)
+      at getMultipleElementsFoundError (node_modules/@testing-library/dom/dist/query-helpers.js:23:10)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.<anonymous> (__tests__/components/Pagination.test.tsx:35:23)
+
+  ● Pagination Component › highlights the current page
+
+    TestingLibraryElementError: Found multiple elements with the text: 3
+
+    Here are the matching elements:
+
+    Ignored nodes: comments, script, style
+    [36m<span[39m
+      [33mclass[39m=[32m"font-bold text-gray-900"[39m
+    [36m>[39m
+      [0m3[0m
+    [36m</span>[39m
+
+    Ignored nodes: comments, script, style
+    [36m<button[39m
+      [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+    [36m>[39m
+      [0m3[0m
+    [36m</button>[39m
+
+    (If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+    Ignored nodes: comments, script, style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex items-center justify-between mt-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100"[39m
+        [36m>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"text-sm text-gray-500 hidden sm:block"[39m
+          [36m>[39m
+            [0mPágina [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m3[0m
+            [36m</span>[39m
+            [0m de [0m
+            [36m<span[39m
+              [33mclass[39m=[32m"font-bold text-gray-900"[39m
+            [36m>[39m
+              [0m5[0m
+            [36m</span>[39m
+          [36m</p>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-1 mx-auto sm:mx-0"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Anterior"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-left w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m15 18-6-6 6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"flex items-center gap-1"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m1[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m2[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-emerald-600 text-white shadow-md shadow-emerald-200"[39m
+              [36m>[39m
+                [0m3[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m4[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33mclass[39m=[32m"w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100"[39m
+              [36m>[39m
+                [0m5[0m
+              [36m</button>[39m
+            [36m</div>[39m
+            [36m<button[39m
+              [33maria-label[39m=[32m"Próxima"[39m
+              [33mclass[39m=[32m"p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-all"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-right w-5 h-5"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</body>[39m
+
+    [0m [90m 43 |[39m         render([33m<[39m[33mPagination[39m currentPage[33m=[39m{[35m3[39m} totalPages[33m=[39m{[35m5[39m} onPageChange[33m=[39m{jest[33m.[39mfn()} [33m/[39m[33m>[39m)[33m;[39m
+     [90m 44 |[39m
+    [31m[1m>[22m[39m[90m 45 |[39m         [36mconst[39m currentBtn [33m=[39m screen[33m.[39mgetByText([32m'3'[39m)[33m;[39m
+     [90m    |[39m                                   [31m[1m^[22m[39m
+     [90m 46 |[39m         expect(currentBtn)[33m.[39mtoHaveClass([32m'bg-emerald-600'[39m)[33m;[39m
+     [90m 47 |[39m         expect(currentBtn)[33m.[39mtoHaveClass([32m'text-white'[39m)[33m;[39m
+     [90m 48 |[39m     })[33m;[39m[0m
+
+      at Object.getElementError (node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getElementError (node_modules/@testing-library/dom/dist/query-helpers.js:20:35)
+      at getMultipleElementsFoundError (node_modules/@testing-library/dom/dist/query-helpers.js:23:10)
+      at node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+      at node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at Object.<anonymous> (__tests__/components/Pagination.test.tsx:45:35)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 5 passed, 9 total
+Snapshots:   0 total
+Time:        2.334 s
+Ran all test suites matching __tests__/components/Pagination.test.tsx.

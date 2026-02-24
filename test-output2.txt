@@ -1,0 +1,105 @@
+﻿node.exe : FAIL __tests__/com
+ponents/AlphabetFilter.test.t
+sx
+No C:\Program 
+Files\nodejs\npx.ps1:29 
+caractere:3
++   & $NODE_EXE $NPX_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (FAIL __  
+  tests__/...Filter.test.t   
+ sx:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+  ÔùÅ Test suite failed to 
+run
+
+    Jest encountered an 
+unexpected token
+
+    Jest failed to parse a 
+file. This happens e.g. when 
+your code or its 
+dependencies use 
+non-standard JavaScript 
+syntax, or when Jest is not 
+configured to support such 
+syntax.
+
+    Out of the box Jest 
+supports Babel, which will 
+be used to transform your 
+files into valid JS based on 
+your Babel configuration.
+
+    By default 
+"node_modules" folder is 
+ignored by transformers.
+
+    Here's what you can do:
+     ÔÇó If you are trying 
+to use ECMAScript Modules, 
+see https://jestjs.io/docs/ec
+mascript-modules for how to 
+enable it.
+     ÔÇó If you are trying 
+to use TypeScript, see https:
+//jestjs.io/docs/getting-star
+ted#using-typescript
+     ÔÇó To have some of 
+your "node_modules" files 
+transformed, you can specify 
+a custom 
+"transformIgnorePatterns" in 
+your config.
+     ÔÇó If you need a 
+custom transformation, 
+specify a "transform" option 
+in your config.
+     ÔÇó If you simply want 
+to mock your non-JS modules 
+(e.g. binary assets) you can 
+stub them out with the 
+"moduleNameMapper" config 
+option.
+
+    You'll find more details 
+and examples of these config 
+options in the docs:
+    https://jestjs.io/docs/co
+nfiguration
+    For information about 
+custom transformations, see:
+    https://jestjs.io/docs/co
+de-transformation
+
+    Details:
+
+    E:\Projetos\treeinspector
+-tree\web\jest.setup.js:1
+    import 
+'@testing-library/jest-dom';
+    ^^^^^^
+
+    SyntaxError: Cannot use 
+import statement outside a 
+module
+
+      at 
+Runtime.createScriptFromCode 
+(node_modules/jest-runtime/bu
+ild/index.js:1318:40)
+
+Test Suites: 1 failed, 1 
+total
+Tests:       0 total
+Snapshots:   0 total
+Time:        1.625 s
+Ran all test suites matching 
+__tests__/components/Alphabet
+Filter.test.tsx.

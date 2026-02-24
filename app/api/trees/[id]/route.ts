@@ -31,51 +31,36 @@ export async function GET(
             SELECT 
                 tb.*,
                 COALESCE((
-                    SELECT JSON_AGG(i_data ORDER BY i_data.data_inspecao DESC) FROM (
+                    SELECT JSON_AGG(ins_all) FROM (
                         SELECT 
-                            i.*,
-                            COALESCE((SELECT JSON_AGG(d.*) FROM "DendrometricData" d WHERE d."inspectionId" = i.id_inspecao), '[]'::json) as dendrometrics,
+                            ins.*,
+                            COALESCE((SELECT JSON_AGG(d) FROM "DendrometricData" d WHERE d."inspectionId" = ins.id_inspecao), '[]'::json) as dendrometrics,
                             COALESCE((
-                                SELECT JSON_AGG(p_data) FROM (
+                                SELECT JSON_AGG(p_with_pests) FROM (
                                     SELECT 
                                         p.*,
                                         COALESCE((
-                                            SELECT JSON_AGG(cat.*) 
-                                            FROM "PestCatalog" cat
+                                            SELECT JSON_AGG(cat) FROM "PestCatalog" cat
                                             JOIN "_PestCatalogToPhytosanitaryData" join_p ON cat.id = join_p."A"
                                             WHERE join_p."B" = p.id
                                         ), '[]'::json) as pests
-                                    FROM "PhytosanitaryData" p 
-                                    WHERE p."inspectionId" = i.id_inspecao
-                                ) p_data
+                                    FROM "PhytosanitaryData" p WHERE p."inspectionId" = ins.id_inspecao
+                                ) p_with_pests
                             ), '[]'::json) as phytosanitary,
-                            COALESCE((
-                                SELECT JSON_AGG(ma_data) FROM (
-                                    SELECT 
-                                        ma.*,
-                                        COALESCE((
-                                            SELECT JSON_AGG(so.*)
-                                            FROM "ServiceOrder" so
-                                            JOIN "_ManagementActionToServiceOrder" join_so ON so.id = join_so."B"
-                                            WHERE join_so."A" = ma.id
-                                        ), '[]'::json) as "serviceOrders"
-                                    FROM "ManagementAction" ma
-                                    WHERE ma."inspectionId" = i.id_inspecao
-                                ) ma_data
-                            ), '[]'::json) as "managementActions",
-                            COALESCE((SELECT JSON_AGG(ph.*) FROM "InspectionPhoto" ph WHERE ph."inspectionId" = i.id_inspecao), '[]'::json) as photos
-                        FROM "Inspection" i
-                        WHERE i."treeId" = tb.id_arvore
-                    ) i_data
+                            COALESCE((SELECT JSON_AGG(m) FROM "ManagementAction" m WHERE m."inspectionId" = ins.id_inspecao), '[]'::json) as "managementActions",
+                            COALESCE((SELECT JSON_AGG(ph) FROM "InspectionPhoto" ph WHERE ph."inspectionId" = ins.id_inspecao), '[]'::json) as photos
+                        FROM "Inspection" ins 
+                        WHERE ins."treeId" = tb.id_arvore
+                        ORDER BY ins.data_inspecao DESC
+                    ) ins_all
                 ), '[]'::json) as inspections,
-                COALESCE((SELECT JSON_AGG(pm.*) FROM "PhotoMetadata" pm WHERE pm.tree_id = tb.id_arvore), '[]'::json) as photos,
+                COALESCE((SELECT JSON_AGG(pm) FROM "PhotoMetadata" pm WHERE pm.tree_id = tb.id_arvore), '[]'::json) as photos,
                 COALESCE((
-                    SELECT JSON_AGG(so.*) 
-                    FROM "ServiceOrder" so
-                    JOIN "_ServiceOrderToTree" so_t ON so.id = so_t."A"
+                    SELECT JSON_AGG(so) FROM "ServiceOrder" so 
+                    JOIN "_ServiceOrderToTree" so_t ON so.id = so_t."A" 
                     WHERE so_t."B" = tb.id_arvore
                 ), '[]'::json) as "serviceOrders"
-            FROM tree_base tb;
+            FROM tree_base tb
         `;
 
         const tree = (results as any[])[0];
@@ -84,7 +69,9 @@ export async function GET(
             return NextResponse.json({ error: 'Tree not found' }, { status: 404 });
         }
 
-        return NextResponse.json(tree);
+        const response = NextResponse.json(tree);
+        response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+        return response;
     } catch (error) {
         console.error('Error fetching tree:', error);
         return NextResponse.json({ error: 'Failed to fetch tree' }, { status: 500 });

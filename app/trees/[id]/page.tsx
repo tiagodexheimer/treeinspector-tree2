@@ -227,9 +227,28 @@ export default function TreeDetailPage() {
         </div>
     );
 
-    const latestInspection = tree.inspections?.[0];
-    const healthStatus = latestInspection?.phytosanitary?.[0]?.estado_saude || 'Não avaliada';
-    const riskRating = latestInspection?.phytosanitary?.[0]?.risk_rating || 0;
+    // Sort inspections by date descending, then by ID descending to reliably get the latest one
+    const sortedInspections = tree.inspections ? [...tree.inspections].sort((a: any, b: any) => {
+        const timeDiff = new Date(b.data_inspecao).getTime() - new Date(a.data_inspecao).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return (b.id_inspecao || 0) - (a.id_inspecao || 0); // Tie breaker using ID (higher = newer)
+    }) : [];
+
+    // Find the latest inspection that actually has a valid phytosanitary status
+    const latestPhytoInspection = sortedInspections.find((insp: any) => {
+        const status = insp.phytosanitary?.[0]?.estado_saude;
+        if (!status) return false;
+        const normalized = status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return normalized !== 'nao avaliada' && normalized !== 'nao avaliado';
+    });
+
+    // Normalize health status to match Sentence Case expected by UI (Bom, Regular, Ruim, Desvitalizada)
+    let healthStatus = latestPhytoInspection?.phytosanitary?.[0]?.estado_saude || 'Não avaliada';
+    if (healthStatus && healthStatus !== 'Não avaliada') {
+        healthStatus = healthStatus.charAt(0).toUpperCase() + healthStatus.slice(1).toLowerCase();
+    }
+
+    const riskRating = latestPhytoInspection?.phytosanitary?.[0]?.risk_rating || 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50">

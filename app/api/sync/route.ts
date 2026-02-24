@@ -7,6 +7,30 @@ import { auth } from '@/auth';
 // Constants for Temporal Logic
 const INFINITY_DATE = null;
 
+// Mapping for TRAQ Risk Probability to Prisma Enum
+const riskProbabilityMap: Record<string, any> = {
+    'MUITO_PROVAVEL': 'MUITO_PROVAVEL',
+    'PROVAVEL': 'PROVAVEL',
+    'POSSIVEL': 'POSSIVEL',
+    'IMPROVAVEL': 'IMPROVAVEL',
+    'IMINENTE': 'IMINENTE',
+    'IMPROVAVEL_X': 'IMPROVAVEL_X',
+    'BAIXA': 'Baixa',
+    'MODERADA': 'Moderada',
+    'ALTA': 'Alta',
+    'EXTREMA': 'Extrema'
+};
+
+const mapRiskProbability = (val: string | undefined | null) => {
+    if (!val) return undefined;
+    const upper = val.toUpperCase().replace(/\s+/g, '_');
+    if (riskProbabilityMap[upper]) return riskProbabilityMap[upper];
+    // Check Sentence Case (Baixa, Moderada, Alta, Extrema)
+    const sentence = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+    if (['Baixa', 'Moderada', 'Alta', 'Extrema'].includes(sentence)) return sentence;
+    return undefined;
+};
+
 export async function POST(request: Request) {
     try {
         // Authenticate the incoming sync request (Mobile app passes NextAuth cookies via OkHttp)
@@ -135,13 +159,13 @@ export async function POST(request: Request) {
                                 // Do NOT update UUID to keep server canonical identity
                                 // Preserve the resolved name (which now considers manual updates)
                                 nome_popular: nomePopular,
-                                cover_photo: (tree.cover_photo && !tree.cover_photo.startsWith('content://')) ? tree.cover_photo : existingTree.cover_photo,
                                 speciesId: targetSpeciesId,
                                 // Only update address/location if provided and seems valid?
                                 // For now, trust the incoming sync as 'latest'
                                 rua: tree.rua || existingTree.rua,
                                 numero: tree.numero || existingTree.numero,
                                 bairro: tree.bairro || existingTree.bairro,
+                                cover_photo: (tree.cover_photo && !tree.cover_photo.startsWith('content://')) ? tree.cover_photo : existingTree.cover_photo,
                             }
                         });
 
@@ -212,7 +236,7 @@ export async function POST(request: Request) {
                                     estado_saude: inspection.phytosanitary.estado_saude,
                                     danos_tipo: inspection.phytosanitary.danos_tipo,
                                     severity_level: inspection.phytosanitary.severity_level ? Number(inspection.phytosanitary.severity_level) : undefined,
-                                    risk_probability: inspection.phytosanitary.risk_probability,
+                                    risk_probability: mapRiskProbability(inspection.phytosanitary.risk_probability) as any,
                                     target_value: inspection.phytosanitary.target_value ? Number(inspection.phytosanitary.target_value) : undefined,
                                     risk_rating: inspection.phytosanitary.risk_rating ? Number(inspection.phytosanitary.risk_rating) : undefined,
 
@@ -283,10 +307,7 @@ export async function POST(request: Request) {
                                 // Update photos if provided
                                 photos: inspection.photos ? {
                                     deleteMany: {}, // Simple way for MVP: replace all photos with incoming set
-                                    create: inspection.photos.filter((p: any) => p.uri && !p.uri.startsWith('content://')).map((p: any) => ({
-                                        uri: p.uri,
-                                        is_cover: p.is_cover || false
-                                    }))
+                                    create: inspectionData.photos.create
                                 } : undefined
                             },
                             create: {

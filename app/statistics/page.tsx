@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import MapComponent to disable SSR for Leaflet
@@ -79,6 +80,7 @@ export default function StatisticsPage() {
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
     const router = useRouter();
+    const { status } = useSession();
 
     const currentYear = new Date().getFullYear();
     const years = [currentYear, currentYear - 1, currentYear - 2];
@@ -96,6 +98,13 @@ export default function StatisticsPage() {
         { value: 11, label: 'Novembro' },
         { value: 12, label: 'Dezembro' }
     ];
+
+    // Reset statMode if user is not authenticated and somehow lands on inspections
+    useEffect(() => {
+        if (status === 'unauthenticated' && statMode === 'inspections') {
+            setStatMode('management');
+        }
+    }, [status, statMode]);
 
     // Get list of neighborhoods and handle initial redirect if needed
     const neighborhoods = useMemo(() => {
@@ -193,7 +202,9 @@ export default function StatisticsPage() {
                         <button onClick={() => setStatMode('grid')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'grid' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Micro-Regiões</button>
                         <button onClick={() => setStatMode('species')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'species' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Espécies</button>
                         <button onClick={() => setStatMode('metrics')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'metrics' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Métricas</button>
-                        <button onClick={() => setStatMode('inspections')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'inspections' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Avaliações</button>
+                        {status === 'authenticated' && (
+                            <button onClick={() => setStatMode('inspections')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'inspections' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Avaliações</button>
+                        )}
                     </div>
 
                     {/* Sub-toggle for Grid */}
@@ -289,7 +300,7 @@ export default function StatisticsPage() {
                         year={selectedYear}
                         month={selectedMonth}
                     />
-                ) : statMode === 'inspections' ? (
+                ) : (statMode === 'inspections' && status === 'authenticated') ? (
                     <InspectionStatsDashboard
                         data={inspectionData}
                         monthlyData={inspectionMonthlyData}

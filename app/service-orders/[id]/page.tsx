@@ -206,6 +206,7 @@ export default function ServiceOrderDetail() {
     if (!order) return <div className="p-8 text-center">Ordem de serviço não encontrada</div>;
 
     const isActive = order.status !== 'Concluída' && order.status !== 'Cancelada';
+    const isSupervisor = ['ADMIN', 'GESTOR', 'INSPETOR'].includes(role);
 
     return (
         <>
@@ -763,12 +764,12 @@ export default function ServiceOrderDetail() {
                                                         </button>
                                                     )}
 
-                                                    {order.status === 'Em Execução' && (
+                                                    {(order.status === 'Em Execução' || order.status === 'Aguardando Ajustes' || (order.status === 'Concluída' && isSupervisor)) && (
                                                         <button
                                                             onClick={() => openExecutionModal('finalize')}
                                                             className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition font-bold shadow-md flex items-center justify-center gap-2"
                                                         >
-                                                            <span>✅</span> Finalizar Execução
+                                                            <span>✅</span> {order.status === 'Em Execução' ? 'Finalizar Execução' : 'Revisar/Ajustar Detalhes'}
                                                         </button>
                                                     )}
 
@@ -924,6 +925,7 @@ export default function ServiceOrderDetail() {
                     action={executionAction}
                     serviceOrderId={order.id}
                     initialStartTime={order.start_time}
+                    initialData={order}
                     onSuccess={fetchOrder}
                 />
             </div>

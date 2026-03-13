@@ -579,9 +579,15 @@ export default function TreeDetailPage() {
                                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center">
                                                             <div>
                                                                 <span className="font-bold text-blue-900 block text-sm">Ordem de Serviço Vinculada</span>
-                                                                <Link href={`/service-orders/${linkedOS.id}`} className="text-sm text-blue-700 hover:underline">
-                                                                    OS #{linkedOS.id} - {linkedOS.status}
-                                                                </Link>
+                                                                {session ? (
+                                                                    <Link href={`/service-orders/${linkedOS.id}`} className="text-sm text-blue-700 hover:underline">
+                                                                        OS #{linkedOS.id} - {linkedOS.status}
+                                                                    </Link>
+                                                                ) : (
+                                                                    <span className="text-sm text-blue-700">
+                                                                        OS #{linkedOS.id} - {linkedOS.status}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">{linkedOS.status}</span>
                                                         </div>
@@ -903,11 +909,13 @@ export default function TreeDetailPage() {
                                                             {(item.description || item.observations) && (
                                                                 <p className="text-xs text-gray-500 italic mt-1">"{item.description || item.observations}"</p>
                                                             )}
-                                                            <div className="mt-2">
-                                                                <Link href={`/service-orders/${item.id}`} className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold hover:underline">
-                                                                    Ver Detalhes →
-                                                                </Link>
-                                                            </div>
+                                                            {session && (
+                                                                <div className="mt-2">
+                                                                    <Link href={`/service-orders/${item.id}`} className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold hover:underline">
+                                                                        Ver Detalhes →
+                                                                    </Link>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>

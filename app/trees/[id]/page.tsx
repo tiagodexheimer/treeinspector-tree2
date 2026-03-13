@@ -318,6 +318,32 @@ export default function TreeDetailPage() {
                                         Etiqueta: {tree.numero_etiqueta}
                                     </span>
                                 )}
+                                {tree.species.native_status && (
+                                    <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${
+                                        tree.species.native_status.toLowerCase().includes('invasora')
+                                        ? 'bg-red-500/30 border-red-200 text-red-50'
+                                        : tree.species.native_status.toLowerCase().includes('exotica')
+                                        ? 'bg-yellow-500/30 border-yellow-200 text-yellow-50'
+                                        : 'bg-emerald-500/30 border-emerald-200 text-emerald-50'
+                                    }`}>
+                                        {tree.species.native_status}
+                                    </span>
+                                )}
+                                {tree.species.family && (
+                                    <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm border border-white/20">
+                                        Família: {tree.species.family}
+                                    </span>
+                                )}
+                                {tree.species.porte && (
+                                    <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm border border-white/20">
+                                        Porte: {tree.species.porte}
+                                    </span>
+                                )}
+                                {tree.species.max_height_m && (
+                                    <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm border border-white/20">
+                                        H. Máx: {Number(tree.species.max_height_m)}m
+                                    </span>
+                                )}
                                 <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${healthStatus === 'Bom' ? 'bg-emerald-500/20 border-emerald-300' :
                                     healthStatus === 'Regular' ? 'bg-yellow-500/20 border-yellow-300' :
                                         healthStatus === 'Ruim' ? 'bg-orange-500/20 border-orange-300' :

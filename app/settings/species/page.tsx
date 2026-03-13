@@ -266,10 +266,12 @@ export default function SpeciesPage() {
                                         <td className="px-6 py-4 text-gray-600 italic">{sp.nome_cientifico}</td>
                                         <td className="px-6 py-4">
                                             {sp.native_status && (
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${sp.native_status === 'Nativa' ? 'bg-green-100 text-green-800' :
-                                                    sp.native_status === 'Exótica' ? 'bg-orange-100 text-orange-800' :
-                                                        'bg-gray-100 text-gray-800'
-                                                    }`}>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                                    sp.native_status === 'Nativa' ? 'bg-green-100 text-green-800' :
+                                                    sp.native_status === 'Exótica' ? 'bg-yellow-100 text-yellow-800' :
+                                                    sp.native_status === 'Exótica Invasora' ? 'bg-red-100 text-red-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }`}>
                                                     {sp.native_status}
                                                 </span>
                                             )}
@@ -364,6 +366,7 @@ function SpeciesForm({ formData, setFormData, onSave, onCancel }: any) {
                     <option value="">Selecione...</option>
                     <option value="Nativa">Nativa</option>
                     <option value="Exótica">Exótica</option>
+                    <option value="Exótica Invasora">Exótica Invasora</option>
                     <option value="Desconhecida">Desconhecida</option>
                 </select>
             </div>

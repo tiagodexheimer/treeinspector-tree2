@@ -22,7 +22,13 @@ export async function GET(
                     (SELECT JSON_BUILD_OBJECT(
                         'id_especie', s.id_especie, 
                         'nome_comum', s.nome_comum, 
-                        'nome_cientifico', s.nome_cientifico
+                        'nome_cientifico', s.nome_cientifico,
+                        'family', s.family,
+                        'native_status', s.native_status,
+                        'description', s.description,
+                        'growth_rate', s.growth_rate,
+                        'max_height_m', s.max_height_m,
+                        'porte', s.porte
                     ) FROM "Species" s WHERE s.id_especie = t."speciesId") as species
                 FROM "Tree" t 
                 WHERE t.id_arvore = ${id} 

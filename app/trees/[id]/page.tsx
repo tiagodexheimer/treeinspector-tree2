@@ -145,7 +145,7 @@ export default function TreeDetailPage() {
     }
 
     async function handleDelete() {
-        if (!confirm('Tem certeza que deseja apagar esta árvore? Isso é irreversível.')) return;
+        if (!confirm('Esta árvore será marcada como REMOVIDA. Os dados históricos serão preservados, mas ela não aparecerá mais como ativa. Deseja continuar?')) return;
         try {
             const res = await fetch(`/api/trees/${params.id}`, { method: 'DELETE' });
             if (res.ok) {
@@ -227,9 +227,28 @@ export default function TreeDetailPage() {
         </div>
     );
 
-    const latestInspection = tree.inspections?.[0];
-    const healthStatus = latestInspection?.phytosanitary?.[0]?.estado_saude || 'Não avaliada';
-    const riskRating = latestInspection?.phytosanitary?.[0]?.risk_rating || 0;
+    // Sort inspections by date descending, then by ID descending to reliably get the latest one
+    const sortedInspections = tree.inspections ? [...tree.inspections].sort((a: any, b: any) => {
+        const timeDiff = new Date(b.data_inspecao).getTime() - new Date(a.data_inspecao).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return (b.id_inspecao || 0) - (a.id_inspecao || 0); // Tie breaker using ID (higher = newer)
+    }) : [];
+
+    // Find the latest inspection that actually has a valid phytosanitary status
+    const latestPhytoInspection = sortedInspections.find((insp: any) => {
+        const status = insp.phytosanitary?.[0]?.estado_saude;
+        if (!status) return false;
+        const normalized = status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return normalized !== 'nao avaliada' && normalized !== 'nao avaliado';
+    });
+
+    // Normalize health status to match Sentence Case expected by UI (Bom, Regular, Ruim, Desvitalizada)
+    let healthStatus = latestPhytoInspection?.phytosanitary?.[0]?.estado_saude || 'Não avaliada';
+    if (healthStatus && healthStatus !== 'Não avaliada') {
+        healthStatus = healthStatus.charAt(0).toUpperCase() + healthStatus.slice(1).toLowerCase();
+    }
+
+    const riskRating = latestPhytoInspection?.phytosanitary?.[0]?.risk_rating || 0;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50">
@@ -279,7 +298,7 @@ export default function TreeDetailPage() {
                                     )}
                                     {canDelete && (
                                         <button onClick={handleDelete} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 backdrop-blur-sm text-white rounded-lg transition-all">
-                                            Excluir
+                                            Remover Árvore
                                         </button>
                                     )}
                                 </>
@@ -297,6 +316,32 @@ export default function TreeDetailPage() {
                                 {tree.numero_etiqueta && (
                                     <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
                                         Etiqueta: {tree.numero_etiqueta}
+                                    </span>
+                                )}
+                                {tree.species.native_status && (
+                                    <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${
+                                        tree.species.native_status.toLowerCase().includes('invasora')
+                                        ? 'bg-red-500/30 border-red-200 text-red-50'
+                                        : tree.species.native_status.toLowerCase().includes('exotica')
+                                        ? 'bg-yellow-500/30 border-yellow-200 text-yellow-50'
+                                        : 'bg-emerald-500/30 border-emerald-200 text-emerald-50'
+                                    }`}>
+                                        {tree.species.native_status}
+                                    </span>
+                                )}
+                                {tree.species.family && (
+                                    <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm border border-white/20">
+                                        Família: {tree.species.family}
+                                    </span>
+                                )}
+                                {tree.species.porte && (
+                                    <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm border border-white/20">
+                                        Porte: {tree.species.porte}
+                                    </span>
+                                )}
+                                {tree.species.max_height_m && (
+                                    <span className="px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full text-sm border border-white/20">
+                                        H. Máx: {Number(tree.species.max_height_m)}m
                                     </span>
                                 )}
                                 <span className={`px-3 py-1 backdrop-blur-sm rounded-full text-sm font-bold border-2 ${healthStatus === 'Bom' ? 'bg-emerald-500/20 border-emerald-300' :
@@ -560,9 +605,15 @@ export default function TreeDetailPage() {
                                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex justify-between items-center">
                                                             <div>
                                                                 <span className="font-bold text-blue-900 block text-sm">Ordem de Serviço Vinculada</span>
-                                                                <Link href={`/service-orders/${linkedOS.id}`} className="text-sm text-blue-700 hover:underline">
-                                                                    OS #{linkedOS.id} - {linkedOS.status}
-                                                                </Link>
+                                                                {session ? (
+                                                                    <Link href={`/service-orders/${linkedOS.id}`} className="text-sm text-blue-700 hover:underline">
+                                                                        OS #{linkedOS.id} - {linkedOS.status}
+                                                                    </Link>
+                                                                ) : (
+                                                                    <span className="text-sm text-blue-700">
+                                                                        OS #{linkedOS.id} - {linkedOS.status}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">{linkedOS.status}</span>
                                                         </div>
@@ -884,11 +935,13 @@ export default function TreeDetailPage() {
                                                             {(item.description || item.observations) && (
                                                                 <p className="text-xs text-gray-500 italic mt-1">"{item.description || item.observations}"</p>
                                                             )}
-                                                            <div className="mt-2">
-                                                                <Link href={`/service-orders/${item.id}`} className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold hover:underline">
-                                                                    Ver Detalhes →
-                                                                </Link>
-                                                            </div>
+                                                            {session && (
+                                                                <div className="mt-2">
+                                                                    <Link href={`/service-orders/${item.id}`} className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold hover:underline">
+                                                                        Ver Detalhes →
+                                                                    </Link>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>

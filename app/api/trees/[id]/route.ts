@@ -22,7 +22,13 @@ export async function GET(
                     (SELECT JSON_BUILD_OBJECT(
                         'id_especie', s.id_especie, 
                         'nome_comum', s.nome_comum, 
-                        'nome_cientifico', s.nome_cientifico
+                        'nome_cientifico', s.nome_cientifico,
+                        'family', s.family,
+                        'native_status', s.native_status,
+                        'description', s.description,
+                        'growth_rate', s.growth_rate,
+                        'max_height_m', s.max_height_m,
+                        'porte', s.porte
                     ) FROM "Species" s WHERE s.id_especie = t."speciesId") as species
                 FROM "Tree" t 
                 WHERE t.id_arvore = ${id} 
@@ -31,51 +37,36 @@ export async function GET(
             SELECT 
                 tb.*,
                 COALESCE((
-                    SELECT JSON_AGG(i_data ORDER BY i_data.data_inspecao DESC) FROM (
+                    SELECT JSON_AGG(ins_all) FROM (
                         SELECT 
-                            i.*,
-                            COALESCE((SELECT JSON_AGG(d.*) FROM "DendrometricData" d WHERE d."inspectionId" = i.id_inspecao), '[]'::json) as dendrometrics,
+                            ins.*,
+                            COALESCE((SELECT JSON_AGG(d) FROM "DendrometricData" d WHERE d."inspectionId" = ins.id_inspecao), '[]'::json) as dendrometrics,
                             COALESCE((
-                                SELECT JSON_AGG(p_data) FROM (
+                                SELECT JSON_AGG(p_with_pests) FROM (
                                     SELECT 
                                         p.*,
                                         COALESCE((
-                                            SELECT JSON_AGG(cat.*) 
-                                            FROM "PestCatalog" cat
+                                            SELECT JSON_AGG(cat) FROM "PestCatalog" cat
                                             JOIN "_PestCatalogToPhytosanitaryData" join_p ON cat.id = join_p."A"
                                             WHERE join_p."B" = p.id
                                         ), '[]'::json) as pests
-                                    FROM "PhytosanitaryData" p 
-                                    WHERE p."inspectionId" = i.id_inspecao
-                                ) p_data
+                                    FROM "PhytosanitaryData" p WHERE p."inspectionId" = ins.id_inspecao
+                                ) p_with_pests
                             ), '[]'::json) as phytosanitary,
-                            COALESCE((
-                                SELECT JSON_AGG(ma_data) FROM (
-                                    SELECT 
-                                        ma.*,
-                                        COALESCE((
-                                            SELECT JSON_AGG(so.*)
-                                            FROM "ServiceOrder" so
-                                            JOIN "_ManagementActionToServiceOrder" join_so ON so.id = join_so."B"
-                                            WHERE join_so."A" = ma.id
-                                        ), '[]'::json) as "serviceOrders"
-                                    FROM "ManagementAction" ma
-                                    WHERE ma."inspectionId" = i.id_inspecao
-                                ) ma_data
-                            ), '[]'::json) as "managementActions",
-                            COALESCE((SELECT JSON_AGG(ph.*) FROM "InspectionPhoto" ph WHERE ph."inspectionId" = i.id_inspecao), '[]'::json) as photos
-                        FROM "Inspection" i
-                        WHERE i."treeId" = tb.id_arvore
-                    ) i_data
+                            COALESCE((SELECT JSON_AGG(m) FROM "ManagementAction" m WHERE m."inspectionId" = ins.id_inspecao), '[]'::json) as "managementActions",
+                            COALESCE((SELECT JSON_AGG(ph) FROM "InspectionPhoto" ph WHERE ph."inspectionId" = ins.id_inspecao), '[]'::json) as photos
+                        FROM "Inspection" ins 
+                        WHERE ins."treeId" = tb.id_arvore
+                        ORDER BY ins.data_inspecao DESC
+                    ) ins_all
                 ), '[]'::json) as inspections,
-                COALESCE((SELECT JSON_AGG(pm.*) FROM "PhotoMetadata" pm WHERE pm.tree_id = tb.id_arvore), '[]'::json) as photos,
+                COALESCE((SELECT JSON_AGG(pm) FROM "PhotoMetadata" pm WHERE pm.tree_id = tb.id_arvore), '[]'::json) as photos,
                 COALESCE((
-                    SELECT JSON_AGG(so.*) 
-                    FROM "ServiceOrder" so
-                    JOIN "_ServiceOrderToTree" so_t ON so.id = so_t."A"
+                    SELECT JSON_AGG(so) FROM "ServiceOrder" so 
+                    JOIN "_ServiceOrderToTree" so_t ON so.id = so_t."A" 
                     WHERE so_t."B" = tb.id_arvore
                 ), '[]'::json) as "serviceOrders"
-            FROM tree_base tb;
+            FROM tree_base tb
         `;
 
         const tree = (results as any[])[0];
@@ -84,7 +75,9 @@ export async function GET(
             return NextResponse.json({ error: 'Tree not found' }, { status: 404 });
         }
 
-        return NextResponse.json(tree);
+        const response = NextResponse.json(tree);
+        response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+        return response;
     } catch (error) {
         console.error('Error fetching tree:', error);
         return NextResponse.json({ error: 'Failed to fetch tree' }, { status: 500 });
@@ -167,66 +160,14 @@ export async function DELETE(
     const id = parseInt(idString);
 
     try {
-        // Perform a manual cascade delete within a transaction
-        await prisma.$transaction(async (tx) => {
-            // 1. Find all inspections to get their IDs
-            const inspections = await tx.inspection.findMany({
-                where: { treeId: id },
-                select: { id_inspecao: true }
-            });
-
-            const inspectionIds = inspections.map(i => i.id_inspecao);
-
-            if (inspectionIds.length > 0) {
-                // 2. Delete Inspection Children
-                await tx.dendrometricData.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-                await tx.phytosanitaryData.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-
-                // ManagementAction is referenced by ServiceOrder, so we might need to handle ServiceOrders first if they link to Management
-                // Checking schema: ServiceOrder has tree_id AND management_id.
-                // We should delete ServiceOrders for the TREE first.
-
-                // 3. Delete Service Orders links (and possibly the SO if it's specific to this tree)
-                // In many-to-many, we can't just deleteMany by treeId if it's not a field.
-                // We'll disconnect them or delete them if they only belong to this tree.
-                // For simplicity and to match previous intended behavior:
-                await tx.serviceOrder.deleteMany({
-                    where: {
-                        trees: {
-                            some: { id_arvore: id }
-                        }
-                    }
-                });
-
-                // Now safe to delete ManagementActions
-                await tx.managementAction.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-                await tx.inspectionPhoto.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-
-                // 4. Delete Inspections
-                await tx.inspection.deleteMany({ where: { treeId: id } });
-            } else {
-                // Even if no inspections, ensure ServiceOrders linked to this tree are gone
-                await tx.serviceOrder.deleteMany({
-                    where: {
-                        trees: {
-                            some: { id_arvore: id }
-                        }
-                    }
-                });
-            }
-
-            // 5. Delete Tree Photos (PhotoMetadata)
-            await tx.photoMetadata.deleteMany({ where: { tree_id: id } });
-
-            // 6. Finally, Delete the Tree
-            await tx.tree.delete({
-                where: { id_arvore: id }
-            });
+        await prisma.tree.update({
+            where: { id_arvore: id },
+            data: { status: 'Removida' }
         });
 
-        return NextResponse.json({ message: 'Tree deleted successfully' });
+        return NextResponse.json({ message: 'Tree marked as removed successfully' });
     } catch (error) {
         console.error('Delete failed:', error);
-        return NextResponse.json({ error: 'Failed to delete tree' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to remove tree' }, { status: 500 });
     }
 }

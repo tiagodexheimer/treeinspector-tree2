@@ -20,6 +20,7 @@ export async function GET(request: Request) {
             searchParams.get('species') ||
             searchParams.get('bairro') ||
             searchParams.get('etiqueta') ||
+            searchParams.get('numero_etiqueta') ||
             searchParams.get('radius');
 
         if (hasFilters) {
@@ -100,6 +101,7 @@ export async function GET(request: Request) {
             const endereco = searchParams.get('endereco');
             const species = searchParams.get('species');
             const q = searchParams.get('q');
+            const numero_etiqueta = searchParams.get('numero_etiqueta');
 
             const where: any = {
                 ...(q && {
@@ -109,6 +111,7 @@ export async function GET(request: Request) {
                         { endereco: { contains: q, mode: 'insensitive' } }
                     ]
                 }),
+                ...(numero_etiqueta && { numero_etiqueta: { contains: numero_etiqueta, mode: 'insensitive' } }),
                 ...(bairro && { bairro: { contains: bairro, mode: 'insensitive' } }),
                 ...(endereco && {
                     OR: [

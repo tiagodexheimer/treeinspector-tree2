@@ -1,0 +1,934 @@
+﻿{
+    "id_arvore":  1108,
+    "uuid":  "1868d3b4-0b1f-4c25-9e6c-055ccbc56ec1",
+    "numero_etiqueta":  "1110",
+    "nome_popular":  "Dracena-arbÃ³rea",
+    "cover_photo":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771864381190-LXybmeeFH68gD6LwZqLKHjDsQDAtrH.jpg",
+    "status":  "Ativa",
+    "rua":  "Rua Eng. Hener de Souza Nunes",
+    "numero":  "Prefeitura",
+    "bairro":  "Centro",
+    "endereco":  null,
+    "speciesId":  104,
+    "created_at":  "2026-02-11T13:26:15.916Z",
+    "updated_at":  "2026-02-24T16:14:07.108Z",
+    "lat":  -29.8531329,
+    "lng":  -51.1790209,
+    "species":  {
+                    "id_especie":  104,
+                    "nome_comum":  "Dracena-arbÃ³rea",
+                    "nome_cientifico":  "Dracaena arborea"
+                },
+    "inspections":  [
+                        {
+                            "id_inspecao":  17169,
+                            "uuid":  "d0c1ae0a-8528-4140-ae11-4fbfb8c543e2",
+                            "data_inspecao":  "2026-02-24T03:07:25.305",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:23:06.225",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17212,
+                                                      "inspectionId":  17169,
+                                                      "dap1_cm":  15,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  3,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:08.812",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17212,
+                                                      "inspectionId":  17169,
+                                                      "estado_saude":  "NÃ£o Avaliado",
+                                                      "severity_level":  4,
+                                                      "risk_probability":  "IMPROVAVEL",
+                                                      "target_value":  4,
+                                                      "risk_rating":  1,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:08.812",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17212,
+                                                          "inspectionId":  17169,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:08.812",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:08.814"
+                                                      }
+                                                  ],
+                            "photos":  [
+                                           {
+                                               "id_foto":  61,
+                                               "inspectionId":  17169,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/temp_upload_1771859279239-93jfFvuGNdP8UvhY03vuH3N7mk4GVw.jpg",
+                                               "created_at":  "2026-02-24T14:35:08.814",
+                                               "is_cover":  false
+                                           },
+                                           {
+                                               "id_foto":  62,
+                                               "inspectionId":  17169,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/temp_upload_1771859279703-FAIWrjreWrM6zhVaa7JEapVXIigoqn.jpg",
+                                               "created_at":  "2026-02-24T14:35:08.814",
+                                               "is_cover":  false
+                                           }
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17170,
+                            "uuid":  "242c9b88-8a05-4854-9015-0966a6f04bf3",
+                            "data_inspecao":  "2026-02-24T01:07:49.469",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:23:07.89",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17213,
+                                                      "inspectionId":  17170,
+                                                      "dap1_cm":  15,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  3,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:13.6",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17213,
+                                                      "inspectionId":  17170,
+                                                      "estado_saude":  "NÃ£o Avaliado",
+                                                      "severity_level":  4,
+                                                      "risk_probability":  "IMPROVAVEL",
+                                                      "target_value":  4,
+                                                      "risk_rating":  1,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:13.6",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17213,
+                                                          "inspectionId":  17170,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:13.6",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:13.601"
+                                                      }
+                                                  ],
+                            "photos":  [
+                                           {
+                                               "id_foto":  63,
+                                               "inspectionId":  17170,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771862877504-9k76qUILsICQJRU9upppxYsr66Ioy6.jpg",
+                                               "created_at":  "2026-02-24T14:35:13.601",
+                                               "is_cover":  false
+                                           },
+                                           {
+                                               "id_foto":  64,
+                                               "inspectionId":  17170,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771862878858-2lcS0mrche2wGBkvzRNqJFDlTyfGeq.jpg",
+                                               "created_at":  "2026-02-24T14:35:13.601",
+                                               "is_cover":  false
+                                           }
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17166,
+                            "uuid":  "75657916-a99c-482e-8166-07c246e9526d",
+                            "data_inspecao":  "2026-02-24T00:07:25.305",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:08:19.001",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17214,
+                                                      "inspectionId":  17166,
+                                                      "dap1_cm":  15,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  3,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:16.414",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17214,
+                                                      "inspectionId":  17166,
+                                                      "estado_saude":  "NÃ£o Avaliado",
+                                                      "severity_level":  4,
+                                                      "risk_probability":  "IMPROVAVEL",
+                                                      "target_value":  4,
+                                                      "risk_rating":  1,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:16.414",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17214,
+                                                          "inspectionId":  17166,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:16.414",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:16.416"
+                                                      }
+                                                  ],
+                            "photos":  [
+                                           {
+                                               "id_foto":  65,
+                                               "inspectionId":  17166,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/temp_upload_1771859279239-93jfFvuGNdP8UvhY03vuH3N7mk4GVw.jpg",
+                                               "created_at":  "2026-02-24T14:35:16.416",
+                                               "is_cover":  false
+                                           },
+                                           {
+                                               "id_foto":  66,
+                                               "inspectionId":  17166,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/temp_upload_1771859279703-FAIWrjreWrM6zhVaa7JEapVXIigoqn.jpg",
+                                               "created_at":  "2026-02-24T14:35:16.416",
+                                               "is_cover":  false
+                                           }
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17168,
+                            "uuid":  "ef0018d5-8213-43c7-880a-0c929ad28b2d",
+                            "data_inspecao":  "2026-02-23T22:22:33.504",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:23:04.412",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17215,
+                                                      "inspectionId":  17168,
+                                                      "dap1_cm":  15,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  3,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:19.229",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17215,
+                                                      "inspectionId":  17168,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  4,
+                                                      "risk_probability":  "IMPROVAVEL",
+                                                      "target_value":  4,
+                                                      "risk_rating":  1,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:19.229",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17215,
+                                                          "inspectionId":  17168,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:19.229",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:19.231"
+                                                      }
+                                                  ],
+                            "photos":  [
+                                           {
+                                               "id_foto":  67,
+                                               "inspectionId":  17168,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771863760873-nBrZhNdXqx7zCApv8IvgQiRzYGU9Gy.jpg",
+                                               "created_at":  "2026-02-24T14:35:19.231",
+                                               "is_cover":  false
+                                           },
+                                           {
+                                               "id_foto":  68,
+                                               "inspectionId":  17168,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771863761653-fv2r7inOMdPq2ikn3HOZufYRp5lMXf.jpg",
+                                               "created_at":  "2026-02-24T14:35:19.231",
+                                               "is_cover":  false
+                                           }
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17165,
+                            "uuid":  "81f951f4-9144-4611-a6ce-1fc6a3f7d759",
+                            "data_inspecao":  "2026-02-23T22:07:49.469",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:08:16.745",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17216,
+                                                      "inspectionId":  17165,
+                                                      "dap1_cm":  15,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  3,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:22.056",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17216,
+                                                      "inspectionId":  17165,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  4,
+                                                      "risk_probability":  "IMPROVAVEL",
+                                                      "target_value":  4,
+                                                      "risk_rating":  1,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:22.057",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17216,
+                                                          "inspectionId":  17165,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:22.057",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:22.062"
+                                                      }
+                                                  ],
+                            "photos":  [
+                                           {
+                                               "id_foto":  69,
+                                               "inspectionId":  17165,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771862877504-9k76qUILsICQJRU9upppxYsr66Ioy6.jpg",
+                                               "created_at":  "2026-02-24T14:35:22.062",
+                                               "is_cover":  false
+                                           },
+                                           {
+                                               "id_foto":  70,
+                                               "inspectionId":  17165,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771862878858-2lcS0mrche2wGBkvzRNqJFDlTyfGeq.jpg",
+                                               "created_at":  "2026-02-24T14:35:22.062",
+                                               "is_cover":  false
+                                           }
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17163,
+                            "uuid":  "5835c4a5-e4d3-4e79-a372-3cfaf84e4079",
+                            "data_inspecao":  "2026-02-23T21:07:25.305",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T15:13:19.81",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17217,
+                                                      "inspectionId":  17163,
+                                                      "dap1_cm":  15,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  3,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:24.791",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17217,
+                                                      "inspectionId":  17163,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  4,
+                                                      "risk_probability":  "IMPROVAVEL",
+                                                      "target_value":  4,
+                                                      "risk_rating":  1,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:24.791",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17217,
+                                                          "inspectionId":  17163,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:24.791",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:24.793"
+                                                      }
+                                                  ],
+                            "photos":  [
+                                           {
+                                               "id_foto":  71,
+                                               "inspectionId":  17163,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/temp_upload_1771859279239-93jfFvuGNdP8UvhY03vuH3N7mk4GVw.jpg",
+                                               "created_at":  "2026-02-24T14:35:24.793",
+                                               "is_cover":  false
+                                           },
+                                           {
+                                               "id_foto":  72,
+                                               "inspectionId":  17163,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/temp_upload_1771859279703-FAIWrjreWrM6zhVaa7JEapVXIigoqn.jpg",
+                                               "created_at":  "2026-02-24T14:35:24.793",
+                                               "is_cover":  false
+                                           }
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17172,
+                            "uuid":  "1eb25ae2-d8f6-496c-900c-52fd07a6865b",
+                            "data_inspecao":  "2026-02-23T19:32:52.917",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:33:26.816",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17218,
+                                                      "inspectionId":  17172,
+                                                      "dap1_cm":  15,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  3,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:27.633",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17218,
+                                                      "inspectionId":  17172,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  4,
+                                                      "risk_probability":  "IMPROVAVEL",
+                                                      "target_value":  4,
+                                                      "risk_rating":  1,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:27.633",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17218,
+                                                          "inspectionId":  17172,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:27.633",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:27.637"
+                                                      }
+                                                  ],
+                            "photos":  [
+                                           {
+                                               "id_foto":  73,
+                                               "inspectionId":  17172,
+                                               "uri":  "https://1nmgapcm6lmug88l.public.blob.vercel-storage.com/trees/1110/temp_upload_1771864381190-LXybmeeFH68gD6LwZqLKHjDsQDAtrH.jpg",
+                                               "created_at":  "2026-02-24T14:35:27.637",
+                                               "is_cover":  false
+                                           }
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17171,
+                            "uuid":  "4122bd11-71c7-4a3d-9379-c0f1870d7a0d",
+                            "data_inspecao":  "2024-08-12T15:00:00",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:23:12.377",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17219,
+                                                      "inspectionId":  17171,
+                                                      "dap1_cm":  3,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  1,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:30.624",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17219,
+                                                      "inspectionId":  17171,
+                                                      "estado_saude":  "NÃ£o Avaliado",
+                                                      "severity_level":  null,
+                                                      "risk_probability":  null,
+                                                      "target_value":  null,
+                                                      "risk_rating":  null,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:30.624",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17219,
+                                                          "inspectionId":  17171,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:30.624",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:30.628"
+                                                      }
+                                                  ],
+                            "photos":  [
+
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17167,
+                            "uuid":  "f8a89c52-53d3-4959-94bb-b7200263a937",
+                            "data_inspecao":  "2024-08-12T12:00:00",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:08:20.737",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17220,
+                                                      "inspectionId":  17167,
+                                                      "dap1_cm":  3,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  1,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:33.226",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17220,
+                                                      "inspectionId":  17167,
+                                                      "estado_saude":  "NÃ£o Avaliado",
+                                                      "severity_level":  null,
+                                                      "risk_probability":  null,
+                                                      "target_value":  null,
+                                                      "risk_rating":  null,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:33.226",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17220,
+                                                          "inspectionId":  17167,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:33.226",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:33.227"
+                                                      }
+                                                  ],
+                            "photos":  [
+
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17164,
+                            "uuid":  "511bbecd-e608-4e26-8c6f-717e5d2fbb70",
+                            "data_inspecao":  "2024-08-12T09:00:00",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T15:13:22.547",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17221,
+                                                      "inspectionId":  17164,
+                                                      "dap1_cm":  3,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  1,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:35.635",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17221,
+                                                      "inspectionId":  17164,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  null,
+                                                      "risk_probability":  null,
+                                                      "target_value":  null,
+                                                      "risk_rating":  null,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:35.635",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17221,
+                                                          "inspectionId":  17164,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:35.635",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:35.638"
+                                                      }
+                                                  ],
+                            "photos":  [
+
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17173,
+                            "uuid":  "f1a08534-0fd7-4aa2-878f-a2533232be0e",
+                            "data_inspecao":  "2024-08-12T06:00:00",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-23T16:33:44.713",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17222,
+                                                      "inspectionId":  17173,
+                                                      "dap1_cm":  3,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  1,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:38.12",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17222,
+                                                      "inspectionId":  17173,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  null,
+                                                      "risk_probability":  null,
+                                                      "target_value":  null,
+                                                      "risk_rating":  null,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:38.12",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17222,
+                                                          "inspectionId":  17173,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:38.12",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:38.122"
+                                                      }
+                                                  ],
+                            "photos":  [
+
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  17176,
+                            "uuid":  "c5b8d742-1781-4e04-9b07-6a3683749bad",
+                            "data_inspecao":  "2024-08-12T03:00:00",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-24T14:35:40.516",
+                            "createdById":  "cmli2fihj0000sbx3yriw7964",
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  17223,
+                                                      "inspectionId":  17176,
+                                                      "dap1_cm":  3,
+                                                      "dap2_cm":  null,
+                                                      "dap3_cm":  null,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  1,
+                                                      "altura_copa_m":  null,
+                                                      "valid_from":  "2026-02-24T14:35:40.515",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  17223,
+                                                      "inspectionId":  17176,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  null,
+                                                      "risk_probability":  null,
+                                                      "target_value":  null,
+                                                      "risk_rating":  null,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2026-02-24T14:35:40.515",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  17223,
+                                                          "inspectionId":  17176,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2026-02-24T14:35:40.515",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-24T14:35:40.516"
+                                                      }
+                                                  ],
+                            "photos":  [
+
+                                       ]
+                        },
+                        {
+                            "id_inspecao":  1107,
+                            "uuid":  "8b2c57f1-8dc2-4cb7-b046-4736023931e1",
+                            "data_inspecao":  "2024-08-12T00:00:00",
+                            "treeId":  1108,
+                            "created_at":  "2026-02-11T13:26:16.344",
+                            "createdById":  null,
+                            "tree_removed":  false,
+                            "dendrometrics":  [
+                                                  {
+                                                      "id":  1109,
+                                                      "inspectionId":  1107,
+                                                      "dap1_cm":  3,
+                                                      "dap2_cm":  4,
+                                                      "dap3_cm":  3,
+                                                      "dap4_cm":  null,
+                                                      "altura_total_m":  1,
+                                                      "altura_copa_m":  0,
+                                                      "valid_from":  "2024-08-12T00:00:00",
+                                                      "valid_to":  null
+                                                  }
+                                              ],
+                            "phytosanitary":  [
+                                                  {
+                                                      "id":  1110,
+                                                      "inspectionId":  1107,
+                                                      "estado_saude":  "Bom",
+                                                      "severity_level":  0,
+                                                      "risk_probability":  null,
+                                                      "target_value":  null,
+                                                      "risk_rating":  null,
+                                                      "danos_tipo":  null,
+                                                      "valid_from":  "2024-08-12T00:00:00",
+                                                      "valid_to":  null,
+                                                      "pests":  [
+
+                                                                ]
+                                                  }
+                                              ],
+                            "managementActions":  [
+                                                      {
+                                                          "id":  1110,
+                                                          "inspectionId":  1107,
+                                                          "necessita_manejo":  false,
+                                                          "manejo_tipo":  null,
+                                                          "poda_tipos":  [
+
+                                                                         ],
+                                                          "supressao_tipo":  null,
+                                                          "justification":  null,
+                                                          "valid_from":  "2024-08-12T00:00:00",
+                                                          "valid_to":  null,
+                                                          "created_at":  "2026-02-11T13:26:16.344"
+                                                      }
+                                                  ],
+                            "photos":  [
+
+                                       ]
+                        }
+                    ],
+    "photos":  [
+
+               ],
+    "serviceOrders":  [
+                          {
+                              "id":  4,
+                              "status":  "ConcluÃ­da",
+                              "assigned_to":  "",
+                              "observations":  "",
+                              "description":  "poda realizada",
+                              "serviceType":  "Poda",
+                              "serviceSubtypes":  [
+                                                      "Limpeza"
+                                                  ],
+                              "created_at":  "2026-02-23T16:37:36.457",
+                              "executed_at":  "2026-02-23T17:00:26.074",
+                              "adjustment_notes":  "teste",
+                              "assignedToId":  null,
+                              "cancel_reason":  null,
+                              "checklist":  {
+                                                "op_fuga":  true,
+                                                "ent_vias":  false,
+                                                "eq_freio":  true,
+                                                "op_clima":  true,
+                                                "alt_cinto":  false,
+                                                "epi_calca":  true,
+                                                "epi_luvas":  true,
+                                                "eq_tensao":  true,
+                                                "sin_cones":  true,
+                                                "sin_vigia":  true,
+                                                "tree_1108":  false,
+                                                "alt_escada":  false,
+                                                "epi_botina":  true,
+                                                "epi_colete":  true,
+                                                "epi_oculos":  true,
+                                                "apoio_cintas":  false,
+                                                "apoio_cordas":  false,
+                                                "ent_eletrica":  false,
+                                                "epi_capacete":  true,
+                                                "op_primeiros":  true,
+                                                "alt_ancoragem":  false,
+                                                "alt_talabarte":  false,
+                                                "epi_auricular":  true,
+                                                "eq_motosserra":  true,
+                                                "sin_pedestres":  true,
+                                                "alt_capacitado":  false,
+                                                "ent_interdicao":  false,
+                                                "op_comunicacao":  true,
+                                                "sin_isolamento":  true,
+                                                "ent_edificacoes":  false,
+                                                "apoio_mecanizado":  false,
+                                                "eq_abastecimento":  true
+                                            },
+                              "createdById":  "cmli2fihj0000sbx3yriw7964",
+                              "priority":  "Moderada",
+                              "start_time":  "2026-02-23T16:59:48.172",
+                              "team_size":  1
+                          }
+                      ]
+}

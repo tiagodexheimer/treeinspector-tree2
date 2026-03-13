@@ -9,6 +9,7 @@ interface ServiceOrderExecutionModalProps {
     action: 'start' | 'finalize' | 'cancel' | null;
     serviceOrderId: number;
     initialStartTime?: string;
+    initialData?: any;
     onSuccess: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function ServiceOrderExecutionModal({
     action,
     serviceOrderId,
     initialStartTime,
+    initialData,
     onSuccess
 }: ServiceOrderExecutionModalProps) {
     const [isLoading, setIsLoading] = useState(false);
@@ -47,8 +49,8 @@ export default function ServiceOrderExecutionModal({
                 .then(res => res.json())
                 .then(data => {
                     setAllMaterialMaster(data || []);
-                    // Auto-load materials if list is empty
-                    if (materials.length === 0) {
+                    // Auto-load materials if list is empty AND (we are not in adjustment mode OR existing materials list is empty)
+                    if (materials.length === 0 && (!initialData?.materials || initialData.materials.length === 0)) {
                         const autoLoaded = data
                             .filter((m: any) => m.auto_load)
                             .map((m: any) => ({
@@ -71,7 +73,7 @@ export default function ServiceOrderExecutionModal({
                 })
                 .catch(err => console.error('Failed to fetch settings', err));
         }
-    }, [isOpen, action]);
+    }, [isOpen, action, initialData]);
 
     // Cleanup states on close
     useEffect(() => {
@@ -83,8 +85,41 @@ export default function ServiceOrderExecutionModal({
             setMaterials([]);
             setTeamSize('1');
             setNewMaterial({ name: '', quantity: '', unit: 'un', unit_cost: '' });
+            setDurationHours('0');
+            setDurationMinutes('0');
+        } else if (isOpen && action === 'finalize' && initialData) {
+            // PRE-FILL EXISTING DATA FOR ADJUSTMENTS
+            if (initialData.description) setDescription(initialData.description);
+            if (initialData.team_size) setTeamSize(initialData.team_size.toString());
+            if (initialData.checklist) setChecklist(initialData.checklist);
+            
+            if (initialData.materials && initialData.materials.length > 0) {
+                setMaterials(initialData.materials.map((m: any) => ({
+                    name: m.name,
+                    quantity: m.quantity.toString(),
+                    unit: m.unit,
+                    unit_cost: m.unit_cost?.toString()
+                })));
+            }
+
+            if (initialData.photos && initialData.photos.length > 0) {
+                const results = initialData.photos
+                    .filter((p: any) => p.category === 'Depois')
+                    .map((p: any) => ({ uri: p.uri, category: p.category }));
+                setFinalizePhotoUrls(results);
+            }
+
+            // Calculate duration if start and end times exist
+            if (initialData.start_time && initialData.executed_at) {
+                const start = new Date(initialData.start_time).getTime();
+                const end = new Date(initialData.executed_at).getTime();
+                const diffMs = end - start;
+                const totalMinutes = Math.floor(diffMs / (1000 * 60));
+                setDurationHours(Math.floor(totalMinutes / 60).toString());
+                setDurationMinutes((totalMinutes % 60).toString());
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, initialData, action]);
 
     // Effect to set initial start time when modal opens
     if (isOpen && action === 'finalize' && !startDateTime && initialStartTime) {

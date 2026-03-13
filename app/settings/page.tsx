@@ -3,15 +3,31 @@
 import Link from 'next/link';
 import { useSession } from "next-auth/react";
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function SettingsPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
+    const [stats, setStats] = useState({ species: 0, pests: 0, trees: 0 });
+
     useEffect(() => {
         if (status === 'unauthenticated') {
             router.push('/login');
+            return;
+        }
+
+        if (status === 'authenticated') {
+            fetch('/api/stats/dashboard')
+                .then(r => r.json())
+                .then(data => {
+                    setStats({
+                        species: data.species || 0,
+                        pests: data.pests || 0,
+                        trees: data.trees || 0
+                    });
+                })
+                .catch(err => console.error('Failed to fetch stats:', err));
         }
     }, [status, router]);
 
@@ -165,7 +181,7 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-500 uppercase font-semibold">Espécies Cadastradas</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-1" id="species-count">-</p>
+                                <p className="text-3xl font-bold text-gray-900 mt-1" id="species-count">{stats.species}</p>
                             </div>
                             <svg className="w-12 h-12 text-emerald-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -177,7 +193,7 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-500 uppercase font-semibold">Pragas Catalogadas</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-1" id="pests-count">-</p>
+                                <p className="text-3xl font-bold text-gray-900 mt-1" id="pests-count">{stats.pests}</p>
                             </div>
                             <svg className="w-12 h-12 text-red-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -189,7 +205,7 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-gray-500 uppercase font-semibold">Árvores Totais</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-1" id="trees-count">-</p>
+                                <p className="text-3xl font-bold text-gray-900 mt-1" id="trees-count">{stats.trees}</p>
                             </div>
                             <svg className="w-12 h-12 text-blue-500 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -198,19 +214,6 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Load stats */}
-            <script dangerouslySetInnerHTML={{
-                __html: `
-                fetch('/api/stats/dashboard')
-                    .then(r => r.json())
-                    .then(data => {
-                        document.getElementById('species-count').textContent = data.species || 0;
-                        document.getElementById('pests-count').textContent = data.pests || 0;
-                        document.getElementById('trees-count').textContent = data.trees || 0;
-                    })
-                    .catch(() => {});
-            ` }} />
         </div>
     );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import MapComponent to disable SSR for Leaflet
@@ -16,6 +17,7 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 
 import SpeciesDashboard from './SpeciesDashboard';
 import ManagementMetricsDashboard from './ManagementMetricsDashboard';
+import InspectionStatsDashboard from './InspectionStatsDashboard';
 
 // Update Interface
 interface NeighborhoodStat {
@@ -58,7 +60,7 @@ interface ManagementSummary {
     totalCost: number;
 }
 
-type StatMode = 'management' | 'health' | 'grid' | 'species' | 'metrics';
+type StatMode = 'management' | 'health' | 'grid' | 'species' | 'metrics' | 'inspections';
 type GridType = 'health' | 'management';
 
 export default function StatisticsPage() {
@@ -67,6 +69,9 @@ export default function StatisticsPage() {
     const [speciesStats, setSpeciesStats] = useState<SpeciesStat[]>([]);
     const [metricsData, setMetricsData] = useState<ManagementMetrics[]>([]);
     const [metricsSummary, setMetricsSummary] = useState<ManagementSummary>({ totalTrees: 0, totalCost: 0 });
+    const [inspectionData, setInspectionData] = useState<any[]>([]);
+    const [inspectionMonthlyData, setInspectionMonthlyData] = useState<any[]>([]);
+    const [inspectionSummary, setInspectionSummary] = useState<any>({ totalEvaluations: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [statMode, setStatMode] = useState<StatMode>('management');
@@ -75,6 +80,7 @@ export default function StatisticsPage() {
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
     const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
     const router = useRouter();
+    const { status } = useSession();
 
     const currentYear = new Date().getFullYear();
     const years = [currentYear, currentYear - 1, currentYear - 2];
@@ -92,6 +98,13 @@ export default function StatisticsPage() {
         { value: 11, label: 'Novembro' },
         { value: 12, label: 'Dezembro' }
     ];
+
+    // Reset statMode if user is not authenticated and somehow lands on inspections
+    useEffect(() => {
+        if (status === 'unauthenticated' && statMode === 'inspections') {
+            setStatMode('management');
+        }
+    }, [status, statMode]);
 
     // Get list of neighborhoods and handle initial redirect if needed
     const neighborhoods = useMemo(() => {
@@ -149,6 +162,20 @@ export default function StatisticsPage() {
                     const data = await res.json();
                     setMetricsData(data.data || []);
                     setMetricsSummary(data.summary || { totalTrees: 0, totalCost: 0 });
+                } else if (statMode === 'inspections') {
+                    const url = new URL('/api/statistics/inspections', window.location.origin);
+                    url.searchParams.set('year', selectedYear.toString());
+                    if (selectedMonth) url.searchParams.set('month', selectedMonth.toString());
+
+                    const res = await fetch(url.toString());
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.error || `Erro ao carregar avaliações (${res.status})`);
+                    }
+                    const data = await res.json();
+                    setInspectionData(data.data || []);
+                    setInspectionMonthlyData(data.monthlyData || []);
+                    setInspectionSummary(data.summary || { totalEvaluations: 0 });
                 }
                 // Neighborhood stats (for health/management modes) are handled by fetchBaseStats
             } catch (err: any) {
@@ -175,6 +202,9 @@ export default function StatisticsPage() {
                         <button onClick={() => setStatMode('grid')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'grid' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Micro-Regiões</button>
                         <button onClick={() => setStatMode('species')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'species' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Espécies</button>
                         <button onClick={() => setStatMode('metrics')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'metrics' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Métricas</button>
+                        {status === 'authenticated' && (
+                            <button onClick={() => setStatMode('inspections')} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${statMode === 'inspections' ? 'bg-white text-gray-900 shadow' : 'text-gray-500 hover:text-gray-900'}`}>Avaliações</button>
+                        )}
                     </div>
 
                     {/* Sub-toggle for Grid */}
@@ -203,8 +233,8 @@ export default function StatisticsPage() {
                         </div>
                     )}
 
-                    {/* Year/Month Filter for Metrics */}
-                    {statMode === 'metrics' && (
+                    {/* Year/Month Filter for Metrics and Inspections */}
+                    {(statMode === 'metrics' || statMode === 'inspections') && (
                         <div className="flex items-center gap-4 ml-4 animate-fade-in">
                             <div className="flex items-center gap-2">
                                 <label className="text-xs font-bold text-gray-500 uppercase">Ano:</label>
@@ -250,7 +280,7 @@ export default function StatisticsPage() {
                 )}
 
                 {/* Loader Overlay for Data Fetching */}
-                {(loading && statMode !== 'species' && statMode !== 'metrics') && (
+                {(loading && statMode !== 'species' && statMode !== 'metrics' && statMode !== 'inspections') && (
                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white bg-opacity-75">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
                     </div>
@@ -266,6 +296,15 @@ export default function StatisticsPage() {
                     <ManagementMetricsDashboard
                         data={metricsData}
                         summary={metricsSummary}
+                        loading={loading}
+                        year={selectedYear}
+                        month={selectedMonth}
+                    />
+                ) : (statMode === 'inspections' && status === 'authenticated') ? (
+                    <InspectionStatsDashboard
+                        data={inspectionData}
+                        monthlyData={inspectionMonthlyData}
+                        summary={inspectionSummary}
                         loading={loading}
                         year={selectedYear}
                         month={selectedMonth}

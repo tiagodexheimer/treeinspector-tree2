@@ -11,6 +11,7 @@ interface ServiceOrder {
     description: string | null;
     created_at: string;
     createdById: string | null;
+    assigned_to: string | null;
     assignedToId: string | null;
     assignedTo?: { name: string | null; email: string };
     priority: 'Baixa' | 'Moderada' | 'Alta' | 'Emergencial';
@@ -90,15 +91,6 @@ export default function ServiceOrdersPage() {
                                             <path fillRule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clipRule="evenodd" />
                                         </svg>
                                         Criar OS via mapa
-                                    </Link>
-                                    <Link
-                                        href="/trees"
-                                        className="bg-green-600 text-white font-bold py-2 px-4 rounded shadow border border-green-500 hover:bg-green-500 transition flex items-center gap-2"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-                                        </svg>
-                                        Lista
                                     </Link>
                                 </>
                             )}
@@ -209,8 +201,8 @@ export default function ServiceOrdersPage() {
                                                 <span>
                                                     {new Date(os.created_at).toLocaleDateString()}
                                                 </span>
-                                                <span className="font-semibold text-right max-w-[120px] truncate">
-                                                    {os.assignedTo?.name || os.assignedTo?.email || '⚠️ Não atribuído'}
+                                                <span className="font-semibold text-right max-w-[180px] truncate">
+                                                    Responsável da OS: {os.assigned_to || os.assignedTo?.name || os.assignedTo?.email || '⚠️ Não atribuído'}
                                                 </span>
                                             </div>
                                             <div className="mt-4 pt-2 border-t border-gray-100 flex justify-end">

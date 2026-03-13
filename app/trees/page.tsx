@@ -41,7 +41,7 @@ export default function TreesPage() {
             const params = new URLSearchParams();
             if (bairro) params.append('bairro', bairro);
             if (endereco) params.append('endereco', endereco);
-            if (etiqueta) params.append('etiqueta', etiqueta);
+            if (etiqueta) params.append('numero_etiqueta', etiqueta);
             if (species) params.append('species', species);
 
             // If resetting (e.g. new filter), force page 1

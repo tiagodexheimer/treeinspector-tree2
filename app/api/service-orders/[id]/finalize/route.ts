@@ -58,12 +58,14 @@ export async function POST(
                 ...(finalStartTime ? { start_time: finalStartTime } : {}),
                 description: description,
                 photos: photos && Array.isArray(photos) ? {
+                    deleteMany: { category: 'Depois' },
                     create: photos.map((photo: any) => ({
                         uri: photo.uri,
                         category: photo.category || 'Depois'
                     }))
                 } : undefined,
                 materials: materials && Array.isArray(materials) ? {
+                    deleteMany: {},
                     create: materials.map((mat: any) => ({
                         name: mat.name,
                         quantity: mat.quantity,

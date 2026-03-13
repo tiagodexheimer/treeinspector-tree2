@@ -145,7 +145,7 @@ export default function TreeDetailPage() {
     }
 
     async function handleDelete() {
-        if (!confirm('Tem certeza que deseja apagar esta árvore? Isso é irreversível.')) return;
+        if (!confirm('Esta árvore será marcada como REMOVIDA. Os dados históricos serão preservados, mas ela não aparecerá mais como ativa. Deseja continuar?')) return;
         try {
             const res = await fetch(`/api/trees/${params.id}`, { method: 'DELETE' });
             if (res.ok) {
@@ -298,7 +298,7 @@ export default function TreeDetailPage() {
                                     )}
                                     {canDelete && (
                                         <button onClick={handleDelete} className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 backdrop-blur-sm text-white rounded-lg transition-all">
-                                            Excluir
+                                            Remover Árvore
                                         </button>
                                     )}
                                 </>

@@ -160,66 +160,14 @@ export async function DELETE(
     const id = parseInt(idString);
 
     try {
-        // Perform a manual cascade delete within a transaction
-        await prisma.$transaction(async (tx) => {
-            // 1. Find all inspections to get their IDs
-            const inspections = await tx.inspection.findMany({
-                where: { treeId: id },
-                select: { id_inspecao: true }
-            });
-
-            const inspectionIds = inspections.map(i => i.id_inspecao);
-
-            if (inspectionIds.length > 0) {
-                // 2. Delete Inspection Children
-                await tx.dendrometricData.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-                await tx.phytosanitaryData.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-
-                // ManagementAction is referenced by ServiceOrder, so we might need to handle ServiceOrders first if they link to Management
-                // Checking schema: ServiceOrder has tree_id AND management_id.
-                // We should delete ServiceOrders for the TREE first.
-
-                // 3. Delete Service Orders links (and possibly the SO if it's specific to this tree)
-                // In many-to-many, we can't just deleteMany by treeId if it's not a field.
-                // We'll disconnect them or delete them if they only belong to this tree.
-                // For simplicity and to match previous intended behavior:
-                await tx.serviceOrder.deleteMany({
-                    where: {
-                        trees: {
-                            some: { id_arvore: id }
-                        }
-                    }
-                });
-
-                // Now safe to delete ManagementActions
-                await tx.managementAction.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-                await tx.inspectionPhoto.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
-
-                // 4. Delete Inspections
-                await tx.inspection.deleteMany({ where: { treeId: id } });
-            } else {
-                // Even if no inspections, ensure ServiceOrders linked to this tree are gone
-                await tx.serviceOrder.deleteMany({
-                    where: {
-                        trees: {
-                            some: { id_arvore: id }
-                        }
-                    }
-                });
-            }
-
-            // 5. Delete Tree Photos (PhotoMetadata)
-            await tx.photoMetadata.deleteMany({ where: { tree_id: id } });
-
-            // 6. Finally, Delete the Tree
-            await tx.tree.delete({
-                where: { id_arvore: id }
-            });
+        await prisma.tree.update({
+            where: { id_arvore: id },
+            data: { status: 'Removida' }
         });
 
-        return NextResponse.json({ message: 'Tree deleted successfully' });
+        return NextResponse.json({ message: 'Tree marked as removed successfully' });
     } catch (error) {
         console.error('Delete failed:', error);
-        return NextResponse.json({ error: 'Failed to delete tree' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to remove tree' }, { status: 500 });
     }
 }

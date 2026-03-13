@@ -153,6 +153,14 @@ export async function GET(request: Request) {
         // 1. Fetch OS (1 RTT)
         const serviceOrders = await prisma.serviceOrder.findMany({
             where,
+            include: {
+                assignedTo: {
+                    select: {
+                        name: true,
+                        email: true
+                    }
+                }
+            },
             orderBy: { created_at: 'desc' }
         });
 

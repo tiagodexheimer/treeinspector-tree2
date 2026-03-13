@@ -49,8 +49,8 @@ export default function ServiceOrderExecutionModal({
                 .then(res => res.json())
                 .then(data => {
                     setAllMaterialMaster(data || []);
-                    // Auto-load materials if list is empty AND we are not in adjustment mode (initialData)
-                    if (materials.length === 0 && !initialData) {
+                    // Auto-load materials if list is empty AND (we are not in adjustment mode OR existing materials list is empty)
+                    if (materials.length === 0 && (!initialData?.materials || initialData.materials.length === 0)) {
                         const autoLoaded = data
                             .filter((m: any) => m.auto_load)
                             .map((m: any) => ({

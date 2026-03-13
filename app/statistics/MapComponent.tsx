@@ -32,7 +32,7 @@ export interface GridStat {
     grid_lng?: number;
 }
 
-export type StatMode = 'management' | 'health' | 'grid' | 'species';
+export type StatMode = 'management' | 'health' | 'grid' | 'species' | 'metrics' | 'inspections';
 export type GridType = 'health' | 'management';
 
 interface MapComponentProps {
